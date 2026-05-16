@@ -1,0 +1,311 @@
+{
+  "id": 15674,
+  "name": "Triage Microsoft 365 incidents into Jira with GPT-4o-mini, PagerDuty and Teams",
+  "totalViews": 0,
+  "price": 0,
+  "purchaseUrl": null,
+  "user": {
+    "id": 96894,
+    "name": "Mychel Garzon",
+    "username": "mychel-garzon",
+    "bio": "n8n Verified Creator and Junction 2025 n8n Tech Challenge Winner based in Helsinki, Finland. Full Stack Engineer specializing in AI automation workflows, multi-agent systems, RAG pipelines, and automated incident triage. Node.js, TypeScript, React, LLMs (OpenAI, Anthropic, Gemini, Groq). 99.9% production uptime.\n\nCustom n8n workflows: mychel.garzon@gmail.com",
+    "verified": true,
+    "links": "[\"https://mychelgarzon.com/\"]",
+    "avatar": "https://gravatar.com/avatar/8937dc435f1eb7cc47cfc0139be315f5e28add64bc872edc5e5315137ee12b75?r=pg&d=retro&size=200"
+  },
+  "description": "Manual incident triage kills your MTTR. This workflow automates the first response so your engineers get actionable tickets instead of raw alerts.\n\nThis workflow takes unstructured incident reports from Microsoft 365 and turns them into structured Jira tickets with severity, affected systems, root cause hypothesis, and recommended actions. It analyzes impact, routes critical failures to PagerDuty, and posts clear summaries to Teams.\n\nHow it works\nThe workflow operates in four synchronized stages:\n\nThe workflow runs in four stages:\n\nReliable ingestion: Webhook triggers and returns 202 Accepted immediately. This prevents the source system from timing out or sending duplicate retries while the AI processes the data.\nSecurity and deduplication:\n\nValidation: Checks webhook signatures and sanitizes input to block prompt injection.\nIdempotency: Compares incident ID against a 1,000-event rolling window in staticData. No duplicate tickets for the same issue.\n\nAI analysis: GPT-4o-mini analyzes the report. Extracts a title, assigns severity (P1-P4), identifies affected systems, generates root cause hypothesis and next steps. The Parse & Enrich node catches malformed AI output and fails gracefully into a \"Manual Review\" state.\nOrchestrated response:\n\nTicketing: Creates a Jira Incident with mapped priorities and triage labels.\nEscalation: Triggers PagerDuty for P1 and P2 incidents only.  \t\n\nVisibility: Posts an Adaptive Card to Teams with summary and direct link to the Jira ticket.\n\nKey Benefits\nAsync handshake: 202 response prevents webhook timeout issues with Microsoft 365 and Teams.\nDeduplication: Idempotency gate blocks duplicate alerts from flooding your ticketing system and on-call engineers.\nActionable output: Engineers get likely root cause and suggested actions, not just \"system down\" alerts.\nAudit trail: Every execution logs structured data for tracking AI accuracy, execution time, and incident patterns.\n\nSetup Steps\n[ ] Credentials: Add credentials for OpenAI (LangChain), Jira Software, PagerDuty, and Microsoft Teams.\n[ ] Environment Variables: Define WEBHOOK_SECRET, JIRA_PROJECT_KEY, JIRA_DOMAIN, PAGERDUTY_SERVICE_ID, and PAGERDUTY_EMAIL.\n[ ] Jira Config: Ensure your Jira project has the \"Incident\" issue type enabled and the priority levels match (Highest, High, Medium, Low).\n[ ] Webhook Link: Copy the n8n Production Webhook URL and paste it into your Microsoft 365 outgoing webhook settings or Teams app configuration.\n\nWho this is for\nSRE & DevOps Teams:** Need to cut alert noise and automate first-line incident response.\nIT Operations Managers:** Want audit trails for incident handling (SOC 2 compliance).\nManaged Service Providers (MSPs):** Offering AI triage as a service to enterprise clients.\n\nRequired APIs & Credentials\nITSM & Alerts:** Jira Software, PagerDuty.\nCommunication:** Microsoft Teams.\nAI Provider:** OpenAI (GPT-4o-mini).\n\nHow to customise it\nAdjust Severity Logic:** Modify the \"Severity Guide\" in the AI Brain prompt to match your company's specific SLAs.\nSwap Ticketing Systems:** Replace the Jira node with ServiceNow, Zendesk, or GitHub Issues.\nAdd Post-Mortem Prep:** Add a branch to automatically create a dedicated Slack or Teams channel and a Zoom/Teams bridge for P1 incidents.\nLocal LLM Option:* Swap the OpenAI node for *Ollama** if you prefer to run triage on your own infrastructure for maximum data privacy.",
+  "createdAt": "2026-05-12T17:56:46.315Z",
+  "nodes": [
+    {
+      "id": 77,
+      "icon": "file:jira.svg",
+      "name": "n8n-nodes-base.jira",
+      "codex": {
+        "data": {
+          "resources": {
+            "generic": [
+              {
+                "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                "icon": "\ud83e\udd16",
+                "label": "5 workflow automations for Mattermost that we love at n8n"
+              },
+              {
+                "url": "https://n8n.io/blog/creating-custom-incident-response-workflows-with-n8n/",
+                "label": "How to automate every step of an incident response workflow"
+              }
+            ],
+            "primaryDocumentation": [
+              {
+                "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.jira/"
+              }
+            ],
+            "credentialDocumentation": [
+              {
+                "url": "https://docs.n8n.io/integrations/builtin/credentials/jira/"
+              }
+            ]
+          },
+          "categories": [
+            "Development",
+            "Productivity"
+          ],
+          "nodeVersion": "1.0",
+          "codexVersion": "1.0"
+        }
+      },
+      "group": "[\"output\"]",
+      "defaults": {
+        "name": "Jira Software"
+      },
+      "iconData": {
+        "type": "file",
+        "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgNjguMjUgNzEuMjUiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9IjMuMTI1IiB5PSIzLjEyNSIvPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iYiIgeDE9IjkxLjklIiB4Mj0iMjguNDklIiB5MT0iNDAuMjIlIiB5Mj0iODEuNjMlIj48c3RvcCBvZmZzZXQ9IjE4JSIgc3RvcC1jb2xvcj0iIzAwNTJjYyIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzI2ODRmZiIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJjIiB4MT0iOC43JSIgeDI9IjcyLjI2JSIgeTE9IjU5LjE3JSIgeTI9IjE3Ljk5JSI+PHN0b3Agb2Zmc2V0PSIxOCUiIHN0b3AtY29sb3I9IiMwMDUyY2MiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMyNjg0ZmYiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48c3ltYm9sIGlkPSJhIiBvdmVyZmxvdz0idmlzaWJsZSI+PGcgZmlsbC1ydWxlPSJub256ZXJvIiBzdHJva2U9Im5vbmUiPjxwYXRoIGZpbGw9IiMyNjg0ZmYiIGQ9Ik02MS4xNjEgMzAuMjExIDMwLjk1IDAgLjc0IDMwLjIxMWEyLjU0IDIuNTQgMCAwIDAgMCAzLjU4MWwzMC4yMTEgMzAuMjEgMzAuMjExLTMwLjIxYTIuNTQgMi41NCAwIDAgMCAwLTMuNTgxek0zMC45NSA0MS40NmwtOS40NjItOS40NjIgOS40NjItOS40NjIgOS40NjIgOS40NjJ6Ii8+PHBhdGggZmlsbD0idXJsKCNiKSIgZD0iTTMwLjk1IDIyLjU5OUMyNC43NTUgMTYuNDA1IDI0LjcyNCA2LjM3IDMwLjg4MS4xMzhMMTAuMTE0IDIwLjc3NGwxMS4yNjggMTEuMjY4eiIvPjxwYXRoIGZpbGw9InVybCgjYykiIGQ9Ik00MC40MzcgMzEuOTczIDMwLjk1IDQxLjQ2YTE1LjkzIDE1LjkzIDAgMCAxIDAgMjIuNTM2bDIwLjc0OS0yMC43NDl6Ii8+PC9nPjwvc3ltYm9sPjwvc3ZnPg=="
+      },
+      "displayName": "Jira Software",
+      "typeVersion": 1,
+      "nodeCategories": [
+        {
+          "id": 4,
+          "name": "Productivity"
+        },
+        {
+          "id": 5,
+          "name": "Development"
+        }
+      ]
+    },
+    {
+      "id": 310,
+      "icon": "file:pagerDuty.svg",
+      "name": "n8n-nodes-base.pagerDuty",
+      "codex": {
+        "data": {
+          "resources": {
+            "generic": [
+              {
+                "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                "icon": "\ud83c\udfed",
+                "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+              },
+              {
+                "url": "https://n8n.io/blog/creating-custom-incident-response-workflows-with-n8n/",
+                "label": "How to automate every step of an incident response workflow"
+              }
+            ],
+            "primaryDocumentation": [
+              {
+                "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.pagerduty/"
+              }
+            ],
+            "credentialDocumentation": [
+              {
+                "url": "https://docs.n8n.io/integrations/builtin/credentials/pagerduty/"
+              }
+            ]
+          },
+          "categories": [
+            "Communication",
+            "Development"
+          ],
+          "nodeVersion": "1.0",
+          "codexVersion": "1.0"
+        }
+      },
+      "group": "[\"output\"]",
+      "defaults": {
+        "name": "PagerDuty"
+      },
+      "iconData": {
+        "type": "file",
+        "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgNjYgNTYiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48cGF0aCBmaWxsPSIjMjVjMTUxIiBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSIgZD0iTTYuNzA0IDU0LjQzNEgwdi0zMy42NWMwLTMuNDU1IDEuNDE4LTUuNTQ0IDIuNjA0LTYuNzA0IDIuNjMtMi41OCA2LjItMi42NTYgNi43ODItMi42NTZoMTAuNTQ2YzMuNzY1IDAgNS45MyAxLjUyIDcuMTE3IDIuOCAyLjM0NiAyLjU1MyAyLjM3MiA1Ljg1MyAyLjMyIDYuNzN2MTIuNjg3YzAgMy42NjItMS40OTYgNS44MjgtMi43MzMgNi45ODgtMi41NTMgMi4zOTgtNS45MyAyLjQ1LTYuNzMgMi40MjRINi43MDR6bTEzLjQ2LTE4LjEwMmMuMzYgMCAxLjM2Ny0uMTAzIDEuOTA4LS42Mi40MTMtLjM4Ny42Mi0xLjA4My42Mi0yLjF2LTEzLjAyYzAtLjM2LS4wNzctMS4zMTUtLjU5My0xLjg1Ny0uNS0uNTE2LTEuNDQ0LS42Mi0yLjE2Ni0uNjJoLTEwLjZjLTIuNjMgMC0yLjYzIDEuOTg1LTIuNjMgMi42NTZ2MTUuNTV6TTU3LjI5NiAwSDY0djMzLjY3N2MwIDMuNDU1LTEuNDE4IDUuNTQ0LTIuNjA0IDYuNzA0LTIuNjMgMi41OC02LjIgMi42NTYtNi43ODIgMi42NTZINDQuMDY4Yy0zLjc2NSAwLTUuOTMtMS41Mi03LjExNy0yLjgtMi4zNDYtMi41NTMtMi4zNzItNS44NTMtMi4zMi02Ljczdi0xMi42N2MwLTMuNjYyIDEuNDk2LTUuODI4IDIuNzMzLTYuOTg4IDIuNTUzLTIuMzk4IDUuOTMtMi40NSA2LjczLTIuNDI0aDEzLjIwMnptLTEzLjQ2IDE4LjExN2MtLjM2IDAtMS4zNjcuMTAzLTEuOTA4LjYyLS40MTMuMzg3LS42MiAxLjA4My0uNjIgMi4xdjEzLjAyYzAgLjM2LjA3NyAxLjMxNS41OTMgMS44NTcuNS41MTYgMS40NDQuNjIgMi4xNjYuNjJoMTAuNTk4YzIuNjU2LS4wMjYgMi42NTYtMiAyLjY1Ni0yLjY4MlYxOC4xMTd6Ii8+PC9zeW1ib2w+PC9zdmc+"
+      },
+      "displayName": "PagerDuty",
+      "typeVersion": 1,
+      "nodeCategories": [
+        {
+          "id": 5,
+          "name": "Development"
+        },
+        {
+          "id": 6,
+          "name": "Communication"
+        }
+      ]
+    },
+    {
+      "id": 368,
+      "icon": "file:teams.svg",
+      "name": "n8n-nodes-base.microsoftTeams",
+      "codex": {
+        "data": {
+          "alias": [
+            "human",
+            "form",
+            "wait",
+            "hitl",
+            "approval"
+          ],
+          "resources": {
+            "primaryDocumentation": [
+              {
+                "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.microsoftteams/"
+              }
+            ],
+            "credentialDocumentation": [
+              {
+                "url": "https://docs.n8n.io/integrations/builtin/credentials/microsoft/"
+              }
+            ]
+          },
+          "categories": [
+            "Communication",
+            "HITL"
+          ],
+          "nodeVersion": "1.0",
+          "codexVersion": "1.0",
+          "subcategories": {
+            "HITL": [
+              "Human in the Loop"
+            ]
+          }
+        }
+      },
+      "group": "[\"input\"]",
+      "defaults": {
+        "name": "Microsoft Teams"
+      },
+      "iconData": {
+        "type": "file",
+        "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMzgxLjQgMjM1NC41Ij48cGF0aCBmaWxsPSIjNTU1OGFmIiBkPSJNMjAxNS42IDg5OS4yYzE5LjUgMTkuNSA0Mi41IDM1IDY3LjkgNDUuOCA1MyAyMi4yIDExMi43IDIyLjIgMTY1LjggMCA1MS4yLTIxLjggOTItNjIuNSAxMTMuNy0xMTMuNyAyMi4yLTUzIDIyLjItMTEyLjcgMC0xNjUuOC0yMS44LTUxLjItNjIuNS05Mi0xMTMuNy0xMTMuNy01My0yMi4yLTExMi43LTIyLjItMTY1LjggMC01MS4yIDIxLjgtOTIgNjIuNS0xMTMuNyAxMTMuNy0yMi4yIDUzLTIyLjIgMTEyLjcgMCAxNjUuOCAxMC44IDI1LjMgMjYuNCA0OC40IDQ1LjggNjcuOW0tNjIuNCAxOTcuOHY2NDIuMWgxMDdjMzYuOC0uMiA3My40LTMuNiAxMDkuNS0xMC40IDM2LjMtNi40IDcxLjMtMTguNiAxMDMuNy0zNi4yIDMwLjYtMTYuNiA1Ny00MCA3Ny4zLTY4LjIgMjEuMy0zMS4zIDMyLTY4LjYgMzAuNS0xMDYuNVYxMDk3em0tMzQ2LjgtMjY5LjJjMjguNC4yIDU2LjYtNS41IDgyLjgtMTYuNyA1MS4yLTIxLjggOTEuOS02Mi41IDExMy42LTExMy43IDIyLjItNTMgMjIuMi0xMTIuNy0uMS0xNjUuOC0yMS44LTUxLjItNjIuNS05Mi0xMTMuNy0xMTMuNy0yNi4yLTExLjItNTQuNC0xNi45LTgyLjktMTYuNy0yOC4zLS4yLTU2LjMgNS41LTgyLjMgMTYuNy0xOS40IDguMy0yNS41IDE5LjEtNTIuMiAzMi4xdjMyOWMyNi44IDEzLjEgMzIuOCAyMy44IDUyLjIgMzIuMSAyNi4xIDExLjMgNTQuMiAxNi45IDgyLjYgMTYuN20tMTM0LjggMTA4MS4xYzI2LjggNS44IDM2LjQgMTAuMyA1NS40IDEyLjkgMjAuOCAzIDQxLjggNC41IDYyLjggNC42IDMyLjQtLjIgNjQuOC0zLjYgOTYuNS0xMC40IDMyLjMtNi41IDYzLjMtMTguNiA5MS41LTM1LjcgMjcuNy0xNyA1MS00MC4yIDY4LjItNjcuNyAxOS0zMi4xIDI4LjMtNjkuMSAyNi45LTEwNi40di03NDNoLTQwMS4zek0wIDIxMTMuN2wxMzkxLjMgMjQwLjhWMEwwIDI0MC44eiIvPjxwYXRoIGZpbGw9IiNmZmYiIGQ9Im0xMDE2LjcgNzIyLjQtNjQyLjEgMzkuMXYxNDguMWwyNDAuOC05Ljd2Njg2LjdsMTYwLjUgOS40Vjg5My42bDI0MC44LTEwLjd6Ii8+PC9zdmc+"
+      },
+      "displayName": "Microsoft Teams",
+      "typeVersion": 2,
+      "nodeCategories": [
+        {
+          "id": 6,
+          "name": "Communication"
+        },
+        {
+          "id": 28,
+          "name": "HITL"
+        }
+      ]
+    },
+    {
+      "id": 834,
+      "icon": "file:code.svg",
+      "name": "n8n-nodes-base.code",
+      "codex": {
+        "data": {
+          "alias": [
+            "cpde",
+            "Javascript",
+            "JS",
+            "Python",
+            "Script",
+            "Custom Code",
+            "Function"
+          ],
+          "details": "The Code node allows you to execute JavaScript in your workflow.",
+          "resources": {
+            "primaryDocumentation": [
+              {
+                "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+              }
+            ]
+          },
+          "categories": [
+            "Development",
+            "Core Nodes"
+          ],
+          "nodeVersion": "1.0",
+          "codexVersion": "1.0",
+          "subcategories": {
+            "Core Nodes": [
+              "Helpers",
+              "Data Transformation"
+            ]
+          }
+        }
+      },
+      "group": "[\"transform\"]",
+      "defaults": {
+        "name": "Code"
+      },
+      "iconData": {
+        "type": "file",
+        "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+      },
+      "displayName": "Code",
+      "typeVersion": 2,
+      "nodeCategories": [
+        {
+          "id": 5,
+          "name": "Development"
+        },
+        {
+          "id": 9,
+          "name": "Core Nodes"
+        }
+      ]
+    },
+    {
+      "id": 1250,
+      "icon": "file:openAi.svg",
+      "name": "@n8n/n8n-nodes-langchain.openAi",
+      "codex": {
+        "data": {
+          "alias": [
+            "LangChain",
+            "ChatGPT",
+            "Sora",
+            "DallE",
+            "whisper",
+            "audio",
+            "transcribe",
+            "tts",
+            "assistant"
+          ],
+          "resources": {
+            "primaryDocumentation": [
+              {
+                "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-langchain.openai/"
+              }
+            ]
+          },
+          "categories": [
+            "AI",
+            "Langchain"
+          ],
+          "subcategories": {
+            "AI": [
+              "Agents",
+              "Miscellaneous",
+              "Root Nodes"
+            ]
+          }
+        }
+      },
+      "group": "[\"transform\"]",
+      "defaults": {
+        "name": "OpenAI"
+      },
+      "iconData": {
+        "type": "file",
+        "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTM2Ljg2NzEgMTYuMzcxOEMzNy43NzQ2IDEzLjY0OCAzNy40NjIxIDEwLjY2NDIgMzYuMDEwOCA4LjE4NjYxQzMzLjgyODIgNC4zODY1MyAyOS40NDA3IDIuNDMxNDkgMjUuMTU1NiAzLjM1MTUxQzIzLjI0OTMgMS4yMDM5NiAyMC41MTA1IC0wLjAxNzMxNDggMTcuNjM5MiAwLjAwMDE4NTUzM0MxMy4yNTkxIC0wLjAwOTgxNDY4IDkuMzcyNzMgMi44MTAyNSA4LjAyNTIgNi45Nzc4M0M1LjIxMTM5IDcuNTU0MSAyLjc4MjU4IDkuMzE1MzggMS4zNjEzIDExLjgxMTdDLTAuODM3NDkzIDE1LjYwMTggLTAuMzM2MjMyIDIwLjM3OTQgMi42MDEzMyAyMy42Mjk0QzEuNjkzODEgMjYuMzUzMiAyLjAwNjMyIDI5LjMzNzEgMy40NTc2IDMxLjgxNDZDNS42NDAxNSAzNS42MTQ3IDEwLjAyNzcgMzcuNTY5NyAxNC4zMTI4IDM2LjY0OTdDMTYuMjE3OSAzOC43OTczIDE4Ljk1NzkgNDAuMDE4NSAyMS44MjkyIDM5Ljk5OThDMjYuMjExOCA0MC4wMTEgMzAuMDk5NCAzNy4xODg1IDMxLjQ0NjkgMzMuMDE3MUMzNC4yNjA4IDMyLjQ0MDkgMzYuNjg5NiAzMC42Nzk2IDM4LjExMDggMjguMTgzM0M0MC4zMDcxIDI0LjM5MzIgMzkuODA0NiAxOS42MTk0IDM2Ljg2ODMgMTYuMzY5M0wzNi44NjcxIDE2LjM3MThaTTIxLjgzMTcgMzcuMzg2QzIwLjA3OCAzNy4zODg1IDE4LjM3OTIgMzYuNzc0NyAxNy4wMzI5IDM1LjY1MDlDMTcuMDk0MSAzNS42MTg1IDE3LjIwMDQgMzUuNTU5NyAxNy4yNjkxIDM1LjUxNzJMMjUuMjM0MyAzMC45MTcxQzI1LjY0MTggMzAuNjg1OCAyNS44OTE4IDMwLjI1MjEgMjUuODg5MyAyOS43ODMzVjE4LjU1NDNMMjkuMjU1NiAyMC40OTgxQzI5LjI5MTkgMjAuNTE1NiAyOS4zMTU3IDIwLjU1MDYgMjkuMzIwNyAyMC41OTA2VjI5Ljg4OTZDMjkuMzE1NyAzNC4wMjQ3IDI1Ljk2NjggMzcuMzc3MiAyMS44MzE3IDM3LjM4NlpNNS43MjY0IDMwLjUwNzFDNC44NDc2MyAyOC45ODk2IDQuNTMxMzcgMjcuMjEwOCA0LjgzMjYzIDI1LjQ4NDVDNC44OTEzOCAyNS41MTk1IDQuOTk1MTMgMjUuNTgzMiA1LjA2ODg4IDI1LjYyNTdMMTMuMDM0MSAzMC4yMjU4QzEzLjQzNzggMzAuNDYyMSAxMy45Mzc4IDMwLjQ2MjEgMTQuMzQyOCAzMC4yMjU4TDI0LjA2NjggMjQuNjEwN1YyOC40OTgzQzI0LjA2OTMgMjguNTM4MyAyNC4wNTA1IDI4LjU3NyAyNC4wMTkzIDI4LjYwMkwxNS45Njc5IDMzLjI1MDlDMTIuMzgxNSAzNS4zMTU5IDcuODAxNDQgMzQuMDg4NCA1LjcyNzY1IDMwLjUwNzFINS43MjY0Wk0zLjYzMDEgMTMuMTIwNUM0LjUwNTEyIDExLjYwMDQgNS44ODY0IDEwLjQzNzkgNy41MzE0NCA5LjgzNDE1QzcuNTMxNDQgOS45MDI5IDcuNTI3NjkgMTAuMDI0MSA3LjUyNzY5IDEwLjEwOTJWMTkuMzEwNkM3LjUyNTE5IDE5Ljc3ODEgNy43NzUxOSAyMC4yMTE5IDguMTgxNDUgMjAuNDQzMUwxNy45MDU0IDI2LjA1N0wxNC41MzkxIDI4LjAwMDhDMTQuNTA1MyAyOC4wMjMzIDE0LjQ2MjggMjguMDI3IDE0LjQyNTMgMjguMDEwOEw2LjM3MjY2IDIzLjM1ODJDMi43OTM4MyAyMS4yODU2IDEuNTY2MzEgMTYuNzA2OCAzLjYyODg1IDEzLjEyMTdMMy42MzAxIDEzLjEyMDVaTTMxLjI4ODIgMTkuNTU2OUwyMS41NjQyIDEzLjk0MTdMMjQuOTMwNiAxMS45OTkyQzI0Ljk2NDMgMTEuOTc2NyAyNS4wMDY4IDExLjk3MjkgMjUuMDQ0MyAxMS45ODkyTDMzLjA5NyAxNi42MzhDMzYuNjgyMSAxOC43MDkzIDM3LjkxMDggMjMuMjk1NyAzNS44Mzk1IDI2Ljg4MDhDMzQuOTYzMyAyOC4zOTgzIDMzLjU4MzIgMjkuNTYwOCAzMS45Mzk1IDMwLjE2NThWMjAuNjg5NEMzMS45NDMyIDIwLjIyMTkgMzEuNjk0NSAxOS43ODk0IDMxLjI4OTQgMTkuNTU2OUgzMS4yODgyWk0zNC42MzgzIDE0LjUxNDJDMzQuNTc5NSAxNC40NzggMzQuNDc1OCAxNC40MTU1IDM0LjQwMiAxNC4zNzNMMjYuNDM2OCA5Ljc3Mjg5QzI2LjAzMzEgOS41MzY2NCAyNS41MzMxIDkuNTM2NjQgMjUuMTI4MSA5Ljc3Mjg5TDE1LjQwNDEgMTUuMzg4VjExLjUwMDRDMTUuNDAxNiAxMS40NjA0IDE1LjQyMDQgMTEuNDIxNyAxNS40NTE2IDExLjM5NjdMMjMuNTAzIDYuNzUxNThDMjcuMDg5NCA0LjY4Mjc5IDMxLjY3NDUgNS45MTQwNiAzMy43NDIgOS41MDE2NEMzNC42MTU4IDExLjAxNjcgMzQuOTMyIDEyLjc5MDUgMzQuNjM1OCAxNC41MTQySDM0LjYzODNaTTEzLjU3NDEgMjEuNDQzMUwxMC4yMDY1IDE5LjQ5OTRDMTAuMTcwMiAxOS40ODE5IDEwLjE0NjUgMTkuNDQ2OCAxMC4xNDE1IDE5LjQwNjhWMTAuMTA3OUMxMC4xNDQgNS45Njc4MSAxMy41MDI4IDIuNjEyNzQgMTcuNjQyOSAyLjYxNTI0QzE5LjM5NDIgMi42MTUyNCAyMS4wODkyIDMuMjMwMjUgMjIuNDM1NSA0LjM1MDI4QzIyLjM3NDMgNC4zODI3OCAyMi4yNjkzIDQuNDQxNTMgMjIuMTk5MiA0LjQ4NDAzTDE0LjIzNDEgOS4wODQxM0MxMy44MjY2IDkuMzE1MzggMTMuNTc2NiA5Ljc0Nzg5IDEzLjU3OTEgMTAuMjE2N0wxMy41NzQxIDIxLjQ0MDZWMjEuNDQzMVpNMTUuNDAyOSAxNy41MDA2TDE5LjczNDIgMTQuOTk5M0wyNC4wNjU1IDE3LjQ5OTNWMjIuNTAwN0wxOS43MzQyIDI1LjAwMDdMMTUuNDAyOSAyMi41MDA3VjE3LjUwMDZaIiBmaWxsPSJibGFjayIvPgo8L3N2Zz4K"
+      },
+      "displayName": "OpenAI",
+      "typeVersion": 2,
+      "nodeCategories": [
+        {
+          "id": 25,
+          "name": "AI"
+        },
+        {
+          "id": 26,
+          "name": "Langchain"
+        }
+      ]
+    }
+  ]
+}

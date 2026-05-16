@@ -1,0 +1,19 @@
+{
+  "id": 3677,
+  "name": "Google Calendar MCP server for AI Agent with Dynamic Scheduling",
+  "totalViews": 1992,
+  "price": 0,
+  "purchaseUrl": null,
+  "user": {
+    "id": 93930,
+    "name": "Luciano Gutierrez",
+    "username": "koresoluciones",
+    "bio": "\ud83c\udde7\ud83c\uddf7 Argentino de 30\u202fanos e fundador da KORE\u202fSolu\u00e7\u00f5es em Belo\u202fHorizonte\u202f(MG). H\u00e1 1 ano, fornecemos automa\u00e7\u00f5es, cursos, configura\u00e7\u00f5es e manuten\u00e7\u00e3o de workflows, ajudando empresas a aumentar efici\u00eancia e escalar processos com tecnologia.\n\n\ud83c\uddfa\ud83c\uddf8 I\u2019m a 30\u2011year\u2011old Argentine founder of KORE\u202fSolu\u00e7\u00f5es in Belo\u202fHorizonte\u202f(MG). For 1 year, we\u2019ve delivered automations, courses, configuration, and workflow maintenance, helping businesses boost efficiency and scale processes with technology.",
+    "verified": true,
+    "links": "[\"https://www.koresolucoes.com.br\"]",
+    "avatar": "https://gravatar.com/avatar/7caef85e3231ac83b8634980bd314fc40ba26df805b86e5f839bf75a1582a1a7?r=pg&d=retro&size=200"
+  },
+  "description": "Google Calendar AI Agent with Dynamic Scheduling  \nVersion: 1.0.0  \nn8n Version: 1.88.0+  \nAuthor: Koresolucoes\nLicense: MIT  \n\nDescription  \nAn AI-powered workflow to automate Google Calendar operations using dynamic parameters and MCP (Model Control Plane) integration. Enables event creation, availability checks, updates, and deletions with timezone-aware scheduling [[1]][[2]][[8]].  \n\nKey Features:  \n\ud83d\udcc5 Full Calendar CRUD: Create, read, update, and delete events in Google Calendar.  \n\u23f0 Availability Checks: Verify time slots using AVALIABILITY_CALENDAR node with timezone support (e.g., America/Sao_Paulo).  \n\ud83e\udd16 AI-Driven Parameters: Use $fromAI() to inject dynamic values like Start_Time, End_Time, and Description [[3]][[4]].  \n\ud83d\udd17 MCP Integration: Connects to an MCP server for centralized AI agent control [[5]][[6]].  \n\nUse Cases  \nAutomated Scheduling: Book appointments based on AI-recommended time slots.  \nMeeting Coordination: Sync calendar events with CRM/task management systems.  \nResource Management: Check room/equipment availability before event creation.  \n\nInstructions  \n1. Import Template  \nGo to n8n &gt; Templates &gt; Import from File and upload this workflow.  \n\n2. Configure Credentials  \nAdd Google Calendar OAuth2 credentials under Settings &gt; Credentials.  \nEnsure the calendar ID matches your target (e.g., ODONTOLOGIA group calendar).  \n\n3. Set Up Dynamic Parameters  \nUse $fromAI('Parameter_Name') in nodes like CREATE_CALENDAR to inject AI-generated values (e.g., event descriptions).  \n\n4. Activate & Test  \nEnable the workflow and send test requests to the webhook path /mcp/:tool/calendar.  \n\nTags  \nGoogle Calendar Automation MCP AI Agent Scheduling CRUD  \n\nScreenshots  \n\nLicense  \nThis template is licensed under the MIT License.  \n\nNotes:  \nExtend multi-tenancy by adding :userId to the webhook path (e.g., /mcp/:userId/calendar) [[7]].  \nFor timezone accuracy, always specify options.timezone in availability checks [[8]].  \nRefer to n8n\u2019s Google Calendar docs for advanced field mappings.  ",
+  "createdAt": "2025-04-23T18:55:26.347Z",
+  "nodes": []
+}

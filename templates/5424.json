@@ -1,0 +1,19 @@
+{
+  "id": 5424,
+  "name": "Google Sheets MCP - AI-Powered Spreadsheet Management",
+  "totalViews": 352,
+  "price": 0,
+  "purchaseUrl": null,
+  "user": {
+    "id": 93916,
+    "name": "David Olusola",
+    "username": "dae221",
+    "bio": "I build custom apps that automate repetitive business processes. Clients see 2-3x ROI in 90 days.\ndavid@daexai.com",
+    "verified": true,
+    "links": "[\"www.linkedin.com/in/david-olusola-892966312\"]",
+    "avatar": "https://gravatar.com/avatar/2abbc4c9e828c54a8d8838beda1382e8e4a66684ef9fa8451dbeb3e72b0c9f9c?r=pg&d=retro&size=200"
+  },
+  "description": "\ud83d\udcca Google Sheets MCP Workflow \u2013 AI Meets Spreadsheets! \ud83d\ude04\n\n\u2728 What It Does\n\nThis n8n workflow lets you chat with your spreadsheets using AI + MCP! From reading and updating data to creating sheets, it\u2019s your smart assistant for Google Sheets \ud83d\udcc8\ud83e\udd16\n\n\ud83d\ude80 Cool Features\n\n\ud83d\udcac Natural language commands (e.g. \"Add a new lead: John Doe\")\n\u270f\ufe0f Full CRUD (Create, Read, Update, Delete)\n\ud83e\udde0 AI-powered analysis & smart workflows\n\ud83d\uddc2\ufe0f Multi-sheet support\n\ud83d\udd17 Works with ChatGPT, Claude, and more (via MCP)\n\n\ud83d\udca1 Use Cases\n\nData Tasks: \u201cUpdate status to 'Done' in row 3\u201d\nSheet Ops: \u201cCreate a \u2018Marketing 2024\u2019 sheet\u201d\nBusiness Flows: \u201cSummarize top sales from Q2\u201d\n\ud83d\udee0\ufe0f Quick Setup\n\nImport Workflow into n8n\nCopy the JSON\nIn n8n \u2192 Import JSON \u2192 Paste & Save \u2705\nConnect Google Sheets\nCreate a project in Google Cloud\nEnable Sheets & Drive APIs\nCreate OAuth2 credentials\nIn n8n \u2192 Add Google Sheets OAuth2 credential \u2192 Connect \ud83d\udd10\nAdd Your Credentials\nGet your credential ID\nOpen each Google Sheets node \u2192 Update with your new credential ID\nLink to AI (Optional \ud83d\ude0a)\nMCP webhook is pre-set\nPlug it into your AI tool (like ChatGPT)\nSend test command \u2192 Watch the magic happen \u2728\n\u2705 Test It Out\n\nTry these fun commands:\n\n\ud83c\udd95 \"Add entry: Jane Doe, janed@example.com\"\n\ud83d\udd0d \"Read data from Sales 2024\"\n\ud83e\uddf9 \"Clear data from A1:C5\"\n\u2795 \"Create sheet 'Budget 2025'\"\n\u274c \"Delete sheet 'Test'\"\n\n\ud83e\udde0 MCP Command List (AI-Callable Functions)\n\nThese are the tasks the AI can perform via MCP:\n\nAdd a new entry to a sheet\nRead data from a sheet\nUpdate a row in a sheet\nDelete a row from a sheet\nCreate a new sheet\nDelete an existing sheet\nClear data from a specific range\nSummarize data from a sheet using AI\n\u2699\ufe0f Tips & Fixes\n\nOAuth2 Errors?\n\nRe-authenticate and check scopes\nConfirm redirect URI is exact\nPermissions?\n\nSpreadsheet must be shared with edit access\nUse service accounts for production\nWebhook Not Firing?\n\nDouble-check the URL\nTrigger it manually to test",
+  "createdAt": "2025-06-28T03:43:07.882Z",
+  "nodes": []
+}

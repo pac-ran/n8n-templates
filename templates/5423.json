@@ -1,0 +1,19 @@
+{
+  "id": 5423,
+  "name": "Gmail MCP Workflow - AI-Powered Email Management",
+  "totalViews": 123,
+  "price": 0,
+  "purchaseUrl": null,
+  "user": {
+    "id": 93916,
+    "name": "David Olusola",
+    "username": "dae221",
+    "bio": "I build custom apps that automate repetitive business processes. Clients see 2-3x ROI in 90 days.\ndavid@daexai.com",
+    "verified": true,
+    "links": "[\"www.linkedin.com/in/david-olusola-892966312\"]",
+    "avatar": "https://gravatar.com/avatar/2abbc4c9e828c54a8d8838beda1382e8e4a66684ef9fa8451dbeb3e72b0c9f9c?r=pg&d=retro&size=200"
+  },
+  "description": "This workflow contains community nodes that are only compatible with the self-hosted version of n8n. \n\nMCP Gmail Workflow \u2013 AI-Powered Email Management\n\n\u2728 What It Does\nA smart n8n workflow that connects Gmail with an AI agent (via MCP), letting you send, read, and organize emails using natural language.\n\n\u2699\ufe0f Key Features\n\ud83e\udde0 AI Commands: \u201cSend email to John about the budget\u201d\n\ud83d\udce5 Inbox Control: Mark read/unread, apply/remove labels\n\ud83d\uddc2 Smart Organization: Auto-label based on content\n\ud83e\udd16 MCP-Ready: Works with Claude, ChatGPT, etc.\n\ud83c\udfaf Use Cases\n\u201c\ud83d\udce4 Send a follow-up to the client about yesterday\u2019s meeting\u201d\n\u201c\ud83d\udcec Mark all newsletters as read and label \u2018Newsletter\u2019\u201d\n\u201c\ud83e\uddfe Summarize latest email from Sarah\u201d\n\u201c\ud83d\uddc3 Label all Project X emails as \u2018Project-X-2024\u2019\u201d\n\u201c\u2b50 Find unread emails from my manager and mark as important\u201d\n\ud83d\udee0 Setup Guide\n\ud83d\udd11 Prerequisites\n\nn8n (self-hosted or cloud)\nGmail API credentials\nMCP-compatible AI (optional but powerful)\n\ud83d\udce5 1. Import Workflow\n\nCopy JSON \u2192 Open n8n \u2192 Import \u2192 Paste \u2192 Done \u2705\n\ud83d\udd10 2. Gmail OAuth2 Setup\n\nCreate Google project \u2192 Enable Gmail API\nCreate OAuth2 creds \u2192 Add n8n redirect URI\nIn n8n: Add Gmail OAuth2 \u2192 Paste Client ID/Secret \u2192 Connect\n\ud83e\udde9 3. Update Credential References\n\nFind your credential ID in n8n\nUpdate each Gmail node with your ID\n\ud83e\udde0 4. MCP Trigger (Optional)\n\nUse provided webhook URL in your AI system\nSend test prompts to verify connection\n\ud83e\uddea 5. Test Key Actions\n\n\u2705 \u201cSend a test email\u201d\n\u2705 \u201cRead latest email\u201d\n\u2705 \u201cLabel last email as \u2018Test\u2019\u201d\n\u2705 \u201cMark latest email as unread\u201d\n\u2699\ufe0f 6. Advanced Tips\n\nCreate custom labels in Gmail\nUse HTTPS + webhook auth\nAdd retries and error handling in n8n\n\ud83e\uddef Troubleshooting\n\u2757 Gmail Auth Error? \u2192 Re-auth and check redirect URI\n\u2757 Webhook not firing? \u2192 Check endpoint + manual test\n\u2757 Label errors? \u2192 Use correct label names or IDs\n\u2705 Required Gmail Scopes:\ngmail.modify\ngmail.send\n\ud83d\udcc8 Best Practices\n\ud83d\udd01 Test regularly\n\ud83d\udd12 Use minimal permissions\n\ud83c\udff7 Consistent label naming\n\ud83d\udd0d Monitor execution + webhook logs\n\ud83c\udf89 You\u2019re All Set!\nControl Gmail with your voice or text through AI. Make managing emails smarter, faster, and 100% automated \ud83d\udc8c\n",
+  "createdAt": "2025-06-28T03:32:17.894Z",
+  "nodes": []
+}

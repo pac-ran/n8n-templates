@@ -1,0 +1,175 @@
+{
+  "id": 15660,
+  "name": "Create smenso tasks from Gmail with automatic project assignment",
+  "totalViews": 0,
+  "price": 0,
+  "purchaseUrl": null,
+  "user": {
+    "id": 104461,
+    "name": "Sven Fl\u00e4tchen",
+    "username": "sven-von-smenso",
+    "bio": "Sven Fl\u00e4tchen, Dipl.-Kaufmann, child of the 80s, hobby cook and proud dad #smartdad with a passion for old motorcycles. Because \"Fulltime Multitasking Marketing Ninja\" is not an official job title, he carries the title Head of Marketing with us. With his creativity and variety of ideas, our man from the Saarland is a real team player and responsible for the international marketing of our project management solution smenso.",
+    "verified": true,
+    "links": "[\"https://smenso.de\"]",
+    "avatar": "https://gravatar.com/avatar/2ae98a0b7b2edfadeff23abade29620d7377d1f8dc6cdb006b1cc97fb9bd8264?r=pg&d=retro&size=200"
+  },
+  "description": "Workflow Description \u2014 Create smenso Task from Gmail with automatic Project Assignment\n\nEnglish\n\nTitle\nCreate smenso Task from Gmail with automatic Project Assignment\n\nShort Description\nTurn emails into smenso tasks automatically \u2014 use a keyword in the subject line to assign tasks to the right project, get a confirmation reply, and keep your inbox clean.\n\nFull Description\n\nThis workflow monitors a Gmail inbox for emails with the subject \"smenso Task\" and automatically creates tasks in your smenso workspace. What makes it smart: by adding a keyword in square brackets to the subject line, the workflow automatically assigns the task to the matching smenso project. The sender receives a confirmation reply and the email is marked as read.\n\nHow it works:\nGmail Trigger polls the inbox every minute for unread emails matching \"smenso Task\"\nA filter ensures only emails from trusted senders (your domain) are processed\nAll active smenso projects are fetched to enable automatic matching\nA Code node extracts the keyword from the subject and finds the matching project\nThe task is created in the matched project (or a fallback project if no match is found)\nThe sender receives an automatic confirmation reply with task and project details\nThe email is marked as read so it won't be processed again\n\nEmail format:\nSubject:** smenso Task [ProjectKeyword]: My Task Title\nBody:** Task description\n\nExamples:\nsmenso Task [Marketing]: Create new campaign brief \u2192 task created in the Marketing project\nsmenso Task [IT]: Fix server issue \u2192 task created in the IT project\nsmenso Task: General task without keyword \u2192 task created in the default fallback project\n\nUse cases:\nAllow team members to create smenso tasks directly from their email client\nLet clients or external partners submit tasks without needing a smenso account\nForward important emails and turn them into actionable tasks automatically\nUse from mobile \u2014 compose an email and the task appears in the right project\n\nSetup requirements:\nA smenso workspace with the Integration API add-on enabled\nA smenso API token (generated in the smenso Admin Center at admin.smenso.cloud)\nA Gmail account with OAuth2 credentials configured in n8n\n\nDeutsch\n\nTitel\nsmenso Task aus Gmail erstellen mit automatischer Projektzuordnung\n\nKurzbeschreibung\nE-Mails automatisch in smenso Tasks umwandeln \u2014 mit einem Keyword im Betreff wird der Task dem richtigen Projekt zugeordnet, der Absender erh\u00e4lt eine Best\u00e4tigung und das Postfach bleibt sauber.\n\nAusf\u00fchrliche Beschreibung\n\nDieser Workflow \u00fcberwacht ein Gmail-Postfach auf E-Mails mit dem Betreff \"smenso Task\" und erstellt automatisch Tasks in deinem smenso Workspace. Das Besondere: Durch ein Keyword in eckigen Klammern im Betreff wird der Task automatisch dem passenden smenso Projekt zugeordnet. Der Absender erh\u00e4lt eine Best\u00e4tigungs-E-Mail und die urspr\u00fcngliche Mail wird als gelesen markiert.\n\nSo funktioniert es:\nGmail Trigger pr\u00fcft jede Minute das Postfach auf ungelesene E-Mails mit \"smenso Task\"\nEin Filter stellt sicher dass nur E-Mails von vertrauensw\u00fcrdigen Absendern verarbeitet werden\nAlle aktiven smenso Projekte werden abgerufen um die automatische Zuordnung zu erm\u00f6glichen\nEin Code Node extrahiert das Keyword aus dem Betreff und findet das passende Projekt\nDer Task wird im gefundenen Projekt angelegt (oder im Fallback-Projekt falls kein Match)\nDer Absender erh\u00e4lt automatisch eine Best\u00e4tigungs-E-Mail mit Task- und Projektdetails\nDie E-Mail wird als gelesen markiert damit sie nicht erneut verarbeitet wird\n\nE-Mail Format:\nBetreff:** smenso Task [ProjektKeyword]: Mein Task-Titel\nInhalt:** Task-Beschreibung\n\nBeispiele:\nsmenso Task [Marketing]: Neues Kampagnen-Briefing erstellen \u2192 Task im Marketing-Projekt\nsmenso Task [IT]: Server-Problem beheben \u2192 Task im IT-Projekt\nsmenso Task: Allgemeiner Task ohne Keyword \u2192 Task im Standard-Fallback-Projekt\n\nAnwendungsf\u00e4lle:\nTeammitglieder k\u00f6nnen smenso Tasks direkt aus ihrem E-Mail-Client erstellen\nKunden oder externe Partner k\u00f6nnen Tasks einreichen ohne smenso-Zugang zu ben\u00f6tigen\nWichtige E-Mails weiterleiten und automatisch in umsetzbare Tasks umwandeln\nVom Smartphone aus nutzen \u2014 E-Mail schreiben und der Task erscheint im richtigen Projekt\n\nVoraussetzungen:\nsmenso Workspace mit aktiviertem Enterprise Add-on \"smenso Integration API\"\nsmenso API-Token (generiert im smenso Admin Center unter admin.smenso.cloud)\nGmail-Konto mit OAuth2-Zugangsdaten in n8n\n",
+  "createdAt": "2026-05-12T12:45:36.538Z",
+  "nodes": [
+    {
+      "id": 356,
+      "icon": "file:gmail.svg",
+      "name": "n8n-nodes-base.gmail",
+      "codex": {
+        "data": {
+          "alias": [
+            "email",
+            "human",
+            "form",
+            "wait",
+            "hitl",
+            "approval"
+          ],
+          "resources": {
+            "generic": [
+              {
+                "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                "icon": "\ud83e\uddec",
+                "label": "Why business process automation with n8n can change your daily life"
+              },
+              {
+                "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                "icon": "\ud83c\udfab",
+                "label": "Supercharging your conference registration process with n8n"
+              },
+              {
+                "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                "icon": "store",
+                "label": "6 e-commerce workflows to power up your Shopify s"
+              },
+              {
+                "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                "icon": "\ud83d\udc65",
+                "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+              },
+              {
+                "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                "icon": "\ud83d\udca1",
+                "label": "15 Google apps you can combine and automate to increase productivity"
+              },
+              {
+                "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                "icon": " \ud83d\udda5\ufe0f",
+                "label": "Hey founders! Your business doesn't need you to operate"
+              },
+              {
+                "url": "https://n8n.io/blog/using-automation-to-boost-productivity-in-the-workplace/",
+                "icon": "\ud83d\udcaa",
+                "label": "Using Automation to Boost Productivity in the Workplace"
+              }
+            ],
+            "primaryDocumentation": [
+              {
+                "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.gmail/"
+              }
+            ],
+            "credentialDocumentation": [
+              {
+                "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+              }
+            ]
+          },
+          "categories": [
+            "Communication",
+            "HITL"
+          ],
+          "nodeVersion": "1.0",
+          "codexVersion": "1.0",
+          "subcategories": {
+            "HITL": [
+              "Human in the Loop"
+            ]
+          }
+        }
+      },
+      "group": "[\"transform\"]",
+      "defaults": {
+        "name": "Gmail"
+      },
+      "iconData": {
+        "type": "file",
+        "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMTkzIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCI+PHBhdGggZmlsbD0iIzQyODVGNCIgZD0iTTU4LjE4MiAxOTIuMDVWOTMuMTRMMjcuNTA3IDY1LjA3NyAwIDQ5LjUwNHYxMjUuMDkxYzAgOS42NTggNy44MjUgMTcuNDU1IDE3LjQ1NSAxNy40NTV6Ii8+PHBhdGggZmlsbD0iIzM0QTg1MyIgZD0iTTE5Ny44MTggMTkyLjA1aDQwLjcyN2M5LjY1OSAwIDE3LjQ1NS03LjgyNiAxNy40NTUtMTcuNDU1VjQ5LjUwNWwtMzEuMTU2IDE3LjgzNy0yNy4wMjYgMjUuNzk4eiIvPjxwYXRoIGZpbGw9IiNFQTQzMzUiIGQ9Im01OC4xODIgOTMuMTQtNC4xNzQtMzguNjQ3IDQuMTc0LTM2Ljk4OUwxMjggNjkuODY4bDY5LjgxOC01Mi4zNjQgNC42NyAzNC45OTItNC42NyA0MC42NDRMMTI4IDE0NS41MDR6Ii8+PHBhdGggZmlsbD0iI0ZCQkMwNCIgZD0iTTE5Ny44MTggMTcuNTA0VjkzLjE0TDI1NiA0OS41MDRWMjYuMjMxYzAtMjEuNTg1LTI0LjY0LTMzLjg5LTQxLjg5LTIwLjk0NXoiLz48cGF0aCBmaWxsPSIjQzUyMjFGIiBkPSJtMCA0OS41MDQgMjYuNzU5IDIwLjA3TDU4LjE4MiA5My4xNFYxNy41MDRMNDEuODkgNS4yODZDMjQuNjEtNy42NiAwIDQuNjQ2IDAgMjYuMjN6Ii8+PC9zdmc+"
+      },
+      "displayName": "Gmail",
+      "typeVersion": 2,
+      "nodeCategories": [
+        {
+          "id": 6,
+          "name": "Communication"
+        },
+        {
+          "id": 28,
+          "name": "HITL"
+        }
+      ]
+    },
+    {
+      "id": 834,
+      "icon": "file:code.svg",
+      "name": "n8n-nodes-base.code",
+      "codex": {
+        "data": {
+          "alias": [
+            "cpde",
+            "Javascript",
+            "JS",
+            "Python",
+            "Script",
+            "Custom Code",
+            "Function"
+          ],
+          "details": "The Code node allows you to execute JavaScript in your workflow.",
+          "resources": {
+            "primaryDocumentation": [
+              {
+                "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+              }
+            ]
+          },
+          "categories": [
+            "Development",
+            "Core Nodes"
+          ],
+          "nodeVersion": "1.0",
+          "codexVersion": "1.0",
+          "subcategories": {
+            "Core Nodes": [
+              "Helpers",
+              "Data Transformation"
+            ]
+          }
+        }
+      },
+      "group": "[\"transform\"]",
+      "defaults": {
+        "name": "Code"
+      },
+      "iconData": {
+        "type": "file",
+        "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+      },
+      "displayName": "Code",
+      "typeVersion": 2,
+      "nodeCategories": [
+        {
+          "id": 5,
+          "name": "Development"
+        },
+        {
+          "id": 9,
+          "name": "Core Nodes"
+        }
+      ]
+    }
+  ]
+}
