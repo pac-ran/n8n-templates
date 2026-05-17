@@ -1,0 +1,1594 @@
+{
+  "workflow": {
+    "id": 15614,
+    "name": "Convert DevOps Mattermost requests into Jira tasks with an AI sub-workflow",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-11T12:34:38.167Z",
+    "description": "## Overview\nThis is a sub-workflow that converts a free-form DevOps request posted in Mattermost into a properly formatted Jira task \n\n## Requirements\n* OpenRouter/OpenAI/Anthropic API key\n* Google Gemini API key \u2014 for embeddings\n* Jira API credentials \u2014 Cloud or Server. \n* Mattermost API credentials \u2014 to post the reply back to the channel\n* Qdrant instance\n* Remote MCP servers  (see MCP section)\n* A sub-workflow that analyses attachments \n* A [parent workflow](https://n8n.io/workflows/15051-classify-and-route-devops-chat-requests-with-mattermost-openrouter-and-google-calendar/) that triggers this one via \"Execute Workflow\" with a properly shaped payload\n\n## How it works\n1. The workflow is triggered by `Execute Workflow Trigger`\n1. `ReadIncidentContext` logs the request and forwards the payload\n1. Call '`attachmentsAnalyzer` invokes a vision sub-workflow with the file_ids\n1. SetVars sets workflow-level constants\n1.  `AI Agent` builds the Jira payload. The system prompt\n1. `Parse Agent Output` safely parses the agent's output enriches the Jira description.\n1. `Create an issue` creates a Task in the configured project with the chosen label and component.\n1. `Post a message` replies in the original thread with a confirmation containing a clickable Jira link.\n\n## How to use\n* Index your infrastructure docs into Qdrant using\n* Deploy the Mattermost MCP server and put its URL into the Mattermost MCP Client node\n* Deploy / import the `attachmentsAnalyzer` sub-workflow \n* Configure credentials in the workflow\n* Edit `SetVars`\n* Edit `Create an issue` \u2014 pick your own Jira project, issue type and component.\n* Tune the system prompt in `AI Agent` \u2014 adjust the direction labels and the few-shot examples to match your team's taxonomy.\n* Wire this workflow into your classifier ia an Execute `Workflow node`",
+    "workflow": {
+      "id": "PrzFwmv3zS8HvwWo",
+      "meta": {
+        "instanceId": "<your-n8n-instance-id>",
+        "templateCredsSetupCompleted": true
+      },
+      "name": "TaskAssistant",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "4edc3cc0-e794-473a-bbd8-bf2f15640c15",
+          "name": "Sticky Note \u2014 Overview",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            352,
+            736
+          ],
+          "parameters": {
+            "color": 5,
+            "width": 704,
+            "height": 840,
+            "content": "## Overview\nThis is a sub-workflow that converts a free-form DevOps request posted in Mattermost into a properly formatted Jira task \n\n## Requirements\n* OpenRouter/OpenAI/Anthropic API key\n* Google Gemini API key \u2014 for embeddings\n* Jira API credentials \u2014 Cloud or Server. \n* Mattermost API credentials \u2014 to post the reply back to the channel\n* Qdrant instance\n* Remote MCP servers  (see MCP section)\n* A sub-workflow that analyses attachments \n* A parent classifier workflow that triggers this one via \"Execute Workflow\" with a properly shaped payload\n\n## How it works\n1. The workflow is triggered by `Execute Workflow Trigger`\n1. `ReadIncidentContext` logs the request and forwards the payload\n1. Call '`attachmentsAnalyzer` invokes a vision sub-workflow with the file_ids\n1. SetVars sets workflow-level constants\n1.  `AI Agent` builds the Jira payload. The system prompt\n1. `Parse Agent Output` safely parses the agent's output enriches the Jira description.\n1. `Create an issue` creates a Task in the configured project with the chosen label and component.\n1. `Post a message` replies in the original thread with a confirmation containing a clickable Jira link.\n\n## How to use\n* Index your infrastructure docs into Qdrant using\n* Deploy the Mattermost MCP server and put its URL into the Mattermost MCP Client node\n* Deploy / import the `attachmentsAnalyzer` sub-workflow \n* Configure credentials in the workflow\n* Edit `SetVars`\n* Edit `Create an issue` \u2014 pick your own Jira project, issue type and component.\n* Tune the system prompt in `AI Agent` \u2014 adjust the direction labels and the few-shot examples to match your team's taxonomy.\n* Wire this workflow into your classifier via an Execute Workflow node"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "8eac83c2-6b95-4ed9-aae0-39d10d47c2c7",
+          "name": "When Executed by Another Workflow",
+          "type": "n8n-nodes-base.executeWorkflowTrigger",
+          "position": [
+            -48,
+            416
+          ],
+          "parameters": {
+            "inputSource": "jsonExample",
+            "jsonExample": "{\n  \"message\": \"...\",\n  \"post_id\": \"...\",\n  \"channel_id\": \"...\",\n  \"user_name\": \"...\",\n  \"is_thread\": false,\n  \"thread_root_id\": \"...\",\n  \"category\": \"create_resource\",\n  \"confidence\": 0.95,\n  \"summary\": \"...\",\n  \"on_call_user\": \"...\",\n  \"channel_name\": \"...\",\n  \"file_ids\": [\"x4t1k...\", \"9bzqm...\"]}"
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "85a3602f-4211-42cd-b0c0-7952e8ec3d1d",
+          "name": "SetVars",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            944,
+            416
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "d89e8819-2d33-4548-84f7-bd00854b70e8",
+                  "name": "MATTERMOST_URL",
+                  "type": "string",
+                  "value": "https://<your-mattermost-host>/<your-team-url-path>/"
+                },
+                {
+                  "id": "16e9f447-4d98-4173-ba3e-95c047762068",
+                  "name": "reply_root_id",
+                  "type": "string",
+                  "value": "={{ $('ReadIncidentContext').item.json.is_thread ? $('ReadIncidentContext').item.json.thread_root_id : $('ReadIncidentContext').item.json.post_id}}"
+                },
+                {
+                  "id": "e54f7764-afd8-487c-909a-68598092367b",
+                  "name": "JIRA_URL",
+                  "type": "string",
+                  "value": "https://<your-org>.atlassian.net"
+                },
+                {
+                  "id": "ddd796fc-2aa2-4bbd-aee3-e55dd9009276",
+                  "name": "message",
+                  "type": "string",
+                  "value": "={{ $('ReadIncidentContext').item.json.message }}"
+                },
+                {
+                  "id": "66b+1234567890aa-81ee-585254f44f2d",
+                  "name": "post_id",
+                  "type": "string",
+                  "value": "={{ $('ReadIncidentContext').item.json.post_id }}"
+                },
+                {
+                  "id": "804efcde-19f0-4854-8bdd-5b30faa15ac0",
+                  "name": "channel_id",
+                  "type": "string",
+                  "value": "={{ $('ReadIncidentContext').item.json.channel_id }}"
+                },
+                {
+                  "id": "86dfdd6b-a138-49a9-a926-75869b10427b",
+                  "name": "on_call_user",
+                  "type": "string",
+                  "value": "={{ $('ReadIncidentContext').item.json.on_call_user }}"
+                },
+                {
+                  "id": "ffd9f052-a36d-4aef-b97d-dda4281af9b3",
+                  "name": "channel_name",
+                  "type": "string",
+                  "value": "={{ $('ReadIncidentContext').item.json.channel_name }}"
+                },
+                {
+                  "id": "fbebb9d0-4ea3-424c-b839-5098cbfcd129",
+                  "name": "is_thread",
+                  "type": "string",
+                  "value": "={{ $('ReadIncidentContext').item.json.is_thread }}"
+                }
+              ]
+            },
+            "includeOtherFields": true
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "a20b8b36-a5fe-454c-9df9-a08faf10dba8",
+          "name": "AI Agent",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "position": [
+            1200,
+            416
+          ],
+          "parameters": {
+            "text": "=Prepare a task as requested by {{ $json.user_name }} in channel {{ $json.channel_name }} {{ $json.is_thread ? ' (message is in thread, thread_root_id=' + $json.thread_root_id + ' \u2014 read the story through Mattermost get_thread first)' : '' }}\n\n{{ $json.message }}{{ $json.attachments_context && $json.attachments_context.trim().length > 0 ? '\\n\\nAdditional information from attachments:\\n' + $json.attachments_context : '' }}",
+            "options": {
+              "maxIterations": 15,
+              "systemMessage": "=You're a professional task manager. You're proficient in setting tasks for DevOps, SRE engineers.\nAt the user's request, you need to prepare the data to create a task in Jira. You don't need to create the task yourself.\nDetermine the `subject area`; what does the task relate to? Use the Qdrant Vector Store tool to learn more about our infrastructure when needed.\nDefine the action that needs to be performed: create something, delete something, change something.\nThis could be a database, a cluster, a logging system, or a monitoring system.\n\nDetermine the `direction` and choose exactly one:\n- HighAvailability \u2014 availability of our services\n- Performance \u2014 performance of our services\n- Security \u2014 information security\n- CostManagement \u2014 cost management\n- Operations \u2014 routine operational activities\n- Observability \u2014 monitoring, logs, traces, alerts\n\n## Message context\n\nThe request can come either from a main channel message or from a thread reply.\n\n- channel_id: {{ $json.channel_id }}\n- post_id: {{ $json.post_id }}\n- is_thread: {{ $json.is_thread }}\n- thread_root_id: {{ $json.thread_root_id }}\n\nIf `is_thread` is true, the user's question is part of an ongoing thread.\nBefore investigating, call Mattermost `get_thread` with `thread_root_id`\nexactly ONCE to load the full conversation. Earlier messages in the thread\noften contain critical context: links to failing jobs, error logs, repository\nnames, previous hypotheses, or clarifications from the user.\n\nYou can use the HTTP Request tool to probe endpoints when the request is about availability or connectivity.\n\n## Response format\nReturn a single JSON object with EXACTLY these fields \u2014 no markdown, no code fences, no extra text:\n{\"summary\":\"<subject area>: <what needs to be done>\",\"description\":\"<1-3 sentences>\",\"label\":\"<one of the directions above>\"}\n\n## Example 1\nRequest: create a small Postgres database for the checkout API\nOutput:\n{\"summary\":\"Postgres: create database for checkout API\",\"description\":\"We need to create small Postgres instances in the stage and prod environments for the checkout backend service.\",\"label\":\"Operations\"}\n\n## Example 2\nRequest: please enable gRPC on the realtime gateway and add the URL to Vault\nOutput:\n{\"summary\":\"Realtime gateway: enable gRPC\",\"description\":\"Need to enable gRPC on the realtime gateway and add the service URL to HashiCorp Vault.\",\"label\":\"Operations\"}\n\n## Example 3\nRequest: Need to change logs collector promtail to alloy. Create a task\nOutput:\n{\"summary\":\"Logging: replace promtail with alloy\",\"description\":\"Need to change logs collector promtail to alloy.\",\"label\":\"Observability\"}\n\n\n## Rules\n* Describe the problem in formal language, even if it is not so in the initial message"
+            },
+            "promptType": "define"
+          },
+          "typeVersion": 3.1
+        },
+        {
+          "id": "271b834e-0881-4016-9002-6529df935d6f",
+          "name": "OpenRouter Chat Model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+          "position": [
+            1136,
+            576
+          ],
+          "parameters": {
+            "model": "openai/gpt-5.3-codex",
+            "options": {
+              "temperature": 0.2,
+              "responseFormat": "json_object"
+            }
+          },
+          "credentials": {
+            "openRouterApi": {
+              "id": "credential-id",
+              "name": "OpenRouter account"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "e9d25b17-61f6-4be2-968b-7a5607026855",
+          "name": "HTTP Request",
+          "type": "n8n-nodes-base.httpRequestTool",
+          "position": [
+            1344,
+            800
+          ],
+          "parameters": {
+            "url": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('URL', ``, 'string') }}",
+            "options": {},
+            "toolDescription": "Makes an HTTP request and returns the response data. For checking network issues or probing endpoints."
+          },
+          "typeVersion": 4.4
+        },
+        {
+          "id": "473df4d2-a9ba-4bb0-81ff-1da25d3e46e1",
+          "name": "Qdrant Vector Store",
+          "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+          "position": [
+            1472,
+            800
+          ],
+          "parameters": {
+            "mode": "retrieve-as-tool",
+            "options": {},
+            "toolDescription": "Use it to learn more about our infrastructure, alert rules and runbooks.",
+            "qdrantCollection": {
+              "__rl": true,
+              "mode": "list",
+              "value": "<your-infrastructure-knowledge-collection>",
+              "cachedResultName": "<your-infrastructure-knowledge-collection>"
+            }
+          },
+          "credentials": {
+            "qdrantApi": {
+              "id": "credential-id",
+              "name": "QdrantApi account"
+            }
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "db631503-b383-4299-a149-28d75642f91f",
+          "name": "Embeddings Google Gemini",
+          "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+          "position": [
+            1472,
+            976
+          ],
+          "parameters": {
+            "modelName": "models/gemini-embedding-2-preview"
+          },
+          "credentials": {
+            "googlePalmApi": {
+              "id": "credential-id",
+              "name": "Google Gemini(PaLM) Api account"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "1b7f0641-f611-4321-ba25-d93c6f46b844",
+          "name": "Parse Agent Output",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1648,
+            416
+          ],
+          "parameters": {
+            "jsCode": "// Parse AI Agent output (raw JSON or inside a markdown code fence),\n// merge with context from Read Incident Context and SetVars,\n// and build a Jira payload including a Mattermost permalink to the source message.\n\nconst raw = $input.first().json.output ?? '';\nconst ctx = $('ReadIncidentContext').first().json;\nconst vars = $('SetVars').first().json;\n\n// Strip surrounding markdown code fences if present\nconst cleaned = String(raw)\n  .replace(/^\\s*```(?:json)?\\s*/i, '')\n  .replace(/\\s*```\\s*$/i, '')\n  .trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (err) {\n  throw new Error(`Failed to parse AI Agent output as JSON: ${err.message}. Raw output was: ${raw}`);\n}\n\n// Build a Mattermost permalink to the thread where the request was posted\nconst mattermostBase = (vars.MATTERMOST_URL || '').replace(/\\/+$/, '');\nconst threadLink = ctx.post_id ? `${mattermostBase}/${ctx.post_id}` : null;\n\n// Compose source block appended to the Jira description\nconst sourceLines = [\n  '',\n  '---',\n  `*Source:* @${ctx.user_name || 'unknown'} in channel #${ctx.channel_name || 'unknown'}`,\n];\nif (threadLink) sourceLines.push(`*Message link:* ${threadLink}`);\nif (ctx.summary) sourceLines.push(`*Classification:* ${ctx.summary} (confidence: ${ctx.confidence ?? 'n/a'})`);\n\nconst description = `${parsed.description || ''}\\n${sourceLines.join('\\n')}`;\n\nreturn [{\n  json: {\n    summary: parsed.summary || '(no summary)',\n    description,\n    label: parsed.label || 'Operations',\n    user_name: ctx.user_name,\n    on_call_user: ctx.on_call_user,\n    channel_id: ctx.channel_id,\n    post_id: ctx.post_id,\n    thread_link: threadLink,\n    agent_raw_output: raw,\n  },\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "da526997-7792-4d84-a0b2-b4cb8d9b2ef9",
+          "name": "Create an issue",
+          "type": "n8n-nodes-base.jira",
+          "position": [
+            1824,
+            416
+          ],
+          "parameters": {
+            "project": {
+              "__rl": true,
+              "mode": "list",
+              "value": "<your-jira-project-id>",
+              "cachedResultName": "<your-jira-project-name>"
+            },
+            "summary": "={{ $json.summary }}",
+            "issueType": {
+              "__rl": true,
+              "mode": "list",
+              "value": "<your-jira-issue-type-id>",
+              "cachedResultName": "<your-jira-issue-type-name>"
+            },
+            "additionalFields": {
+              "labels": "={{ [$json.label] }}",
+              "description": "={{ $json.description }}",
+              "componentIds": [
+                "<your-jira-component-id>"
+              ]
+            }
+          },
+          "credentials": {
+            "jiraSoftwareCloudApi": {
+              "id": "credential-id",
+              "name": "Jira SW Cloud account"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "62d40c47-6da6-440e-9621-1e9e853e058d",
+          "name": "Post a message",
+          "type": "n8n-nodes-base.mattermost",
+          "position": [
+            2032,
+            416
+          ],
+          "parameters": {
+            "message": "=\u2705 Created issue [{{ $('Create an issue').first().json.key }}]({{ $('SetVars').first().json.JIRA_URL }}/browse/{{ $('Create an issue').first().json.key }}): {{ $('Parse Agent Output').first().json.summary }}",
+            "channelId": "={{ $('Parse Agent Output').first().json.channel_id }}",
+            "attachments": [],
+            "otherOptions": {
+              "root_id": "={{ $('SetVars').first().json.reply_root_id }}"
+            }
+          },
+          "credentials": {
+            "mattermostApi": {
+              "id": "credential-id",
+              "name": "Mattermost account"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "ca58e161-67a4-4c9c-a60f-228d6da4698c",
+          "name": "Mattermost",
+          "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+          "position": [
+            1216,
+            800
+          ],
+          "parameters": {
+            "include": "selected",
+            "options": {},
+            "endpointUrl": "<your-mattermost-mcp-base-url>/mattermost/mcp",
+            "includeTools": [
+              "get_channel_by_name",
+              "list_public_channels",
+              "get_file_info",
+              "get_channel_messages",
+              "search_messages",
+              "get_thread",
+              "get_me",
+              "get_user",
+              "get_user_by_username"
+            ]
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "a2406fd5-fb89-46e1-a7f2-db40396945a7",
+          "name": "Edit Fields",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            608,
+            560
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "632595c9-f4cd-43f7-916c-5ed9bdf51db4",
+                  "name": "attachments_context",
+                  "type": "string",
+                  "value": ""
+                },
+                {
+                  "id": "7ad957b3-1d49-47ae-b2d6-1abf5ced6b08",
+                  "name": "attachments_count",
+                  "type": "string",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "93828410-1aa3-4d06-9b45-e7a4537b5f3b",
+          "name": "Merge",
+          "type": "n8n-nodes-base.merge",
+          "position": [
+            768,
+            416
+          ],
+          "parameters": {},
+          "typeVersion": 3.2
+        },
+        {
+          "id": "780ddba7-3663-425a-9b2a-bd066aa0a5a3",
+          "name": "ReadIncidentContext",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            144,
+            416
+          ],
+          "parameters": {
+            "jsCode": "// Read the classification object passed from the parent classifier workflow.\n// Available fields: message, post_id, channel_id, user_name,\n// channel_name, category, confidence, summary, on_call_user.\n\nconst data = $input.first().json;\n\nconsole.log(`Task received: ${data.summary}`);\nconsole.log(`From: ${data.user_name} in #${data.channel_name}`);\nconsole.log(`Confidence: ${data.confidence}`);\n\nreturn [{ json: data }];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "89a2f950-8050-4817-9821-a3d54382e252",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -128,
+            272
+          ],
+          "parameters": {
+            "width": 432,
+            "height": 704,
+            "content": "## Input chain\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n```\n[\n  {\n    \"message\": ,\n    \"post_id\": ,\n    \"channel_id\": ,\n    \"channel_name\": ,\n    \"user_name\": ,\n    \"user_id\": ,\n    \"file_ids\":,\n    \"category\": ,\n    \"confidence\": ,\n    \"summary\": ,\n    \"acknowledge\": ,\n    \"is_thread\":,\n    \"parent_post\": ,\n    \"thread_root_id\": ,\n    \"on_call_user\": \n  }\n]"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "27baffb2-a220-40eb-a5fd-2c7948cddc1a",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            352,
+            272
+          ],
+          "parameters": {
+            "color": 2,
+            "width": 704,
+            "height": 432,
+            "content": "## Check attachment"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "b819e627-8971-42d4-8e64-580303995b58",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1600,
+            272
+          ],
+          "parameters": {
+            "width": 576,
+            "height": 432,
+            "content": "## Output chain"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "1b4b81da-d49e-4940-b4a4-e40bf991aa89",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1104,
+            272
+          ],
+          "parameters": {
+            "color": 6,
+            "width": 448,
+            "height": 432,
+            "content": "## Request analysis"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "ff618f46-2949-4f0f-a9da-b34cdd090bd4",
+          "name": "Sticky Note4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1104,
+            736
+          ],
+          "parameters": {
+            "color": 4,
+            "width": 656,
+            "height": 416,
+            "content": "\n\n\n\n\n\n\n\n\n\n\n\n\n## MCP servers\nAdd correct URLs for remote MCPs\nUse following mcp:\n* [mattermost-mcp](https://github.com/cloud-ru-tech/mcp-server-mattermost)"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "4b349210-7f35-4dc0-905f-081d945bb8a8",
+          "name": "Call 'attachmentsAnalyzer'",
+          "type": "n8n-nodes-base.executeWorkflow",
+          "onError": "continueErrorOutput",
+          "position": [
+            416,
+            416
+          ],
+          "parameters": {
+            "options": {},
+            "workflowId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "<your-attachments-analyzer-subworkflow-id>",
+              "cachedResultUrl": "/workflow/<your-attachments-analyzer-subworkflow-id>",
+              "cachedResultName": "<your-attachments-analyzer-workflow-name>"
+            },
+            "workflowInputs": {
+              "value": {
+                "file_ids": "={{ $json.file_ids }}"
+              },
+              "schema": [
+                {
+                  "id": "file_ids",
+                  "type": "array",
+                  "display": true,
+                  "removed": false,
+                  "required": false,
+                  "displayName": "file_ids",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                }
+              ],
+              "mappingMode": "defineBelow",
+              "matchingColumns": [
+                "file_ids"
+              ],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": true
+            }
+          },
+          "typeVersion": 1.3
+        }
+      ],
+      "active": true,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "callerPolicy": "workflowsFromSameOwner",
+        "errorWorkflow": "",
+        "timeSavedMode": "fixed",
+        "availableInMCP": true,
+        "executionOrder": "v1"
+      },
+      "versionId": "c54e1570-ebe1-40e2-986d-9d2cfe3f3d58",
+      "connections": {
+        "Merge": {
+          "main": [
+            [
+              {
+                "node": "SetVars",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "SetVars": {
+          "main": [
+            [
+              {
+                "node": "AI Agent",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "AI Agent": {
+          "main": [
+            [
+              {
+                "node": "Parse Agent Output",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Mattermost": {
+          "ai_tool": [
+            [
+              {
+                "node": "AI Agent",
+                "type": "ai_tool",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Edit Fields": {
+          "main": [
+            [
+              {
+                "node": "Merge",
+                "type": "main",
+                "index": 1
+              }
+            ]
+          ]
+        },
+        "HTTP Request": {
+          "ai_tool": [
+            [
+              {
+                "node": "AI Agent",
+                "type": "ai_tool",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Create an issue": {
+          "main": [
+            [
+              {
+                "node": "Post a message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Parse Agent Output": {
+          "main": [
+            [
+              {
+                "node": "Create an issue",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Qdrant Vector Store": {
+          "ai_tool": [
+            [
+              {
+                "node": "AI Agent",
+                "type": "ai_tool",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "ReadIncidentContext": {
+          "main": [
+            [
+              {
+                "node": "Call 'attachmentsAnalyzer'",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenRouter Chat Model": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "AI Agent",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Embeddings Google Gemini": {
+          "ai_embedding": [
+            [
+              {
+                "node": "Qdrant Vector Store",
+                "type": "ai_embedding",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Call 'attachmentsAnalyzer'": {
+          "main": [
+            [
+              {
+                "node": "Merge",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Edit Fields",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "When Executed by Another Workflow": {
+          "main": [
+            [
+              {
+                "node": "ReadIncidentContext",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 21,
+      "nodeTypes": {
+        "n8n-nodes-base.set": {
+          "count": 2
+        },
+        "n8n-nodes-base.code": {
+          "count": 2
+        },
+        "n8n-nodes-base.jira": {
+          "count": 1
+        },
+        "n8n-nodes-base.merge": {
+          "count": 1
+        },
+        "n8n-nodes-base.mattermost": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 6
+        },
+        "@n8n/n8n-nodes-langchain.agent": {
+          "count": 1
+        },
+        "n8n-nodes-base.executeWorkflow": {
+          "count": 1
+        },
+        "n8n-nodes-base.httpRequestTool": {
+          "count": 1
+        },
+        "n8n-nodes-base.executeWorkflowTrigger": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.mcpClientTool": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.lmChatOpenRouter": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.vectorStoreQdrant": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Sergei Byvshev",
+      "username": "javdet",
+      "bio": "Lead DevOps. I have been involved in infrastructure automation for over 12 years.",
+      "verified": true,
+      "links": [
+        "https://linkedin.com/in/sergeybyvshev"
+      ],
+      "avatar": "https://gravatar.com/avatar/6cc6d29016fd271ebee0bbdae1332c062637c44d24efba61f10c0574e2cf74bc?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 24,
+        "icon": "file:merge.svg",
+        "name": "n8n-nodes-base.merge",
+        "codex": {
+          "data": {
+            "alias": [
+              "Join",
+              "Concatenate",
+              "Wait"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-sync-data-between-two-systems/",
+                  "icon": "\ud83c\udfec",
+                  "label": "How to synchronize data between two systems (one-way vs. two-way sync"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/migrating-community-metrics-to-orbit-using-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Migrating Community Metrics to Orbit using n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.merge/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Merge"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTc3XzUxOCkiPgo8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTAgNDhDMCAyMS40OTAzIDIxLjQ5MDMgMCA0OCAwSDExMkMxMzguNTEgMCAxNjAgMjEuNDkwMyAxNjAgNDhWNTZIMTk2LjI1MkMyNDAuNDM1IDU2IDI3Ni4yNTIgOTEuODE3MiAyNzYuMjUyIDEzNlYxOTJDMjc2LjI1MiAyMTQuMDkxIDI5NC4xNjEgMjMyIDMxNi4yNTIgMjMySDM1MlYyMjRDMzUyIDE5Ny40OSAzNzMuNDkgMTc2IDQwMCAxNzZINDY0QzQ5MC41MSAxNzYgNTEyIDE5Ny40OSA1MTIgMjI0VjI4OEM1MTIgMzE0LjUxIDQ5MC41MSAzMzYgNDY0IDMzNkg0MDBDMzczLjQ5IDMzNiAzNTIgMzE0LjUxIDM1MiAyODhWMjgwSDMxNi4yNTJDMjk0LjE2MSAyODAgMjc2LjI1MiAyOTcuOTA5IDI3Ni4yNTIgMzIwVjM3NkMyNzYuMjUyIDQyMC4xODMgMjQwLjQzNSA0NTYgMTk2LjI1MiA0NTZIMTYwVjQ2NEMxNjAgNDkwLjUxIDEzOC41MSA1MTIgMTEyIDUxMkg0OEMyMS40OTAzIDUxMiAwIDQ5MC41MSAwIDQ2NFY0MDBDMCAzNzMuNDkgMjEuNDkwMyAzNTIgNDggMzUySDExMkMxMzguNTEgMzUyIDE2MCAzNzMuNDkgMTYwIDQwMFY0MDhIMTk2LjI1MkMyMTMuOTI1IDQwOCAyMjguMjUyIDM5My42NzMgMjI4LjI1MiAzNzZWMzIwQzIyOC4yNTIgMjk0Ljc4NCAyMzguODU5IDI3Mi4wNDQgMjU1Ljg1MyAyNTZDMjM4Ljg1OSAyMzkuOTU2IDIyOC4yNTIgMjE3LjIxNiAyMjguMjUyIDE5MlYxMzZDMjI4LjI1MiAxMTguMzI3IDIxMy45MjUgMTA0IDE5Ni4yNTIgMTA0SDE2MFYxMTJDMTYwIDEzOC41MSAxMzguNTEgMTYwIDExMiAxNjBINDhDMjEuNDkwMyAxNjAgMCAxMzguNTEgMCAxMTJWNDhaTTEwNCA0OEMxMDguNDE4IDQ4IDExMiA1MS41ODE3IDExMiA1NlYxMDRDMTEyIDEwOC40MTggMTA4LjQxOCAxMTIgMTA0IDExMkg1NkM1MS41ODE3IDExMiA0OCAxMDguNDE4IDQ4IDEwNFY1NkM0OCA1MS41ODE3IDUxLjU4MTcgNDggNTYgNDhIMTA0Wk00NTYgMjI0QzQ2MC40MTggMjI0IDQ2NCAyMjcuNTgyIDQ2NCAyMzJWMjgwQzQ2NCAyODQuNDE4IDQ2MC40MTggMjg4IDQ1NiAyODhINDA4QzQwMy41ODIgMjg4IDQwMCAyODQuNDE4IDQwMCAyODBWMjMyQzQwMCAyMjcuNTgyIDQwMy41ODIgMjI0IDQwOCAyMjRINDU2Wk0xMTIgNDA4QzExMiA0MDMuNTgyIDEwOC40MTggNDAwIDEwNCA0MDBINTZDNTEuNTgxNyA0MDAgNDggNDAzLjU4MiA0OCA0MDhWNDU2QzQ4IDQ2MC40MTggNTEuNTgxNyA0NjQgNTYgNDY0SDEwNEMxMDguNDE4IDQ2NCAxMTIgNDYwLjQxOCAxMTIgNDU2VjQwOFoiIGZpbGw9IiM1NEI4QzkiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTc3XzUxOCI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Merge",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 55,
+        "icon": "file:mattermost.svg",
+        "name": "n8n-nodes-base.mattermost",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-host-virtual-coffee-breaks-with-n8n/",
+                  "icon": "\u2615\ufe0f",
+                  "label": "How to host virtual coffee breaks with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-triggers-for-n8n-workflows-using-polling/",
+                  "icon": "\u23f2",
+                  "label": "Creating triggers for n8n workflows using polling"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-error-workflows-in-n8n/",
+                  "icon": "\ud83c\udf2a",
+                  "label": "Creating Error Workflows in n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-custom-incident-response-workflows-with-n8n/",
+                  "label": "How to automate every step of an incident response workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.mattermost/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/mattermost/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "Mattermost"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4NSIgaGVpZ2h0PSI4NSIgc3R5bGU9Ii1tcy10cmFuc2Zvcm06cm90YXRlKDM2MGRlZyk7LXdlYmtpdC10cmFuc2Zvcm06cm90YXRlKDM2MGRlZykiIHRyYW5zZm9ybT0icm90YXRlKDM2MCkiPjxwYXRoIGZpbGw9IiMwMDU4Q0MiIGQ9Im00Mi42NDIuMDA0LjUzOC4wMTEtNS43NTMgNi44Yy0xMC42NSAxLjkyNS0xOS44NDcgOS4xOTctMjMuNDYgMTkuODc0LTUuMzc4IDE1Ljg4NSAzLjYzNSAzMy4yOSAyMC4xMzEgMzguODc0czM0LjIyOC0yLjc2NyAzOS42MDUtMTguNjUxYzMuNTUtMTAuNDg3LjgyOC0yMS42MzYtNi4xNzktMjkuNjFsLS4zMTItLjM0OS0uNDQyLTguOTI2YzE0LjUwNyAxMC41MyAyMS4xNjEgMjkuNjM4IDE1LjExMSA0Ny41MS03LjQ0NiAyMS45OTUtMzEuMzEyIDMzLjc4OC01My4zMDYgMjYuMzQzQzYuNTggNzQuNDM0LTUuMjE1IDUwLjU2OCAyLjIzIDI4LjU3NCA4LjIzIDEwLjg1MiAyNC44OS0uMjQ3IDQyLjY0MS4wMDR6TTE5MC40IDI4LjMxNHE4LjMzMSAwIDEzLjAxNyA0LjAwNiA0LjY4NiA0LjAwNSA0LjY4NiAxMi44MTV2MjQuMDNxLTIuODA1Ljg4Mi02LjgxIDEuNjgzLTQuMDA0LjgtOS4wNS44LTQuMDg1IDAtNy40OS0uNzJ0LTUuODQ2LTIuNDAzYTExLjMgMTEuMyAwIDAgMS0zLjc2Ny00LjMyNXEtMS4zMi0yLjY0NC0xLjMyLTYuNDg5dDEuNjQxLTYuNDQ4YTEyLjY2IDEyLjY2IDAgMCAxIDQuMjQ1LTQuMTY1cTIuNjA0LTEuNTYyIDUuODA4LTIuMjQzYTMwLjcgMzAuNyAwIDAgMSA2LjQwOC0uNjhxMi4zMjMgMCA1LjEyNy4yNHYtLjk2MnEwLTEuOTIxLS42NDEtMy4xMjRhNC44IDQuOCAwIDAgMC0xLjc2Mi0xLjg4MXEtMS4xMjMtLjY4Mi0yLjc2My0uOTIyYTI1IDI1IDAgMCAwLTMuNjQ2LS4yNHEtNC4zMjUgMC05LjIxIDEuNjgyLTEuMTI0LTIuMDg0LTEuNjgzLTMuOTI2LS41Ni0xLjg0MS0uNTYxLTQuNDA2IDMuNTI1LTEuMiA3LjA0OC0xLjc2IDMuNTI1LS41NjIgNi41NjktLjU2Mm0tMzAuMzI4LTEyLjIwMnEzLjI5NyAwIDYuMzM0LjQ4M2wyLjk1IDU0LjU3cS0zLjI5Ni40ODQtNi4yNDcuNDg0YTM1IDM1IDAgMCAxLTUuODEzLS40ODNsLTEuNTYzLTM5LjQ1NS0xMi42NyAyNy4yN3EtMS4yMTQuMTYxLTIuNTE3LjI4MS0xLjMuMTItMi42MDMuMTItMS4xMjcuMDAxLTIuMjU1LS4wOGExOSAxOSAwIDAgMS0yLjM0NC0uMzIybC0xMS44LTI3LjgzNS0xLjIxNSA0MC4wMmEzMS4zIDMxLjMgMCAwIDEtNS4zODEuNDg0cS0yLjc3NiAwLTUuNzI3LS40ODNsMi40My01NC41N2E0OC41IDQ4LjUgMCAwIDEgNi42ODEtLjQ4NHEzLjM4NSAwIDYuNjgyLjQ4M2wxNC4zMTkgMjkuNzE4IDE0Ljc1MS0yOS43MThxMi42OS0uNDgzIDUuOTg4LS40ODNtMTMwLjgzNCAxMi4yMDJxNC4zMjUgMCA3LjY4OSAxLjUyMiAzLjM2NSAxLjUyMiA1LjcyNyA0LjE2NiAyLjM2NCAyLjY0MiAzLjU2NiA2LjI4NyAxLjIgMy42NDYgMS4yIDcuODEgMCAxLjUyMy0uMTIgMy4wMDVhMjUgMjUgMCAwIDEtLjI4IDIuMzYzaC0yNi41OTRxLjMyMSA0LjgwNSAzLjM2NSA2Ljk2OHQ4LjAxIDIuMTYzcTIuNzI0IDAgNS41NjctLjUyMmEzMS42IDMxLjYgMCAwIDAgNS40MDctMS40OHEuODgyIDEuNjAxIDEuNTIyIDMuODQ0dC43MiA0LjgwNnEtNi4yNDcgMi40MDMtMTQuMDk4IDIuNDAzLTUuNzY2IDAtOS44OTItMS42MDItNC4xMjQtMS42MDItNi43MjgtNC40NDYtMi42MDQtMi44NDItMy44NDUtNi43NjktMS4yNDEtMy45MjQtMS4yNC04LjU3LS4wMDEtNC41NjUgMS4yOC04LjU3IDEuMjgtNC4wMDcgMy44MDUtNi45NyAyLjUyMy0yLjk2NCA2LjI0OC00LjY4NnQ4LjY5LTEuNzIyem0xMzYuMDkyIDBxNS4wNDYgMCA4LjgxIDEuNjgyIDMuNzY0IDEuNjg0IDYuMjUgNC42MDYgMi40ODEgMi45MjUgMy42ODQgNi45MjkgMS4yIDQuMDA1IDEuMjAxIDguNTcgMCA0LjU2Ny0xLjIwMSA4LjQ5MS0xLjIwMyAzLjkyNi0zLjY4NSA2Ljg0OC0yLjQ4NSAyLjkyNS02LjI0OSA0LjU2Ny0zLjc2NCAxLjY0MS04LjgxIDEuNjQyLTUuMDQ4IDAtOC43Ny0xLjY0Mi0zLjcyNi0xLjY0MS02LjE3LTQuNTY3LTIuNDQyLTIuOTIyLTMuNjg0LTYuODQ4dC0xLjI0MS04LjQ5cTAtNC41NjcgMS4yNDEtOC41NzEgMS4yNDItNC4wMDUgMy42ODUtNi45MjkgMi40NDItMi45MjMgNi4xNjgtNC42MDYgMy43MjQtMS42ODEgOC43Ny0xLjY4MnptNDEuMjc3IDBxMy4xMjMgMCA2LjE2Ny41NjFhMzkuMyAzOS4zIDAgMCAxIDYuMTY4IDEuNjgyIDIyIDIyIDAgMCAxLS44MDIgNC4zMjVxLS42NCAyLjI0NC0xLjUyIDMuOTI2YTMyIDMyIDAgMCAwLTQuMjQ3LTEuNDAyIDE5LjUgMTkuNSAwIDAgMC00Ljg4NS0uNjAxcS0yLjcyMyAwLTQuMjQ2Ljg0MS0xLjUyMi44NC0xLjUyMSAyLjY4MyAwIDEuNzYyIDEuMDggMi40ODQgMS4wODIuNzIxIDMuMDg0IDEuMzYxbDQuNTY2IDEuMzYzcTIuMjQ0LjY0IDQuMDQ1IDEuNTYxIDEuODAyLjkyMiAzLjA4NCAyLjI4MyAxLjI4MiAxLjM2MyAyLjAwMiAzLjM2NC43MjIgMi4wMDMuNzIyIDQuODg2IDAgMi45NjUtMS4yNDIgNS41MjctMS4yNDIgMi41NjQtMy42MDQgNC40NDUtMi4zNjQgMS44ODQtNS43MjggMi45NjQtMy4zNjQgMS4wODItNy42MSAxLjA4MmE0NyA0NyAwIDAgMS0zLjUyMy0uMTIgMjggMjggMCAwIDEtMy4wODQtLjQgMzYgMzYgMCAwIDEtMi45MjQtLjY4MSAzNiAzNiAwIDAgMS0zLjEyNC0xLjA0MiAyMyAyMyAwIDAgMSAuNzYtNC4zNjUgMjcuNSAyNy41IDAgMCAxIDEuNTYzLTQuMjg2cTIuNjQ0IDEuMDQyIDUuMDA3IDEuNTYyIDIuMzYyLjUyMiA0LjkyNi41MjEgMS4xMjEgMCAyLjQ0Mi0uMmE5IDkgMCAwIDAgMi40NDQtLjcyIDUuOCA1LjggMCAwIDAgMS44ODItMS4zNjNxLjc2MS0uODQuNzYtMi4yMDMgMC0xLjkyMi0xLjE2LTIuNzY0LTEuMTY0LS44NDEtMy4yNDQtMS40ODFsLTQuOTY3LTEuNDQycS00LjQ4Ni0xLjI4Mi03LjAwOC0zLjgwNS0yLjUyNC0yLjUyMy0yLjUyNC03LjU3IDAtNi4wODYgNC4zNjUtOS41MzF0MTEuODk2LTMuNDQ1TTI1Ni45NTIgMTcuMTh2MTIuMDk1aDkuNjkzcS4yNCAxLjIwMS4zMiAyLjE2M3QuMDggMi4wMDNxMCAxLjEyLS4wOCAyLjE2MmEyMiAyMiAwIDAgMS0uMzIgMi4zMjNoLTkuNjkzdjE2LjI2MXEwIDIuNDgzLjQwMiA0LjAwNS40IDEuNTIgMS4xNiAyLjQwNGEzLjgzIDMuODMgMCAwIDAgMS44ODMgMS4ycTEuMTIyLjMyMSAyLjY0My4zMjEgMS4yMDMgMCAyLjM2NC0uMnQyLjA0Mi0uMzZhMTUuNyAxNS43IDAgMCAxIC44IDMuMTYzcS4yNDMgMS42NDMuMjQyIDIuOTI0IDAgLjg4MS0uMDQgMS40ODNhMTYgMTYgMCAwIDEtLjEyIDEuMTZxLTMuNjg1Ljg4Mi03LjYxLjg4LTcuMjkgMC0xMS4xMzQtMy40MDItMy44NDYtMy40MDUtMy44NDYtMTEuMDk1VjM3LjkyNmgtNS4yMDZsLS40MDEtMS42MDIgMTQuOTgtMTkuMTQ0em0tMzAuMDUyIDB2MTIuMDk1aDkuNjkycS4yNCAxLjIwMS4zMjEgMi4xNjMuMDc5Ljk2MS4wNzkgMi4wMDMgMCAxLjEyLS4wNzkgMi4xNjJhMjIgMjIgMCAwIDEtLjMyMSAyLjMyM0gyMjYuOXYxNi4yNjFxMCAyLjQ4My40MDEgNC4wMDUuNCAxLjUyIDEuMTYgMi40MDRhMy44MyAzLjgzIDAgMCAwIDEuODgzIDEuMnExLjEyMy4zMjEgMi42NDMuMzIxIDEuMjAyIDAgMi4zNjQtLjJ0Mi4wNDItLjM2YTE1LjcgMTUuNyAwIDAgMSAuODAyIDMuMTYzcS4yNCAxLjY0My4yNCAyLjkyNCAwIC44ODEtLjA0IDEuNDgzLS4wNC42LS4xMjEgMS4xNmEzMi42IDMyLjYgMCAwIDEtNy42MDkuODhxLTcuMjkgMC0xMS4xMzQtMy40MDItMy44NDUtMy40MDUtMy44NDUtMTEuMDk1VjM3LjkyNmgtNS4yMDdsLS40LTEuNjAyIDE0Ljk3OS0xOS4xNDR6bTEwNy44NCAxMS42MTRxLjgwMSAwIDEuODQyLjA4MSAxLjA0LjA4IDEuNTIyLjI0LjE2LjgwMS4yNCAxLjg0Mi4wODEgMS4wNDIuMDggMi4xNjQgMCAxLjM2LS4xMiAyLjk2M2EyMSAyMSAwIDAgMS0uNDQgMy4wNDMgMTEgMTEgMCAwIDAtMS45NjItLjE2aC0xLjMyMnEtMS4zNjIgMC0zLjA0NS4yOC0xLjY4LjI4Mi0zLjIwNCAxLjQ4NC0xLjUyMiAxLjItMi41MjIgMy42MDQtMS4wMDIgMi40MDMtMS4wMDIgNi43Mjl2MTkuNzA1cS0xLjQ0MS4yMzktMi44ODQuMzE5YTQ4IDQ4IDAgMCAxLTUuNTY3IDAgMzAgMzAgMCAwIDEtMi45MjMtLjMyVjI5LjI3NnExLjIwMS0uMjQgMi4yODItLjM2IDEuMDgyLS4xMiAyLjM2NC0uMTIgMS4yMDMgMCAyLjM2Mi4xNiAxLjE2My4xNiAyLjI4My40LjI0MS40MDEuNDQxIDEuMTYyLjIuNzYyLjM2MSAxLjYwMnQuMjggMS42ODNsLjIgMS40MDFxMS43NjQtMi40ODMgNC4zMjUtNC40NDUgMi41NjUtMS45NjQgNi40MDgtMS45NjR6bTU1LjM5NS0uNDhxNy4wNSAwIDEwLjM3MyAzLjg4NiAzLjMyNCAzLjg4NCAzLjMyNCAxMi4xMzV2MjYuMzUzcS0yLjg4My40OC01LjY4Ny40OHQtNS42ODYtLjQ4di0yMy4zOXEwLTQuMzI2LTEuMDgzLTYuNjQ3LTEuMDgtMi4zMjQtNC4zNjUtMi4zMjQtMS4zNjIgMC0yLjY4Mi40LTEuMzIzLjQtMi40MDQgMS40ODItMS4wOCAxLjA4LTEuNzYzIDMuMDQ1Yy0uNDU0IDEuMzA2LS42OCAzLjAwNC0uNjggNS4wODV2MjIuMzQ5YTM0LjYgMzQuNiAwIDAgMS01LjY4OC40OCAzNC42IDM0LjYgMCAwIDEtNS42ODgtLjQ4di0yMy4zOXEwLTQuMzI2LTEuMDgtNi42NDctMS4wODItMi4zMjQtNC4zNjYtMi4zMjRhOS43IDkuNyAwIDAgMC0yLjcyNC40cS0xLjM2LjQtMi40NDMgMS41NjItMS4wODEgMS4xNjEtMS43MjEgMy4yNDUtLjY0MiAyLjA4MS0uNjQyIDUuNDQ2djIxLjcwOHEtMi44ODMuNDgtNS42ODcuNDgtMi44MDMgMC01LjY4Ni0uNDhWMjkuMjc1YTIyIDIyIDAgMCAxIDIuMjQyLS4zNnExLjEyMS0uMTIgMi40ODQtLjEyYTIxIDIxIDAgMCAxIDIuNDAyLjEycTEuMDQyLjEyIDIuMTYzLjM2LjI0LjQwMS40NCAxLjE2MnQuMzYxIDEuNjAyLjI4IDEuNjQycS4xMi44MDEuMjAxIDEuMzYxLjY0LTEuMiAxLjY4Mi0yLjQwMyAxLjA0MS0xLjIgMi40ODMtMi4xNjJhMTMuNSAxMy41IDAgMCAxIDMuMjQ0LTEuNTYycTEuODAyLS42IDQuMDQ1LS42MDEgOS42OTIgMCAxMi40MTYgNy4zNyAxLjYtMi45NjQgNC41MjYtNS4xNjcgMi45MjMtMi4yMDMgNy40MS0yLjIwM3ptMTEwLjMzLTExLjEzNHYxMi4wOTVoOS42OTJhMTkgMTkgMCAwIDEgLjMyMSAyLjE2M3EuMDguOTYxLjA4IDIuMDAzYTI4IDI4IDAgMCAxLS4wOCAyLjE2MiAyMiAyMiAwIDAgMS0uMzIgMi4zMjNoLTkuNjkydjE2LjI2MXEwIDIuNDgzLjQgNC4wMDUuNCAxLjUyIDEuMTYxIDIuNDA0YTMuODMgMy44MyAwIDAgMCAxLjg4MyAxLjJxMS4xMjIuMzIxIDIuNjQzLjMyMSAxLjIgMCAyLjM2NC0uMiAxLjE2LS4yIDIuMDQxLS4zNmExNS41IDE1LjUgMCAwIDEgLjgwMSAzLjE2MyAyMC4yIDIwLjIgMCAwIDEgLjIgNC40MDcgMTUgMTUgMCAwIDEtLjExOSAxLjE2cS0zLjY4NC44ODItNy42MS44OC03LjI4OSAwLTExLjEzNC0zLjQwMi0zLjg0NS0zLjQwNi0zLjg0NS0xMS4wOTVWMzcuOTI2aC01LjIwNmwtLjQwMS0xLjYwMiAxNC45NzktMTkuMTQ0em0tNzMuNDY3IDIwLjAyNXEtNC40MDYgMC02LjM2OCAzLjMyNS0xLjk2NCAzLjMyNC0xLjk2NCA5LjU3MnQxLjk2NCA5LjU3MnExLjk2MiAzLjMyNCA2LjM2OCAzLjMyNCA0LjQ4NiAwIDYuNDQ3LTMuMzI0IDEuOTYzLTMuMzI0IDEuOTYzLTkuNTcydC0xLjk2My05LjU3MnEtMS45NjEtMy4zMjUtNi40NDctMy4zMjVNMTkyLjk2MyA1MS4zMDRxLTMuOTI1IDAtNi4yMDggMS40MDF0LTIuMjgzIDQuNTI2cTAgMi4wODMuODgyIDMuMjA0Ljg4MSAxLjEyMSAyLjEyMiAxLjY0MWE4LjcgOC43IDAgMCAwIDIuNjQzLjY0MnExLjQwNC4xMiAyLjQ0My4xMiAxLjIwMyAwIDIuNDAzLS4yYTEzNiAxMzYgMCAwIDAgMi4wODQtLjM2MVY1MS43MDRxLS45NjEtLjE2LTIuMDg0LS4yOC0xLjEyLS4xMi0yLjAwMi0uMTJNNTQuOTc2IDMuODg1Yy4xOTUuMDY3LjM1My4xOS40NjcuMzQzbC4wNjMuMDk2LjAyNC4wMzguMDIuMDQ0Yy4wNTYuMTA2LjEwMy4yMjYuMTI1LjM3NS4wNC4yNzEuMDYuODgyLjA3IDEuNTNsLjAwMy4zOTIuMDAyLjM4NnYuNjk5Yy0uMDAxLjM2OC0uMDA0LjYzMy0uMDA0LjY4N3YuMDFsLjE2NSA2LjIyMi4yNDQgNy4xOC4zMDUgMTIuNDh2LjA4NGMtLjAwMy43MjYtLjE1NCA1LjkzMy0zLjg1IDkuNTUzLTMuOTggMy45LTguODY4IDMuNTQyLTEyLjA0OCAyLjQ2Ni0zLjE4LTEuMDc3LTcuMjgtMy43NjMtOC4wNzQtOS4yNzgtLjc3OC01LjQxIDIuNjYzLTkuODI1IDIuNzkzLTkuOTlsLjAwMy0uMDA0IDcuODIzLTkuNzI4IDQuNTU2LTUuNTU1IDMuOTEtNC44NDJzMS43OTUtMi40MDQgMi4zMDYtMi45cS4xMDItLjA5Ny4yMDUtLjE1N2wuMTAyLS4wNTUuMDc1LS4wMzguMDEzLS4wMDVhLjk3Ljk3IDAgMCAxIC43MDItLjAzM20yMzUuNzcgMzMuMDhxLTQuMDA1IDAtNi4wODggMi4yNDMtMi4wODEgMi4yNDMtMi40ODMgNi4zMjloMTYuMThxLS4xNi0zLjg0Ni0yLjEyMy02LjIwOC0xLjk2Mi0yLjM2NC01LjQ4Ny0yLjM2NXoiLz48cGF0aCBmaWxsPSJyZ2JhKDAsIDAsIDAsIDApIiBkPSJNMCAwaDUxMnY4NUgweiIvPjwvc3ZnPg=="
+        },
+        "displayName": "Mattermost",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          }
+        ]
+      },
+      {
+        "id": 77,
+        "icon": "file:jira.svg",
+        "name": "n8n-nodes-base.jira",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-custom-incident-response-workflows-with-n8n/",
+                  "label": "How to automate every step of an incident response workflow"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.jira/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/jira/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Productivity"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "Jira Software"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgNjguMjUgNzEuMjUiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9IjMuMTI1IiB5PSIzLjEyNSIvPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iYiIgeDE9IjkxLjklIiB4Mj0iMjguNDklIiB5MT0iNDAuMjIlIiB5Mj0iODEuNjMlIj48c3RvcCBvZmZzZXQ9IjE4JSIgc3RvcC1jb2xvcj0iIzAwNTJjYyIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzI2ODRmZiIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJjIiB4MT0iOC43JSIgeDI9IjcyLjI2JSIgeTE9IjU5LjE3JSIgeTI9IjE3Ljk5JSI+PHN0b3Agb2Zmc2V0PSIxOCUiIHN0b3AtY29sb3I9IiMwMDUyY2MiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMyNjg0ZmYiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48c3ltYm9sIGlkPSJhIiBvdmVyZmxvdz0idmlzaWJsZSI+PGcgZmlsbC1ydWxlPSJub256ZXJvIiBzdHJva2U9Im5vbmUiPjxwYXRoIGZpbGw9IiMyNjg0ZmYiIGQ9Ik02MS4xNjEgMzAuMjExIDMwLjk1IDAgLjc0IDMwLjIxMWEyLjU0IDIuNTQgMCAwIDAgMCAzLjU4MWwzMC4yMTEgMzAuMjEgMzAuMjExLTMwLjIxYTIuNTQgMi41NCAwIDAgMCAwLTMuNTgxek0zMC45NSA0MS40NmwtOS40NjItOS40NjIgOS40NjItOS40NjIgOS40NjIgOS40NjJ6Ii8+PHBhdGggZmlsbD0idXJsKCNiKSIgZD0iTTMwLjk1IDIyLjU5OUMyNC43NTUgMTYuNDA1IDI0LjcyNCA2LjM3IDMwLjg4MS4xMzhMMTAuMTE0IDIwLjc3NGwxMS4yNjggMTEuMjY4eiIvPjxwYXRoIGZpbGw9InVybCgjYykiIGQ9Ik00MC40MzcgMzEuOTczIDMwLjk1IDQxLjQ2YTE1LjkzIDE1LjkzIDAgMCAxIDAgMjIuNTM2bDIwLjc0OS0yMC43NDl6Ii8+PC9nPjwvc3ltYm9sPjwvc3ZnPg=="
+        },
+        "displayName": "Jira Software",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 4,
+            "name": "Productivity"
+          },
+          {
+            "id": 5,
+            "name": "Development"
+          }
+        ]
+      },
+      {
+        "id": 111,
+        "icon": "fa:sign-in-alt",
+        "name": "n8n-nodes-base.executeWorkflow",
+        "codex": {
+          "data": {
+            "alias": [
+              "n8n",
+              "call",
+              "sub",
+              "workflow",
+              "sub-workflow",
+              "subworkflow"
+            ],
+            "details": "The Execute Workflow node can be used when you want your workflow to treat another workflow as a step in your flow. It allows you to modularize your workflows and have a single source of truth for series of actions you perform often. ",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.executeworkflow/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Execute Workflow",
+          "color": "#ff6d5a"
+        },
+        "iconData": {
+          "icon": "sign-in-alt",
+          "type": "icon"
+        },
+        "displayName": "Execute Sub-workflow",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 837,
+        "icon": "fa:sign-out-alt",
+        "name": "n8n-nodes-base.executeWorkflowTrigger",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.executeworkflowtrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "When Executed by Another Workflow",
+          "color": "#ff6d5a"
+        },
+        "iconData": {
+          "icon": "sign-out-alt",
+          "type": "icon"
+        },
+        "displayName": "Execute Workflow Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1119,
+        "icon": "fa:robot",
+        "name": "@n8n/n8n-nodes-langchain.agent",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain",
+              "Chat",
+              "Conversational",
+              "Plan and Execute",
+              "ReAct",
+              "Tools"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Agents",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "AI Agent",
+          "color": "#404040"
+        },
+        "iconData": {
+          "icon": "robot",
+          "type": "icon"
+        },
+        "displayName": "AI Agent",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1248,
+        "icon": "file:qdrant.svg",
+        "name": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.vectorstoreqdrant/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Vector Stores",
+                "Tools",
+                "Root Nodes"
+              ],
+              "Tools": [
+                "Other Tools"
+              ],
+              "Vector Stores": [
+                "Other Vector Stores"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Qdrant Vector Store"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBkYXRhLW5hbWU9IkNhcGEgMiIgdmlld0JveD0iMCAwIDM0Ni40MiA0MDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxkZWZzPgo8c3R5bGU+LmNscy0xIHsKICAgICAgICBmaWxsOiAjOWUwZDM4OwogICAgICB9CgogICAgICAuY2xzLTIgewogICAgICAgIGZpbGw6ICNkYzI0NGM7CiAgICAgIH0KCiAgICAgIC5jbHMtMyB7CiAgICAgICAgZmlsbDogI2ZmNTE2YjsKICAgICAgfTwvc3R5bGU+CjwvZGVmcz4KPHBvbHlnb24gY2xhc3M9ImNscy0yIiBwb2ludHM9IjE3My4yMSAwIDAgMTAwIDAgMzAwIDE3My4yMSA0MDAgMjM4LjE2IDM2Mi41IDIzOC4xNiAyODcuNSAxNzMuMjEgMzI1IDY0Ljk2IDI2Mi41IDY0Ljk2IDEzNy41IDE3My4yMSA3NSAyODEuNDYgMTM3LjUgMjgxLjQ2IDM4Ny41IDM0Ni40MiAzNTAgMzQ2LjQyIDEwMCIvPgo8cG9seWdvbiBjbGFzcz0iY2xzLTIiIHBvaW50cz0iMTA4LjI2IDE2Mi41IDEwOC4yNiAyMzcuNSAxNzMuMjEgMjc1IDIzOC4xNiAyMzcuNSAyMzguMTYgMTYyLjUgMTczLjIxIDEyNSIvPgo8cG9seWdvbiBjbGFzcz0iY2xzLTEiIHBvaW50cz0iMjM4LjE2IDI4Ny41IDIzOC4xNiAzNjIuNSAxNzMuMjEgNDAwIDE3My4yMSAzMjUiLz4KPHBvbHlnb24gY2xhc3M9ImNscy0xIiBwb2ludHM9IjM0Ni40MiAxMDAgMzQ2LjQyIDM1MCAyODEuNDYgMzg3LjUgMjgxLjQ2IDEzNy41Ii8+Cjxwb2x5Z29uIGNsYXNzPSJjbHMtMyIgcG9pbnRzPSIzNDYuNDIgMTAwIDI4MS40NiAxMzcuNSAxNzMuMjEgNzUgNjQuOTYgMTM3LjUgMCAxMDAgMTczLjIxIDAiLz4KPHBvbHlnb24gY2xhc3M9ImNscy0yIiBwb2ludHM9IjE3My4yMSAzMjUgMTczLjIxIDQwMCAwIDMwMCAwIDEwMCA2NC45NiAxMzcuNSA2NC45NiAyNjIuNSIvPgo8cG9seWdvbiBjbGFzcz0iY2xzLTMiIHBvaW50cz0iMjM4LjE2IDE2Mi41IDE3My4yMSAyMDAgMTA4LjI2IDE2Mi41IDE3My4yMSAxMjUiLz4KPHBvbHlnb24gY2xhc3M9ImNscy0yIiBwb2ludHM9IjE3My4yMSAyMDAgMTczLjIxIDI3NSAxMDguMjYgMjM3LjUgMTA4LjI2IDE2Mi41Ii8+Cjxwb2x5Z29uIGNsYXNzPSJjbHMtMSIgcG9pbnRzPSIyMzguMTYgMTYyLjUgMjM4LjE2IDIzNy41IDE3My4yMSAyNzUgMTczLjIxIDIwMCIvPgo8L3N2Zz4K"
+        },
+        "displayName": "Qdrant Vector Store",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1261,
+        "icon": "file:google.svg",
+        "name": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.embeddingsgooglegemini/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Embeddings"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Embeddings Google Gemini"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2aWV3Qm94PSIwIDAgNDggNDgiPjxkZWZzPjxwYXRoIGlkPSJhIiBkPSJNNDQuNSAyMEgyNHY4LjVoMTEuOEMzNC43IDMzLjkgMzAuMSAzNyAyNCAzN2MtNy4yIDAtMTMtNS44LTEzLTEzczUuOC0xMyAxMy0xM2MzLjEgMCA1LjkgMS4xIDguMSAyLjlsNi40LTYuNEMzNC42IDQuMSAyOS42IDIgMjQgMiAxMS44IDIgMiAxMS44IDIgMjRzOS44IDIyIDIyIDIyYzExIDAgMjEtOCAyMS0yMiAwLTEuMy0uMi0yLjctLjUtNCIvPjwvZGVmcz48Y2xpcFBhdGggaWQ9ImIiPjx1c2UgeGxpbms6aHJlZj0iI2EiIG92ZXJmbG93PSJ2aXNpYmxlIi8+PC9jbGlwUGF0aD48cGF0aCBmaWxsPSIjRkJCQzA1IiBkPSJNMCAzN1YxMWwxNyAxM3oiIGNsaXAtcGF0aD0idXJsKCNiKSIvPjxwYXRoIGZpbGw9IiNFQTQzMzUiIGQ9Im0wIDExIDE3IDEzIDctNi4xTDQ4IDE0VjBIMHoiIGNsaXAtcGF0aD0idXJsKCNiKSIvPjxwYXRoIGZpbGw9IiMzNEE4NTMiIGQ9Im0wIDM3IDMwLTIzIDcuOSAxTDQ4IDB2NDhIMHoiIGNsaXAtcGF0aD0idXJsKCNiKSIvPjxwYXRoIGZpbGw9IiM0Mjg1RjQiIGQ9Ik00OCA0OCAxNyAyNGwtNC0zIDM1LTEweiIgY2xpcC1wYXRoPSJ1cmwoI2IpIi8+PC9zdmc+"
+        },
+        "displayName": "Embeddings Google Gemini",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1281,
+        "icon": "file:openrouter.svg",
+        "name": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmchatopenrouter/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Language Models",
+                "Root Nodes"
+              ],
+              "Language Models": [
+                "Chat Models (Recommended)"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "OpenRouter Chat Model"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjOTRBM0I4IiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDI0IDI0IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjx0aXRsZT5PcGVuUm91dGVyPC90aXRsZT48cGF0aCBkPSJNMTYuODA0IDEuOTU3bDcuMjIgNC4xMDV2LjA4N0wxNi43MyAxMC4yMWwuMDE3LTIuMTE3LS44MjEtLjAzYy0xLjA1OS0uMDI4LTEuNjExLjAwMi0yLjI2OC4xMS0xLjA2NC4xNzUtMi4wMzguNTc3LTMuMTQ3IDEuMzUyTDguMzQ1IDExLjAzYy0uMjg0LjE5NS0uNDk1LjMzNi0uNjguNDU1bC0uNTE1LjMyMi0uMzk3LjIzNC4zODUuMjMuNTMuMzM4Yy40NzYuMzE0IDEuMTcuNzk2IDIuNzAxIDEuODY2IDEuMTEuNzc1IDIuMDgzIDEuMTc3IDMuMTQ3IDEuMzUybC4zLjA0NWMuNjk0LjA5MSAxLjM3NS4wOTQgMi44MjUuMDMzbC4wMjItMi4xNTkgNy4yMiA0LjEwNXYuMDg3TDE2LjU4OSAyMmwuMDE0LTEuODYyLS42MzUuMDIyYy0xLjM4Ni4wNDItMi4xMzcuMDAyLTMuMTM4LS4xNjItMS42OTQtLjI4LTMuMjYtLjkyNi00Ljg4MS0yLjA1OWwtMi4xNTgtMS41YTIxLjk5NyAyMS45OTcgMCAwMC0uNzU1LS40OThsLS40NjctLjI4YTU1LjkyNyA1NS45MjcgMCAwMC0uNzYtLjQzQzIuOTA4IDE0LjczLjU2MyAxNC4xMTYgMCAxNC4xMTZWOS44ODhsLjE0LjAwNGMuNTY0LS4wMDcgMi45MS0uNjIyIDMuODA5LTEuMTI0bDEuMDE2LS41OC40MzgtLjI3NGMuNDI4LS4yOCAxLjA3Mi0uNzI2IDIuNjg2LTEuODUzIDEuNjIxLTEuMTMzIDMuMTg2LTEuNzggNC44ODEtMi4wNTkgMS4xNTItLjE5IDEuOTc0LS4yMTMgMy44MTQtLjEzOGwuMDItMS45MDd6Ij48L3BhdGg+PC9zdmc+Cg=="
+        },
+        "displayName": "OpenRouter Chat Model",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1292,
+        "icon": "file:../mcp.svg",
+        "name": "@n8n/n8n-nodes-langchain.mcpClientTool",
+        "codex": {
+          "data": {
+            "alias": [
+              "Model Context Protocol",
+              "MCP Client"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.toolmcp/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Tools"
+              ],
+              "Tools": [
+                "Recommended Tools"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "MCP Client"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDE5NSAxOTUiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+Cgk8ZyBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+CgkJPHBhdGggZD0iTTI1IDk3Ljg1MjhMOTIuODgyMyAyOS45NzA2QzEwMi4yNTUgMjAuNTk4IDExNy40NTEgMjAuNTk4IDEyNi44MjMgMjkuOTcwNlYyOS45NzA2QzEzNi4xOTYgMzkuMzQzMSAxMzYuMTk2IDU0LjUzOTEgMTI2LjgyMyA2My45MTE3TDc1LjU1ODEgMTE1LjE3NyIvPgoJCTxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiLz4KCQk8cGF0aCBkPSJNMTA5Ljg1MyA0Ni45NDExTDU5LjY0ODIgOTcuMTQ1N0M1MC4yNzU3IDEwNi41MTggNTAuMjc1NyAxMjEuNzE0IDU5LjY0ODIgMTMxLjA4N1YxMzEuMDg3QzY5LjAyMDggMTQwLjQ1OSA4NC4yMTY4IDE0MC40NTkgOTMuNTg5NCAxMzEuMDg3TDE0My43OTQgODAuODgyMiIvPgoJPC9nPgo8L3N2Zz4K"
+        },
+        "displayName": "MCP Client Tool",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 16,
+        "name": "DevOps"
+      },
+      {
+        "id": 48,
+        "name": "AI RAG"
+      }
+    ],
+    "image": []
+  }
+}

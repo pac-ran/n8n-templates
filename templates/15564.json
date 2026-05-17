@@ -1,0 +1,2844 @@
+{
+  "workflow": {
+    "id": 15564,
+    "name": "Provide academic OCR and RAG answers on Telegram with Gemini, GPT-4 mini and Supabase",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-09T01:36:59.027Z",
+    "description": "\ud83d\udee0\ufe0f How It Works: System Architecture\nWorkflow ini bekerja melalui empat lapisan proses utama yang terintegrasi secara otomatis:\n\n1. Input Processing & Routing\nTelegram Trigger: Menangkap setiap pesan masuk dari mahasiswa.\n\nSmart Routing (Switch): Node Switch menganalisis tipe input. Jika input berupa perintah (/help, /cekstatus), teks biasa (pertanyaan), atau file gambar (formulir), workflow akan mengarahkannya ke jalur pemrosesan yang relevan.\n\n2. Document Intelligence (OCR Path)\nImage Extraction: Saat mahasiswa mengirim foto formulir, node \"from File\" menyiapkan data biner untuk dianalisis.\n\nAI Vision Analysis: Menggunakan model Gemini (via HTTP Request) untuk membaca teks di dalam gambar dan mengekstraknya menjadi format JSON yang terstruktur (Nama, NIM, Judul, dll).\n\nDatabase Sync: Data yang berhasil diekstrak secara otomatis disimpan ke baris baru di Google Sheets sebagai database utama program studi.\n\n3. Knowledge Retrieval (RAG Path)\nKnowledge Base Setup: File panduan akademik di Google Drive dipantau oleh trigger. Setiap ada file baru, sistem akan mengunduh, melakukan embedding, dan menyimpannya di Supabase Vector Store.\n\nContextual Answer: Jika mahasiswa bertanya, AI Agent akan mencari informasi yang paling relevan di Supabase terlebih dahulu, lalu menyusun jawaban berdasarkan dokumen resmi tersebut agar jawaban tetap akurat dan tidak \"berhalusinasi\".\n\n4. Status Tracking & Memory\nPersonalized Status: Saat perintah /cekstatus dipanggil, AI Agent akan mengambil data spesifik mahasiswa tersebut dari Google Sheets dan merangkum kemajuan administrasi mereka dalam bahasa yang mudah dipahami.\n\nConversational Memory: Menggunakan Postgres Chat Memory untuk menyimpan riwayat percakapan sehingga mahasiswa bisa melakukan tanya jawab secara berkesinambungan tanpa kehilangan konteks.\n\nAdmin Logging: Semua aktivitas chat juga dicatat kembali ke Spreadsheet untuk keperluan audit dan monitoring oleh staf admin.",
+    "workflow": {
+      "id": "zzkoWBHt4jUdt82V",
+      "meta": {
+        "instanceId": "f466b296a10d32704d7f5bfebf0ce65fdb5f22d7d88e8d6504048250aea4ce21",
+        "templateCredsSetupCompleted": true
+      },
+      "name": "Workflow Utama",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "d2ba99b1-454c-4a40-94ee-cbab20d44359",
+          "name": "Telegram Trigger",
+          "type": "n8n-nodes-base.telegramTrigger",
+          "position": [
+            -544,
+            1760
+          ],
+          "webhookId": "858dfe5a-dcdc-4632-b412-ee3cca12f3eb",
+          "parameters": {
+            "updates": [
+              "message"
+            ],
+            "additionalFields": {
+              "download": true
+            }
+          },
+          "credentials": {
+            "telegramApi": {
+              "id": "5tHKGZ5Y4yUHzoxj",
+              "name": "Telegram account"
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "14a65c1f-9f0f-4ad6-bb58-8ab1c797cf27",
+          "name": "Switch",
+          "type": "n8n-nodes-base.switch",
+          "position": [
+            -320,
+            1728
+          ],
+          "parameters": {
+            "rules": {
+              "values": [
+                {
+                  "conditions": {
+                    "options": {
+                      "version": 2,
+                      "leftValue": "",
+                      "caseSensitive": true,
+                      "typeValidation": "strict"
+                    },
+                    "combinator": "and",
+                    "conditions": [
+                      {
+                        "id": "91d9cd60-3987-4aeb-8add-b15b23601087",
+                        "operator": {
+                          "type": "string",
+                          "operation": "exists",
+                          "singleValue": true
+                        },
+                        "leftValue": "={{ $json.message.text }}",
+                        "rightValue": ""
+                      }
+                    ]
+                  }
+                },
+                {
+                  "conditions": {
+                    "options": {
+                      "version": 2,
+                      "leftValue": "",
+                      "caseSensitive": true,
+                      "typeValidation": "strict"
+                    },
+                    "combinator": "and",
+                    "conditions": [
+                      {
+                        "id": "ad99e257-bcaf-42a2-b068-53e0c96729db",
+                        "operator": {
+                          "type": "object",
+                          "operation": "exists",
+                          "singleValue": true
+                        },
+                        "leftValue": "={{ $json.message.photo[2] }}",
+                        "rightValue": ""
+                      }
+                    ]
+                  }
+                },
+                {
+                  "conditions": {
+                    "options": {
+                      "version": 2,
+                      "leftValue": "",
+                      "caseSensitive": true,
+                      "typeValidation": "strict"
+                    },
+                    "combinator": "and",
+                    "conditions": [
+                      {
+                        "id": "4f8d9425-641e-4044-a54a-d73444ea28e0",
+                        "operator": {
+                          "type": "string",
+                          "operation": "startsWith"
+                        },
+                        "leftValue": "={{ $json.message.text }}",
+                        "rightValue": "/help"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "conditions": {
+                    "options": {
+                      "version": 2,
+                      "leftValue": "",
+                      "caseSensitive": true,
+                      "typeValidation": "strict"
+                    },
+                    "combinator": "and",
+                    "conditions": [
+                      {
+                        "id": "69cae014-32a5-44e4-abb1-bd8324df9b65",
+                        "operator": {
+                          "type": "string",
+                          "operation": "startsWith"
+                        },
+                        "leftValue": "={{ $json.message.text }}",
+                        "rightValue": "=/cekstatus"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "options": {}
+          },
+          "typeVersion": 3.2
+        },
+        {
+          "id": "4c6d0bdd-4c69-4c43-a214-f5a852bbae5c",
+          "name": "If",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            176,
+            1728
+          ],
+          "parameters": {
+            "options": {
+              "ignoreCase": true
+            },
+            "conditions": {
+              "options": {
+                "version": 2,
+                "leftValue": "",
+                "caseSensitive": false,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "23f4316d-5a77-45ae-81e7-18ee4cacb995",
+                  "operator": {
+                    "type": "string",
+                    "operation": "contains"
+                  },
+                  "leftValue": "={{ $json.candidates[0].content.parts[0].text }}",
+                  "rightValue": "ERROR:"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "25d826fe-52b4-4b94-82c4-eec691a3eb73",
+          "name": "Analisa gambar",
+          "type": "n8n-nodes-base.httpRequest",
+          "disabled": true,
+          "position": [
+            16,
+            1680
+          ],
+          "parameters": {
+            "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=",
+            "method": "POST",
+            "options": {},
+            "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"inline_data\": {\n            \"mime_type\": \"image/jpeg\",\n            \"data\": \"{{ $('from File').item.json.data }}\"\n          }\n        },\n        {\n          \"text\": \"Lakukan OCR pada dokumen ini dan kembalikan hasil ekstraksi dalam format JSON di bawah ini. Identifikasi jenis formulir secara otomatis berdasarkan judul atau pola isi.\\n\\nFormat wajib:\\n\\n{\\n  \\\"form_type\\\": \\\"pendaftaran_sempro | undangan_sempro | bap_sempro | cover_acc | lembar_kendali | lembar_bimbingan | peminjaman_ruangan | other\\\",\\n  \\\"nama\\\": null,\\n  \\\"nim\\\": null,\\n  \\\"tanggal\\\": null,\\n  \\\"judul_proposal\\\": null,\\n  \\\"pembimbing_1\\\": null,\\n  \\\"pembimbing_2\\\": null,\\n  \\\"penguji_1\\\": null,\\n  \\\"penguji_2\\\": null,\\n  \\\"nomor_surat\\\": null,\\n  \\\"ruangan\\\": null,\\n  \\\"waktu\\\": null,\\n  \\\"raw_text\\\": \\\"...\\\"\\n}\\n\\nAturan:\\n- Jangan tulis teks lain di luar JSON.\\n- Jika data tidak ada, isi null.\\n- Pastikan nama dosen terbaca lengkap.\\n- Jika ada tabel, baca isinya.\\n- Jika dokumen multi-halaman, baca semua.\"\n        }\n      ]\n    }\n  ]\n}",
+            "sendBody": true,
+            "sendHeaders": true,
+            "specifyBody": "json",
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "edbcab18-0dbb-4806-82f2-8dd4cdc47a72",
+          "name": "Respon error",
+          "type": "n8n-nodes-base.telegram",
+          "position": [
+            336,
+            1632
+          ],
+          "webhookId": "8789614c-2e8b-4c58-be9b-38a462213126",
+          "parameters": {
+            "text": "=Formi tidak dapat dibaca dengan jelas. Pastikan foto form jelas dan tidak blur, pencahayaan cukup, dan semua text terlihat. Silakan coba foto ulang! \ud83d\udcf7",
+            "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+            "additionalFields": {
+              "appendAttribution": false
+            }
+          },
+          "credentials": {
+            "telegramApi": {
+              "id": "5tHKGZ5Y4yUHzoxj",
+              "name": "Telegram account"
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "7eb9f58a-cde5-4f06-8f51-12510a514603",
+          "name": "Google Sheets",
+          "type": "n8n-nodes-base.googleSheets",
+          "position": [
+            336,
+            1792
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "nim": "={{ $json.candidates[0].content.parts[0].text.match(/\"nim\":\\s*\"([^\"]+)\"/)[1] }}",
+                "nama": "={{ $json.candidates[0].content.parts[0].text.match(/\"nama\":\\s*\"([^\"]+)\"/)[1] }}",
+                "waktu": "={{ ($json.candidates[0].content.parts[0].text.match(/\"waktu\":\\s*\"([^\"]*)\"/) || [null,null])[1] }}",
+                "ruangan": "={{ ($json.candidates[0].content.parts[0].text.match(/\"ruangan\":\\s*\"([^\"]*)\"/) || [null,null])[1] }}",
+                "tanggal": "={{ $json.candidates[0].content.parts[0].text.match(/\"tanggal\":\\s*\"([^\"]+)\"/)[1] }}",
+                "raw_text": "={{ ($json.candidates[0].content.parts[0].text.match(/\"raw_text\":\\s*\"([\\s\\S]*?)\"$/) || [null,null])[1] }}\n",
+                "form_type": "={{ $json.candidates[0].content.parts[0].text.match(/\"form_type\":\\s*\"([^\"]+)\"/)[1] }}",
+                "penguji_1": "={{ ($json.candidates[0].content.parts[0].text.match(/\"penguji_1\":\\s*\"([^\"]*)\"/) || [null,null])[1] }}",
+                "penguji_2": "={{ ($json.candidates[0].content.parts[0].text.match(/\"penguji_2\":\\s*\"([^\"]*)\"/) || [null,null])[1] }}",
+                "nomor_surat": "={{ ($json.candidates[0].content.parts[0].text.match(/\"nomor_surat\":\\s*\"([^\"]*)\"/) || [null,null])[1] }}",
+                "pembimbing_1": "={{ ($json.candidates[0].content.parts[0].text.match(/\"pembimbing_1\":\\s*\"([^\"]*)\"/) || [null,null])[1] }}",
+                "pembimbing_2": "={{ ($json.candidates[0].content.parts[0].text.match(/\"pembimbing_2\":\\s*\"([^\"]*)\"/) || [null,null])[1] }}",
+                "judul_proposal": "={{ ($json.candidates[0].content.parts[0].text.match(/\"judul_proposal\":\\s*\"([^\"]*)\"/) || [null,null])[1] }}"
+              },
+              "schema": [
+                {
+                  "id": "form_type",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "required": false,
+                  "displayName": "form_type",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "nama",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "nama",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "nim",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "nim",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "tanggal",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "tanggal",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "judul_proposal",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "judul_proposal",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "pembimbing_1",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "pembimbing_1",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "pembimbing_2",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "pembimbing_2",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "penguji_1",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "penguji_1",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "penguji_2",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "penguji_2",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "nomor_surat",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "nomor_surat",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "ruangan",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "ruangan",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "waktu",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "waktu",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "raw_text",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "required": false,
+                  "displayName": "raw_text",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                }
+              ],
+              "mappingMode": "defineBelow",
+              "matchingColumns": [
+                "raw_text"
+              ],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "options": {},
+            "operation": "appendOrUpdate",
+            "sheetName": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gid=0",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1igRBimZm2BRJQ_9N0IKFFUuTsim9a9lJ0jPwm--Brrc/edit#gid=0",
+              "cachedResultName": "Sheet1"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "1igRBimZm2BRJQ_9N0IKFFUuTsim9a9lJ0jPwm--Brrc",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1igRBimZm2BRJQ_9N0IKFFUuTsim9a9lJ0jPwm--Brrc/edit?usp=drivesdk",
+              "cachedResultName": "TA_SEMPRO_DATABASE"
+            }
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "yXGqZmcr3NhoxkGz",
+              "name": "Google Sheets account"
+            }
+          },
+          "typeVersion": 4.6
+        },
+        {
+          "id": "6501350b-a9a0-4b84-be9d-3784a0bc184b",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -160,
+            1616
+          ],
+          "parameters": {
+            "color": 4,
+            "width": 788,
+            "height": 332,
+            "content": "## Workflow untuk upload gambar form"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "c22e9058-c600-4d76-94e4-2beb38e04f1f",
+          "name": "Telegram1",
+          "type": "n8n-nodes-base.telegram",
+          "position": [
+            496,
+            1792
+          ],
+          "webhookId": "73daee3c-75d6-4a6e-8bf4-10cb9c4a811e",
+          "parameters": {
+            "text": "=Data berhasil disimpan ke database. Berikut ringkasan hasil OCR:\n\n\ud83d\udcc4 Jenis Form : {{ $json.form_type }}\n\ud83d\udc64 Nama        : {{ $json.nama }}\n\ud83c\udd94 NIM         : {{ $json.nim }}\n\ud83d\udcc5 Tanggal     : {{ $json.tanggal }}\n\ud83c\udfdb\ufe0f Ruangan     : {{ $json.ruangan }}\n\u23f0 Waktu       : {{ $json.waktu }}\n\nTerima kasih, dokumen kamu sudah tercatat. Jika ingin mengecek status kapan saja, gunakan perintah:\n/cek_status\n",
+            "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+            "additionalFields": {
+              "appendAttribution": false
+            }
+          },
+          "credentials": {
+            "telegramApi": {
+              "id": "5tHKGZ5Y4yUHzoxj",
+              "name": "Telegram account"
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "1c14d410-939c-45ce-98ac-1da7476e9013",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -144,
+            944
+          ],
+          "parameters": {
+            "color": 5,
+            "width": 568,
+            "height": 400,
+            "content": "## RAG"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "0b95b103-e406-48d6-ad60-2cd238a5c1e2",
+          "name": "Telegram4",
+          "type": "n8n-nodes-base.telegram",
+          "position": [
+            272,
+            2336
+          ],
+          "webhookId": "aa9bb08d-1cf8-4297-9bde-0edc92b48c4e",
+          "parameters": {
+            "text": "={{ $json.output }}",
+            "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+            "additionalFields": {
+              "appendAttribution": false
+            }
+          },
+          "credentials": {
+            "telegramApi": {
+              "id": "5tHKGZ5Y4yUHzoxj",
+              "name": "Telegram account"
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "942f85a7-9e8b-47b1-b07c-d1841e0f896a",
+          "name": "Telegram5",
+          "type": "n8n-nodes-base.telegram",
+          "position": [
+            -64,
+            2048
+          ],
+          "webhookId": "7ff87751-1f29-417d-a237-acb30f7b9faa",
+          "parameters": {
+            "text": "=Berikut adalah panduan penggunaan bot:\n\n/help\nUntuk menampilkan menu bantuan.\n\n/cek_status\nUntuk mengecek status Tugas Akhir kamu berdasarkan data yang sudah masuk di sistem.\n\nKirim foto atau PDF\nBot akan memproses dokumen formulir TA melalui OCR dan menyimpannya ke database.\n\nTanya informasi\nKamu dapat bertanya seputar Tugas Akhir, Sempro, Semhas, revisi, dan administrasi lainnya. Bot akan menjawab berdasarkan data resmi melalui RAG.\n\nJika membutuhkan bantuan lainnya, tinggal kirim pesan di sini.\n",
+            "chatId": "={{ $json.message.chat.id }}",
+            "additionalFields": {
+              "parse_mode": "Markdown"
+            }
+          },
+          "credentials": {
+            "telegramApi": {
+              "id": "5tHKGZ5Y4yUHzoxj",
+              "name": "Telegram account"
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "cbad4b33-fcc5-44db-9b33-1be305c6378b",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -160,
+            2256
+          ],
+          "parameters": {
+            "color": 6,
+            "width": 584,
+            "height": 380,
+            "content": "## Request status"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "d3ea14b6-7944-4114-8f75-adca2ce86274",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -160,
+            1984
+          ],
+          "parameters": {
+            "width": 300,
+            "height": 240,
+            "content": "## Request /help"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "a3a9b1be-431d-4679-a35f-10b9ec38cb93",
+          "name": "OpenAI Chat Model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "position": [
+            0,
+            2496
+          ],
+          "parameters": {
+            "model": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gpt-4.1-mini"
+            },
+            "options": {},
+            "builtInTools": {}
+          },
+          "credentials": {
+            "openAiApi": {
+              "id": "bsg9g7dwiYdmvpN4",
+              "name": "OpenAi account"
+            }
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "94dc8e5a-b32d-4fbe-89cb-af1a8d648bdb",
+          "name": "AI Agent2",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "position": [
+            0,
+            2336
+          ],
+          "parameters": {
+            "text": "=Berikut adalah data status Tugas Akhir dari Google Sheets:\n\n{{ JSON.stringify($json, null, 2) }}\n\nJelaskan status mahasiswa berdasarkan data ini.\n",
+            "options": {
+              "systemMessage": "Kamu adalah asisten akademik yang bertugas memberikan status perkembangan Tugas Akhir mahasiswa.\n\nTugasmu:\n1. Terima data yang dikirim sistem dalam bentuk JSON dari Google Spreadsheet.\n2. Baca dan rangkum status mahasiswa berdasarkan field berikut apabila tersedia:\n   - form_type\n   - tanggal\n   - ruangan\n   - waktu\n   - pembimbing_1\n   - pembimbing_2\n   - penguji_1\n   - penguji_2\n   - nomor_surat\n   - raw_text\n   - status (waiting_for_examiner, complete, atau lainnya)\n\n3. Berikan respons yang jelas, singkat, informatif, dan tidak mengarang data di luar input.\n4. Jika beberapa field kosong atau null, abaikan saja tanpa menyebutkan error.\n5. Jika data tidak ditemukan, jawab: \u201cStatus Tugas Akhir belum terdaftar.\u201d\n\nFormat jawaban:\n- Tampilkan ringkasan status dalam bahasa Indonesia yang sopan.\n- Berikan informasi yang paling penting lebih dulu (status utama).\n- Tambahkan detail seperti pembimbing, ruangan, atau tanggal jika ada.\n- Jangan tampilkan JSON mentah.\n- Jangan menambahkan hal di luar konteks administrasi Tugas Akhir.\n\nContoh gaya jawaban:\n\u201cStatus Tugas Akhir Anda saat ini: Menunggu penetapan dosen penguji. Formulir pendaftaran telah diterima pada tanggal 7 November 2025. Jika ada dokumen yang ingin diperbarui, silakan kirim ulang melalui sistem.\u201d\n\nFokus utama:\n- Tidak boleh melakukan asumsi.\n- Tidak boleh membuat informasi baru.\n- Hanya rangkum berdasarkan data yang diterima."
+            },
+            "promptType": "define"
+          },
+          "typeVersion": 3
+        },
+        {
+          "id": "ef6b2648-afd6-463b-bae3-b7eb36c9be05",
+          "name": "Get row(s) in sheet in Google Sheets",
+          "type": "n8n-nodes-base.googleSheetsTool",
+          "position": [
+            160,
+            2480
+          ],
+          "parameters": {
+            "options": {
+              "returnFirstMatch": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Return_only_First_Matching_Row', ``, 'boolean') }}"
+            },
+            "sheetName": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gid=0",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1igRBimZm2BRJQ_9N0IKFFUuTsim9a9lJ0jPwm--Brrc/edit#gid=0",
+              "cachedResultName": "Sheet1"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "1igRBimZm2BRJQ_9N0IKFFUuTsim9a9lJ0jPwm--Brrc",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1igRBimZm2BRJQ_9N0IKFFUuTsim9a9lJ0jPwm--Brrc/edit?usp=drivesdk",
+              "cachedResultName": "TA_SEMPRO_DATABASE"
+            }
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "yXGqZmcr3NhoxkGz",
+              "name": "Google Sheets account"
+            }
+          },
+          "typeVersion": 4.7
+        },
+        {
+          "id": "5947be32-89c0-4691-88e3-811291ccf73e",
+          "name": "Get row(s) in sheet",
+          "type": "n8n-nodes-base.googleSheets",
+          "position": [
+            -144,
+            2336
+          ],
+          "parameters": {
+            "options": {},
+            "sheetName": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gid=0",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1igRBimZm2BRJQ_9N0IKFFUuTsim9a9lJ0jPwm--Brrc/edit#gid=0",
+              "cachedResultName": "Sheet1"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "1igRBimZm2BRJQ_9N0IKFFUuTsim9a9lJ0jPwm--Brrc",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1igRBimZm2BRJQ_9N0IKFFUuTsim9a9lJ0jPwm--Brrc/edit?usp=drivesdk",
+              "cachedResultName": "TA_SEMPRO_DATABASE"
+            }
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "yXGqZmcr3NhoxkGz",
+              "name": "Google Sheets account"
+            }
+          },
+          "typeVersion": 4.7
+        },
+        {
+          "id": "93652721-b311-4026-adc7-05f9f8221f53",
+          "name": "Google Drive Trigger",
+          "type": "n8n-nodes-base.googleDriveTrigger",
+          "position": [
+            -112,
+            704
+          ],
+          "parameters": {
+            "event": "fileCreated",
+            "options": {
+              "fileType": "all"
+            },
+            "pollTimes": {
+              "item": [
+                {
+                  "mode": "everyMinute"
+                }
+              ]
+            },
+            "triggerOn": "specificFolder",
+            "folderToWatch": {
+              "__rl": true,
+              "mode": "list",
+              "value": "1VSFtJe8dRJ5IbNmazp4SE1aQJENM7YM_",
+              "cachedResultUrl": "https://drive.google.com/drive/folders/1VSFtJe8dRJ5IbNmazp4SE1aQJENM7YM_",
+              "cachedResultName": "kbchatbotbaru"
+            }
+          },
+          "credentials": {
+            "googleDriveOAuth2Api": {
+              "id": "byuh8cSIhz8UHeYs",
+              "name": "Google Drive account"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "ea0a3c38-ef3e-4f2d-9aed-9c9761375353",
+          "name": "Download file",
+          "type": "n8n-nodes-base.googleDrive",
+          "position": [
+            32,
+            704
+          ],
+          "parameters": {
+            "fileId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "={{ $json.id }}"
+            },
+            "options": {},
+            "operation": "download"
+          },
+          "credentials": {
+            "googleDriveOAuth2Api": {
+              "id": "byuh8cSIhz8UHeYs",
+              "name": "Google Drive account"
+            }
+          },
+          "typeVersion": 3
+        },
+        {
+          "id": "513ebace-f452-4809-8dc9-c9cf177c2901",
+          "name": "Embeddings OpenAI",
+          "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+          "position": [
+            176,
+            832
+          ],
+          "parameters": {
+            "options": {}
+          },
+          "credentials": {
+            "openAiApi": {
+              "id": "bsg9g7dwiYdmvpN4",
+              "name": "OpenAi account"
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "871b681a-64b9-4389-aeeb-e3ddc8a78369",
+          "name": "Supabase Vector Store1",
+          "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+          "position": [
+            176,
+            704
+          ],
+          "parameters": {
+            "mode": "insert",
+            "options": {
+              "queryName": "match_documents"
+            },
+            "tableName": {
+              "__rl": true,
+              "mode": "list",
+              "value": "documents",
+              "cachedResultName": "documents"
+            }
+          },
+          "credentials": {
+            "supabaseApi": {
+              "id": "is18DQxflfwOD5GQ",
+              "name": "cgpt"
+            }
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "496f3026-a99d-4b44-b333-0338a486bde4",
+          "name": "Default Data Loader",
+          "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+          "position": [
+            304,
+            832
+          ],
+          "parameters": {
+            "options": {},
+            "dataType": "binary"
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "b5d12b17-5365-4499-b486-94a1feb625b3",
+          "name": "AI Agent",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "position": [
+            -64,
+            960
+          ],
+          "parameters": {
+            "text": "={{ $json.message.text }}",
+            "options": {
+              "systemMessage": "Peran kamu adalah asisten akademik resmi Program Studi Sains Data ITERA\nyang bertugas menjawab pertanyaan mahasiswa terkait Tugas Akhir.\n\nKamu WAJIB menggunakan informasi yang berasal dari knowledge base\n(Supabase Vector Store) yang diberikan oleh sistem melalui hasil retrieval.\n\nAturan yang HARUS kamu patuhi:\n\n1. Kamu HANYA BOLEH menjawab berdasarkan isi dokumen yang muncul\n   pada hasil retrieval dari Supabase Vector Store.\n2. Kamu DILARANG menambah, mengarang, mengasumsikan, atau\n   menggeneralisasi informasi yang tidak secara eksplisit tertulis\n   pada dokumen hasil retrieval.\n3. Jika informasi yang ditanyakan TIDAK ditemukan atau TIDAK dijelaskan\n   pada dokumen hasil retrieval, kamu WAJIB menjawab dengan kalimat berikut\n   (tanpa modifikasi):\n\n   \"Informasi tersebut tidak terdapat dalam dokumen panduan Tugas Akhir.\"\n\n4. Kamu TIDAK BOLEH menjawab menggunakan pengetahuan umum,\n   pengalaman pribadi, atau logika di luar dokumen.\n5. Jika terdapat beberapa dokumen hasil retrieval,\n   prioritaskan informasi yang PALING relevan dengan pertanyaan.\n6. Jika dokumen yang di-retrieve hanya sebagian,\n   rangkum bagian yang relevan TANPA menambah informasi baru.\n7. Jika jawaban berupa prosedur atau tahapan,\n   sampaikan dalam bentuk poin-poin yang jelas dan ringkas.\n8. Gunakan bahasa formal akademik yang singkat, jelas, dan mudah dipahami.\n9. Jangan menyebutkan istilah seperti \"berdasarkan pengetahuan saya\",\n   \"biasanya\", atau \"umumnya\".\n10. Jangan menyebutkan sistem, model, AI, atau proses retrieval\n    dalam jawaban ke pengguna.\n\nTujuan utama kamu adalah memastikan jawaban bersifat faktual,\nterverifikasi oleh dokumen, dan bebas dari halusinasi.\npakai informasi dari Supabase Vector Store!!"
+            },
+            "promptType": "define"
+          },
+          "typeVersion": 3
+        },
+        {
+          "id": "3099b95b-2aa1-4375-976a-331793fe26d1",
+          "name": "OpenAI Chat Model1",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "position": [
+            -80,
+            1104
+          ],
+          "parameters": {
+            "model": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gpt-4o-mini",
+              "cachedResultName": "gpt-4o-mini"
+            },
+            "options": {
+              "temperature": 0.5
+            },
+            "builtInTools": {}
+          },
+          "credentials": {
+            "openAiApi": {
+              "id": "bsg9g7dwiYdmvpN4",
+              "name": "OpenAi account"
+            }
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "bcdc084a-dbf5-4a77-924f-912d259d1257",
+          "name": "Supabase Vector Store",
+          "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+          "position": [
+            96,
+            1136
+          ],
+          "parameters": {
+            "mode": "retrieve-as-tool",
+            "topK": 10,
+            "options": {},
+            "tableName": {
+              "__rl": true,
+              "mode": "list",
+              "value": "documents",
+              "cachedResultName": "documents"
+            },
+            "toolDescription": "supabase vector store ini sebagai knowledge base untuk menjawab semua pertanyaan dan query message user, wajib pakai informasi dari supabase vector store ini"
+          },
+          "credentials": {
+            "supabaseApi": {
+              "id": "is18DQxflfwOD5GQ",
+              "name": "cgpt"
+            }
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "62ef9238-04e9-4fe9-9cbe-4fa95cdf163e",
+          "name": "Sticky Note5",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -144,
+            640
+          ],
+          "parameters": {
+            "color": 5,
+            "width": 576,
+            "height": 288,
+            "content": "## Knowledge Base"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "2bfb8253-67b7-4cc0-8a56-313e0ce82f89",
+          "name": "When Executed by Another Workflow",
+          "type": "n8n-nodes-base.executeWorkflowTrigger",
+          "position": [
+            -128,
+            1424
+          ],
+          "parameters": {
+            "inputSource": "passthrough"
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "cf8fd7c4-768b-4ea0-a443-af3756985e8a",
+          "name": "Get many rows",
+          "type": "n8n-nodes-base.supabase",
+          "position": [
+            16,
+            1424
+          ],
+          "parameters": {
+            "tableId": "n8n_chat_histories",
+            "operation": "getAll"
+          },
+          "credentials": {
+            "supabaseApi": {
+              "id": "is18DQxflfwOD5GQ",
+              "name": "cgpt"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "f2d6f9d7-69af-4d16-9554-91f39faed09c",
+          "name": "Append or update row in sheet",
+          "type": "n8n-nodes-base.googleSheets",
+          "position": [
+            176,
+            1424
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "id": "={{ $json.id }}",
+                "message": "={{ $json.message }}",
+                "session_id": "={{ $json.session_id }}"
+              },
+              "schema": [
+                {
+                  "id": "id",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "required": false,
+                  "displayName": "id",
+                  "defaultMatch": true,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "session_id",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "required": false,
+                  "displayName": "session_id",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "message",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "required": false,
+                  "displayName": "message",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                }
+              ],
+              "mappingMode": "defineBelow",
+              "matchingColumns": [
+                "id"
+              ],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "options": {},
+            "operation": "appendOrUpdate",
+            "sheetName": {
+              "__rl": true,
+              "mode": "list",
+              "value": 1665060728,
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1igRBimZm2BRJQ_9N0IKFFUuTsim9a9lJ0jPwm--Brrc/edit#gid=1665060728",
+              "cachedResultName": "chathistory"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "1igRBimZm2BRJQ_9N0IKFFUuTsim9a9lJ0jPwm--Brrc",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1igRBimZm2BRJQ_9N0IKFFUuTsim9a9lJ0jPwm--Brrc/edit?usp=drivesdk",
+              "cachedResultName": "TA_SEMPRO_DATABASE"
+            }
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "yXGqZmcr3NhoxkGz",
+              "name": "Google Sheets account"
+            }
+          },
+          "typeVersion": 4.7
+        },
+        {
+          "id": "97ba79ce-54fa-4afa-89cc-cfd4e06446ce",
+          "name": "Send a text message",
+          "type": "n8n-nodes-base.telegram",
+          "position": [
+            208,
+            960
+          ],
+          "webhookId": "4519bad9-8cad-412a-97c2-92ead61cfacb",
+          "parameters": {
+            "text": "={{ $json.output }}",
+            "chatId": "={{ $node[\"Telegram Trigger\"].json.message.from.id }}",
+            "additionalFields": {
+              "parse_mode": "HTML",
+              "appendAttribution": false
+            }
+          },
+          "credentials": {
+            "telegramApi": {
+              "id": "5tHKGZ5Y4yUHzoxj",
+              "name": "Telegram account"
+            }
+          },
+          "typeVersion": 1.2,
+          "alwaysOutputData": false
+        },
+        {
+          "id": "64e34487-2f23-4de9-8b04-8c1927e744d9",
+          "name": "Postgres Chat Memory1",
+          "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+          "position": [
+            -16,
+            1232
+          ],
+          "parameters": {
+            "sessionKey": "={{ $json.message.message_id }}",
+            "sessionIdType": "customKey"
+          },
+          "credentials": {
+            "postgres": {
+              "id": "NfE4FCloTVdtOvP6",
+              "name": "cgpt"
+            }
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "63543787-4815-4fc5-940b-95996d19c23d",
+          "name": "Sticky Note4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -144,
+            1360
+          ],
+          "parameters": {
+            "color": 5,
+            "width": 488,
+            "height": 240,
+            "content": "## Pencatatan riwayat ke spreadsheet"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "40214665-dd74-45e4-abbb-d1ba3b0b8826",
+          "name": "from File",
+          "type": "n8n-nodes-base.extractFromFile",
+          "position": [
+            -128,
+            1680
+          ],
+          "parameters": {
+            "options": {},
+            "operation": "binaryToPropery"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "13350c2d-6290-49d6-9696-677fd2f139d2",
+          "name": "Embeddings HuggingFace Inference1",
+          "type": "@n8n/n8n-nodes-langchain.embeddingsHuggingFaceInference",
+          "position": [
+            160,
+            1248
+          ],
+          "parameters": {
+            "options": {}
+          },
+          "credentials": {
+            "huggingFaceApi": {
+              "id": "bOCNAHCBTo6tBwi9",
+              "name": "qwenn"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "726ab240-eb56-475c-a462-f6613aa4add4",
+          "name": "Sticky Note6",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -1088,
+            1712
+          ],
+          "parameters": {
+            "color": "#D7E147",
+            "width": 484,
+            "height": 236,
+            "content": "##  Entry Point: Telegram Trigger\nWorkflow ini dimulai dari pesan di Telegram. Bot akan memilah input pengguna melalui node Switch menjadi 4 jalur utama:\n\nTanya Jawab (RAG): Pesan teks biasa diproses oleh AI Agent.\n\nUpload Dokumen: Gambar diproses untuk ekstraksi data (OCR).\n\nBantuan: Perintah /help mengirimkan panduan penggunaan.\n\nCek Status: Perintah /cekstatus mengambil data dari database mahasiswa"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "63c771c4-af01-4baa-affe-631096409b4f",
+          "name": "Sticky Note7",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            432,
+            1360
+          ],
+          "parameters": {
+            "color": "#D7E147",
+            "width": 484,
+            "height": 236,
+            "content": "## OCR & Database (Ekstraksi Form)\nJalur untuk memproses foto formulir Tugas Akhir:\n\nAnalisa Gambar: Menggunakan model Gemini untuk melakukan OCR pada dokumen (pendaftaran sempro, lembar bimbingan, dll).\n\nValidasi: Jika gambar blur atau tidak terbaca, bot mengirimkan Respon Error.\n\nGoogle Sheets: Data hasil ekstraksi (Nama, NIM, Tanggal, dll) disimpan secara otomatis ke spreadsheet TA_SEMPRO_DATABASE."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "1da62dcd-c3ed-4f43-8c79-189069450247",
+          "name": "Sticky Note8",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            464,
+            816
+          ],
+          "parameters": {
+            "color": "#D7E147",
+            "width": 484,
+            "height": 268,
+            "content": "## Knowledge Base & RAG System\nSistem cerdas untuk menjawab pertanyaan seputar prosedur akademik:\n\nKnowledge Base: Dokumen panduan di Google Drive diunduh secara otomatis, dipotong-potong (chunking), dan disimpan ke Supabase Vector Store.\n\nAI Agent (GPT-4o mini): Bertugas menjawab pertanyaan user HANYA berdasarkan data resmi di Supabase agar tidak terjadi halusinasi informasi.\n\nMemory: Menggunakan Postgres untuk mengingat konteks percakapan sebelumnya."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "8fbb0c7e-c0da-4835-b920-18555762529a",
+          "name": "Sticky Note9",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -912,
+            656
+          ],
+          "parameters": {
+            "color": "#D7E147",
+            "width": 484,
+            "height": 636,
+            "content": "## \ud83d\ude80 Welcome to Academic Assistant Bot (OCR + RAG)\nWorkflow ini dirancang sebagai asisten akademik otomatis untuk Program Studi Sains Data ITERA. Sistem ini menggabungkan kekuatan OCR, Vector Database, dan AI Agent untuk mengelola administrasi Tugas Akhir (TA) secara mandiri.\n\n\ud83d\udee0\ufe0f Fitur Utama:\nAutomated OCR: Mengekstrak data mahasiswa dari foto formulir pendaftaran, undangan, hingga BAP Sempro menggunakan model Gemini.\n\nRAG-based Q&A: Menjawab pertanyaan seputar prosedur akademik berdasarkan dokumen panduan resmi yang tersimpan di Supabase Vector Store.\n\nLive Status Tracking: Mahasiswa dapat mengecek status perkembangan TA mereka secara real-time yang ditarik langsung dari database Google Sheets.\n\nHistory Logging: Mencatat setiap interaksi dan riwayat percakapan ke dalam database untuk pemantauan admin.\n\n## \ud83d\udccb Setup (Credentials Required):\nSebelum mengaktifkan workflow ini, pastikan kamu telah menghubungkan:\n\nTelegram Bot API (Trigger & Respon).\n\nGoogle Sheets & Drive API (Penyimpanan Data & Dokumen Sumber).\n\nOpenAI API (Otak AI Agent & Embeddings).\n\nSupabase API (Vektor Database & Chat History).\n\nGemini API (Proses OCR Gambar)."
+          },
+          "typeVersion": 1
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "eb8bc072-6a50-4dca-ba51-a516fcad509b",
+      "connections": {
+        "If": {
+          "main": [
+            [
+              {
+                "node": "Respon error",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Google Sheets",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Switch": {
+          "main": [
+            [
+              {
+                "node": "AI Agent",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "from File",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Telegram5",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Get row(s) in sheet",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "AI Agent": {
+          "main": [
+            [
+              {
+                "node": "Send a text message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "AI Agent2": {
+          "main": [
+            [
+              {
+                "node": "Telegram4",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "from File": {
+          "main": [
+            [
+              {
+                "node": "Analisa gambar",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Download file": {
+          "main": [
+            [
+              {
+                "node": "Supabase Vector Store1",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get many rows": {
+          "main": [
+            [
+              {
+                "node": "Append or update row in sheet",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Google Sheets": {
+          "main": [
+            [
+              {
+                "node": "Telegram1",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Analisa gambar": {
+          "main": [
+            [
+              {
+                "node": "If",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Telegram Trigger": {
+          "main": [
+            [
+              {
+                "node": "Switch",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Embeddings OpenAI": {
+          "ai_embedding": [
+            [
+              {
+                "node": "Supabase Vector Store1",
+                "type": "ai_embedding",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenAI Chat Model": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "AI Agent2",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenAI Chat Model1": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "AI Agent",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Default Data Loader": {
+          "ai_document": [
+            [
+              {
+                "node": "Supabase Vector Store1",
+                "type": "ai_document",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get row(s) in sheet": {
+          "main": [
+            [
+              {
+                "node": "AI Agent2",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Google Drive Trigger": {
+          "main": [
+            [
+              {
+                "node": "Download file",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Postgres Chat Memory1": {
+          "ai_memory": [
+            [
+              {
+                "node": "AI Agent",
+                "type": "ai_memory",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Supabase Vector Store": {
+          "ai_tool": [
+            [
+              {
+                "node": "AI Agent",
+                "type": "ai_tool",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Embeddings HuggingFace Inference1": {
+          "ai_embedding": [
+            [
+              {
+                "node": "Supabase Vector Store",
+                "type": "ai_embedding",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "When Executed by Another Workflow": {
+          "main": [
+            [
+              {
+                "node": "Get many rows",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get row(s) in sheet in Google Sheets": {
+          "ai_tool": [
+            [
+              {
+                "node": "AI Agent2",
+                "type": "ai_tool",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 38,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 1
+        },
+        "n8n-nodes-base.switch": {
+          "count": 1
+        },
+        "n8n-nodes-base.supabase": {
+          "count": 1
+        },
+        "n8n-nodes-base.telegram": {
+          "count": 5
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 10
+        },
+        "n8n-nodes-base.googleDrive": {
+          "count": 1
+        },
+        "n8n-nodes-base.httpRequest": {
+          "count": 1
+        },
+        "n8n-nodes-base.googleSheets": {
+          "count": 3
+        },
+        "@n8n/n8n-nodes-langchain.agent": {
+          "count": 2
+        },
+        "n8n-nodes-base.extractFromFile": {
+          "count": 1
+        },
+        "n8n-nodes-base.telegramTrigger": {
+          "count": 1
+        },
+        "n8n-nodes-base.googleSheetsTool": {
+          "count": 1
+        },
+        "n8n-nodes-base.googleDriveTrigger": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.lmChatOpenAi": {
+          "count": 2
+        },
+        "n8n-nodes-base.executeWorkflowTrigger": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.embeddingsOpenAi": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.memoryPostgresChat": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.vectorStoreSupabase": {
+          "count": 2
+        },
+        "@n8n/n8n-nodes-langchain.documentDefaultDataLoader": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.embeddingsHuggingFaceInference": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Rayan Koemi Karuby",
+      "username": "rynkoemi",
+      "bio": "",
+      "verified": false,
+      "links": [
+        ""
+      ],
+      "avatar": "https://gravatar.com/avatar/1ac108780e1fe7d7eeb9603708255c9a300b9ede762407e32243eca2efbc2c50?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 18,
+        "icon": "file:googleSheets.svg",
+        "name": "n8n-nodes-base.googleSheets",
+        "codex": {
+          "data": {
+            "alias": [
+              "CSV",
+              "Sheet",
+              "Spreadsheet",
+              "GS"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/love-at-first-sight-ricardos-n8n-journey/",
+                  "icon": "\u2764\ufe0f",
+                  "label": "Love at first sight: Ricardo\u2019s n8n journey"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-triggers-for-n8n-workflows-using-polling/",
+                  "icon": "\u23f2",
+                  "label": "Creating triggers for n8n workflows using polling"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/migrating-community-metrics-to-orbit-using-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Migrating Community Metrics to Orbit using n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-honest-burgers-use-automation-to-save-100k-per-year/",
+                  "icon": "\ud83c\udf54",
+                  "label": "How Honest Burgers Use Automation to Save $100k per year"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "\ud83d\udcbb",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googlesheets/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage",
+              "Productivity"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\",\"output\"]",
+        "defaults": {
+          "name": "Google Sheets"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNS42OSAxIDUyIDE3LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0OC4yOTMgNjBIMTIuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDkgNTYuMzEyVjQuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTIuNzA3IDF6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM1LjY5IDEgNTIgMTcuMjI1SDM5LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzkuMjExIDE3LjIyNSA1MiAyMi40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTIwLjEyIDMxLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMS42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzEuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNC42OSAwIDUxIDE2LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0Ny4yOTMgNTlIMTEuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDggNTUuMzEyVjMuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTEuNzA3IDB6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM0LjY5IDAgNTEgMTYuMjI1SDM4LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzguMjExIDE2LjIyNSA1MSAyMS40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTE5LjEyIDMwLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMC42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzAuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjwvZz48L3N2Zz4="
+        },
+        "displayName": "Google Sheets",
+        "typeVersion": 5,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          },
+          {
+            "id": 4,
+            "name": "Productivity"
+          }
+        ]
+      },
+      {
+        "id": 19,
+        "icon": "file:httprequest.svg",
+        "name": "n8n-nodes-base.httpRequest",
+        "codex": {
+          "data": {
+            "alias": [
+              "API",
+              "Request",
+              "URL",
+              "Build",
+              "cURL"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-designs-with-bannerbear-and-n8n/",
+                  "icon": "\ud83c\udfa8",
+                  "label": "Automate Designs with Bannerbear and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-use-the-http-request-node-the-swiss-army-knife-for-workflow-automation/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "How to use the HTTP Request Node - The Swiss Army Knife for Workflow Automation"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HTTP Request",
+          "color": "#0004F5"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MCAyMEM0MCA4Ljk1MzE0IDMxLjA0NjkgMCAyMCAwQzguOTUzMTQgMCAwIDguOTUzMTQgMCAyMEMwIDMxLjA0NjkgOC45NTMxNCA0MCAyMCA0MEMzMS4wNDY5IDQwIDQwIDMxLjA0NjkgNDAgMjBaTTIwIDM2Ljk0NThDMTguODg1MiAzNi45NDU4IDE3LjEzNzggMzUuOTY3IDE1LjQ5OTggMzIuNjk4NUMxNC43OTY0IDMxLjI5MTggMTQuMTk2MSAyOS41NDMxIDEzLjc1MjYgMjcuNjg0N0gyNi4xODk4QzI1LjgwNDUgMjkuNTQwMyAyNS4yMDQ0IDMxLjI5MDEgMjQuNTAwMiAzMi42OTg1QzIyLjg2MjIgMzUuOTY3IDIxLjExNDggMzYuOTQ1OCAyMCAzNi45NDU4Wk0xMi45MDY0IDIwQzEyLjkwNjQgMjEuNjA5NyAxMy4wMDg3IDIzLjE2NCAxMy4yMDAzIDI0LjYzMDVIMjYuNzk5N0MyNi45OTEzIDIzLjE2NCAyNy4wOTM2IDIxLjYwOTcgMjcuMDkzNiAyMEMyNy4wOTM2IDE4LjM5MDMgMjYuOTkxMyAxNi44MzYgMjYuNzk5NyAxNS4zNjk1SDEzLjIwMDNDMTMuMDA4NyAxNi44MzYgMTIuOTA2NCAxOC4zOTAzIDEyLjkwNjQgMjBaTTIwIDMuMDU0MTlDMjEuMTE0OSAzLjA1NDE5IDIyLjg2MjIgNC4wMzA3OCAyNC41MDAxIDcuMzAwMzlDMjUuMjA2NiA4LjcxNDA4IDI1LjgwNzIgMTAuNDA2NyAyNi4xOTIgMTIuMzE1M0gxMy43NTAxQzE0LjE5MzMgMTAuNDA0NyAxNC43OTQyIDguNzEyNTQgMTUuNDk5OCA3LjMwMDY0QzE3LjEzNzcgNC4wMzA4MyAxOC44ODUxIDMuMDU0MTkgMjAgMy4wNTQxOVpNMzAuMTQ3OCAyMEMzMC4xNDc4IDE4LjQwOTkgMzAuMDU0MyAxNi44NjE3IDI5LjgyMjcgMTUuMzY5NUgzNi4zMDQyQzM2LjcyNTIgMTYuODQyIDM2Ljk0NTggMTguMzk2NCAzNi45NDU4IDIwQzM2Ljk0NTggMjEuNjAzNiAzNi43MjUyIDIzLjE1OCAzNi4zMDQyIDI0LjYzMDVIMjkuODIyN0MzMC4wNTQzIDIzLjEzODMgMzAuMTQ3OCAyMS41OTAxIDMwLjE0NzggMjBaTTI2LjI3NjcgNC4yNTUxMkMyNy42MzY1IDYuMzYwMTkgMjguNzExIDkuMTMyIDI5LjM3NzQgMTIuMzE1M0gzNS4xMDQ2QzMzLjI1MTEgOC42NjggMzAuMTA3IDUuNzgzNDYgMjYuMjc2NyA0LjI1NTEyWk0xMC42MjI2IDEyLjMxNTNINC44OTI5M0M2Ljc1MTQ3IDguNjY3ODQgOS44OTM1MSA1Ljc4MzQxIDEzLjcyMzIgNC4yNTUxM0MxMi4zNjM1IDYuMzYwMjEgMTEuMjg5IDkuMTMyMDEgMTAuNjIyNiAxMi4zMTUzWk0zLjA1NDE5IDIwQzMuMDU0MTkgMjEuNjAzIDMuMjc3NDMgMjMuMTU3NSAzLjY5NDg0IDI0LjYzMDVIMTAuMTIxN0M5Ljk0NjE5IDIzLjE0MiA5Ljg1MjIyIDIxLjU5NDMgOS44NTIyMiAyMEM5Ljg1MjIyIDE4LjQwNTcgOS45NDYxOSAxNi44NTggMTAuMTIxNyAxNS4zNjk1SDMuNjk0ODRDMy4yNzc0MyAxNi44NDI1IDMuMDU0MTkgMTguMzk3IDMuMDU0MTkgMjBaTTI2LjI3NjYgMzUuNzQyN0MyNy42MzY1IDMzLjYzOTMgMjguNzExIDMwLjg2OCAyOS4zNzc0IDI3LjY4NDdIMzUuMTA0NkMzMy4yNTEgMzEuMzMyMiAzMC4xMDY4IDM0LjIxNzkgMjYuMjc2NiAzNS43NDI3Wk0xMy43MjM0IDM1Ljc0MjdDOS44OTM2OSAzNC4yMTc5IDYuNzUxNTUgMzEuMzMyNCA0Ljg5MjkzIDI3LjY4NDdIMTAuNjIyNkMxMS4yODkgMzAuODY4IDEyLjM2MzUgMzMuNjM5MyAxMy43MjM0IDM1Ljc0MjdaIiBmaWxsPSIjM0E0MkU5Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "HTTP Request",
+        "typeVersion": 4,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 49,
+        "icon": "file:telegram.svg",
+        "name": "n8n-nodes-base.telegram",
+        "codex": {
+          "data": {
+            "alias": [
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/using-automation-to-boost-productivity-in-the-workplace/",
+                  "icon": "\ud83d\udcaa",
+                  "label": "Using Automation to Boost Productivity in the Workplace"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-telegram-bots-with-n8n-a-no-code-platform/",
+                  "icon": "\ud83d\udcac",
+                  "label": "Creating Telegram Bots with n8n, a No-Code Platform"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.telegram/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/telegram/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "Telegram"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgNjYgNjYiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48ZyBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSI+PHBhdGggZmlsbD0iIzM3YWVlMiIgZD0iTTAgMzJjMCAxNy42NzMgMTQuMzI3IDMyIDMyIDMyczMyLTE0LjMyNyAzMi0zMlM0OS42NzMgMCAzMiAwIDAgMTQuMzI3IDAgMzIiLz48cGF0aCBmaWxsPSIjYzhkYWVhIiBkPSJtMjEuNjYxIDM0LjMzOCAzLjc5NyAxMC41MDhzLjQ3NS45ODMuOTgzLjk4MyA4LjA2OC03Ljg2NCA4LjA2OC03Ljg2NGw4LjQwNy0xNi4yMzctMjEuMTE5IDkuODk4eiIvPjxwYXRoIGZpbGw9IiNhOWM2ZDgiIGQ9Im0yNi42OTUgMzcuMDM0LS43MjkgNy43NDZzLS4zMDUgMi4zNzMgMi4wNjggMGw0LjY0NC00LjIwMyIvPjxwYXRoIGQ9Im0yMS43MyAzNC43MTItNy44MDktMi41NDVzLS45MzItLjM3OC0uNjMzLTEuMjM3Yy4wNjItLjE3Ny4xODYtLjMyOC41NTktLjU4OCAxLjczMS0xLjIwNiAzMi4wMjgtMTIuMDk2IDMyLjAyOC0xMi4wOTZzLjg1Ni0uMjg4IDEuMzYxLS4wOTdjLjIzMS4wODguMzc4LjE4Ny41MDMuNTQ4LjA0NS4xMzIuMDcxLjQxMS4wNjguNjg5LS4wMDMuMjAxLS4wMjcuMzg2LS4wNDUuNjc4LS4xODQgMi45NzgtNS43MDYgMjUuMTk4LTUuNzA2IDI1LjE5OHMtLjMzIDEuMy0xLjUxNCAxLjM0NWMtLjQzMi4wMTYtLjk1Ni0uMDcxLTEuNTgyLS42MS0yLjMyMy0xLjk5OC0xMC4zNTItNy4zOTQtMTIuMTI2LTguNThhLjM0LjM0IDAgMCAxLS4xNDYtLjIzOWMtLjAyNS0uMTI1LjEwOC0uMjguMTA4LS4yOHMxMy45OC0xMi40MjcgMTQuMzUyLTEzLjczMWMuMDI5LS4xMDEtLjA3OS0uMTUxLS4yMjYtLjEwNy0uOTI5LjM0Mi0xNy4wMjUgMTAuNTA2LTE4LjgwMSAxMS42MjktLjEwNC4wNjYtLjM5NS4wMjMtLjM5NS4wMjMiLz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Telegram",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 50,
+        "icon": "file:telegram.svg",
+        "name": "n8n-nodes-base.telegramTrigger",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-telegram-bots-with-n8n-a-no-code-platform/",
+                  "icon": "\ud83d\udcac",
+                  "label": "Creating Telegram Bots with n8n, a No-Code Platform"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/trigger-nodes/n8n-nodes-base.telegramtrigger/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/telegram/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Telegram Trigger"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgNjYgNjYiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48ZyBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSI+PHBhdGggZmlsbD0iIzM3YWVlMiIgZD0iTTAgMzJjMCAxNy42NzMgMTQuMzI3IDMyIDMyIDMyczMyLTE0LjMyNyAzMi0zMlM0OS42NzMgMCAzMiAwIDAgMTQuMzI3IDAgMzIiLz48cGF0aCBmaWxsPSIjYzhkYWVhIiBkPSJtMjEuNjYxIDM0LjMzOCAzLjc5NyAxMC41MDhzLjQ3NS45ODMuOTgzLjk4MyA4LjA2OC03Ljg2NCA4LjA2OC03Ljg2NGw4LjQwNy0xNi4yMzctMjEuMTE5IDkuODk4eiIvPjxwYXRoIGZpbGw9IiNhOWM2ZDgiIGQ9Im0yNi42OTUgMzcuMDM0LS43MjkgNy43NDZzLS4zMDUgMi4zNzMgMi4wNjggMGw0LjY0NC00LjIwMyIvPjxwYXRoIGQ9Im0yMS43MyAzNC43MTItNy44MDktMi41NDVzLS45MzItLjM3OC0uNjMzLTEuMjM3Yy4wNjItLjE3Ny4xODYtLjMyOC41NTktLjU4OCAxLjczMS0xLjIwNiAzMi4wMjgtMTIuMDk2IDMyLjAyOC0xMi4wOTZzLjg1Ni0uMjg4IDEuMzYxLS4wOTdjLjIzMS4wODguMzc4LjE4Ny41MDMuNTQ4LjA0NS4xMzIuMDcxLjQxMS4wNjguNjg5LS4wMDMuMjAxLS4wMjcuMzg2LS4wNDUuNjc4LS4xODQgMi45NzgtNS43MDYgMjUuMTk4LTUuNzA2IDI1LjE5OHMtLjMzIDEuMy0xLjUxNCAxLjM0NWMtLjQzMi4wMTYtLjk1Ni0uMDcxLTEuNTgyLS42MS0yLjMyMy0xLjk5OC0xMC4zNTItNy4zOTQtMTIuMTI2LTguNThhLjM0LjM0IDAgMCAxLS4xNDYtLjIzOWMtLjAyNS0uMTI1LjEwOC0uMjguMTA4LS4yOHMxMy45OC0xMi40MjcgMTQuMzUyLTEzLjczMWMuMDI5LS4xMDEtLjA3OS0uMTUxLS4yMjYtLjEwNy0uOTI5LjM0Mi0xNy4wMjUgMTAuNTA2LTE4LjgwMSAxMS42MjktLjEwNC4wNjYtLjM5NS4wMjMtLjM5NS4wMjMiLz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Telegram Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          }
+        ]
+      },
+      {
+        "id": 58,
+        "icon": "file:googleDrive.svg",
+        "name": "n8n-nodes-base.googleDrive",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googledrive/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Google Drive"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgODEgNzMiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48ZyBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSI+PHBhdGggZmlsbD0iIzAwNjZkYSIgZD0ibTYuMDQ4IDYxLjI2IDMuNTI4IDYuMDk0Yy43MzMgMS4yODMgMS43ODcgMi4yOTEgMy4wMjQgMy4wMjRsMTIuNi0yMS44MUgwYTguMyA4LjMgMCAwIDAgMS4xIDQuMTI0eiIvPjxwYXRoIGZpbGw9IiMwMGFjNDciIGQ9Ik00MCAyMi45MSAyNy40IDEuMWMtMS4yMzcuNzMzLTIuMjkxIDEuNzQxLTMuMDI0IDMuMDI0TDEuMSA0NC40NDVBOC4zIDguMyAwIDAgMCAwIDQ4LjU2OGgyNS4yeiIvPjxwYXRoIGZpbGw9IiNlYTQzMzUiIGQ9Ik02Ny40IDcwLjM3OGMxLjIzNy0uNzMzIDIuMjkxLTEuNzQxIDMuMDI0LTMuMDI0bDEuNDY2LTIuNTIgNy4wMS0xMi4xNDJhOC4zIDguMyAwIDAgMCAxLjEtNC4xMjRINTQuNzk4bDUuMzYzIDEwLjUzOHoiLz48cGF0aCBmaWxsPSIjMDA4MzJkIiBkPSJNNDAgMjIuOTEgNTIuNiAxLjFDNTEuMzYzLjM2NyA0OS45NDMgMCA0OC40NzcgMEgzMS41MjRjLTEuNDY2IDAtMi44ODcuNDEyLTQuMTI0IDEuMXoiLz48cGF0aCBmaWxsPSIjMjY4NGZjIiBkPSJNNTQuNzk5IDQ4LjU2OEgyNS4ybC0xMi42IDIxLjgxYzEuMjM3LjczMyAyLjY1NyAxLjEgNC4xMjQgMS4xaDQ2LjU1MmMxLjQ2NiAwIDIuODg3LS40MTIgNC4xMjQtMS4xeiIvPjxwYXRoIGZpbGw9IiNmZmJhMDAiIGQ9Ik02Ny4yNjIgMjQuMjg0IDU1LjYyNCA0LjEyNEM1NC44OTEgMi44NDEgNTMuODM3IDEuODMzIDUyLjYgMS4xTDQwIDIyLjkxbDE0LjggMjUuNjU5aDI1LjE1NWE4LjMgOC4zIDAgMCAwLTEuMS00LjEyNHoiLz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Google Drive",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          }
+        ]
+      },
+      {
+        "id": 112,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.switch",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "If",
+              "Path",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Branch",
+              "Case"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.switch/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Switch",
+          "color": "#506000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "Switch",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 531,
+        "icon": "file:googleDrive.svg",
+        "name": "n8n-nodes-base.googleDriveTrigger",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/trigger-nodes/n8n-nodes-base.googledrivetrigger/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Google Drive Trigger"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgODEgNzMiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48ZyBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSI+PHBhdGggZmlsbD0iIzAwNjZkYSIgZD0ibTYuMDQ4IDYxLjI2IDMuNTI4IDYuMDk0Yy43MzMgMS4yODMgMS43ODcgMi4yOTEgMy4wMjQgMy4wMjRsMTIuNi0yMS44MUgwYTguMyA4LjMgMCAwIDAgMS4xIDQuMTI0eiIvPjxwYXRoIGZpbGw9IiMwMGFjNDciIGQ9Ik00MCAyMi45MSAyNy40IDEuMWMtMS4yMzcuNzMzLTIuMjkxIDEuNzQxLTMuMDI0IDMuMDI0TDEuMSA0NC40NDVBOC4zIDguMyAwIDAgMCAwIDQ4LjU2OGgyNS4yeiIvPjxwYXRoIGZpbGw9IiNlYTQzMzUiIGQ9Ik02Ny40IDcwLjM3OGMxLjIzNy0uNzMzIDIuMjkxLTEuNzQxIDMuMDI0LTMuMDI0bDEuNDY2LTIuNTIgNy4wMS0xMi4xNDJhOC4zIDguMyAwIDAgMCAxLjEtNC4xMjRINTQuNzk4bDUuMzYzIDEwLjUzOHoiLz48cGF0aCBmaWxsPSIjMDA4MzJkIiBkPSJNNDAgMjIuOTEgNTIuNiAxLjFDNTEuMzYzLjM2NyA0OS45NDMgMCA0OC40NzcgMEgzMS41MjRjLTEuNDY2IDAtMi44ODcuNDEyLTQuMTI0IDEuMXoiLz48cGF0aCBmaWxsPSIjMjY4NGZjIiBkPSJNNTQuNzk5IDQ4LjU2OEgyNS4ybC0xMi42IDIxLjgxYzEuMjM3LjczMyAyLjY1NyAxLjEgNC4xMjQgMS4xaDQ2LjU1MmMxLjQ2NiAwIDIuODg3LS40MTIgNC4xMjQtMS4xeiIvPjxwYXRoIGZpbGw9IiNmZmJhMDAiIGQ9Ik02Ny4yNjIgMjQuMjg0IDU1LjYyNCA0LjEyNEM1NC44OTEgMi44NDEgNTMuODM3IDEuODMzIDUyLjYgMS4xTDQwIDIyLjkxbDE0LjggMjUuNjU5aDI1LjE1NWE4LjMgOC4zIDAgMCAwLTEuMS00LjEyNHoiLz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Google Drive Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          }
+        ]
+      },
+      {
+        "id": 545,
+        "icon": "file:supabase.svg",
+        "name": "n8n-nodes-base.supabase",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.supabase/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/supabase/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Supabase"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDkiIGhlaWdodD0iMTEzIiBmaWxsPSJub25lIj48cGF0aCBmaWxsPSJ1cmwoI2EpIiBkPSJNNjMuNzA4IDExMC4yODRjLTIuODYgMy42MDEtOC42NTggMS42MjgtOC43MjctMi45N2wtMS4wMDctNjcuMjUxaDQ1LjIyYzguMTkgMCAxMi43NTggOS40NiA3LjY2NSAxNS44NzR6Ii8+PHBhdGggZmlsbD0idXJsKCNiKSIgZmlsbC1vcGFjaXR5PSIuMiIgZD0iTTYzLjcwOCAxMTAuMjg0Yy0yLjg2IDMuNjAxLTguNjU4IDEuNjI4LTguNzI3LTIuOTdsLTEuMDA3LTY3LjI1MWg0NS4yMmM4LjE5IDAgMTIuNzU4IDkuNDYgNy42NjUgMTUuODc0eiIvPjxwYXRoIGZpbGw9IiMzRUNGOEUiIGQ9Ik00NS4zMTcgMi4wNzFjMi44Ni0zLjYwMSA4LjY1Ny0xLjYyOCA4LjcyNiAyLjk3bC40NDIgNjcuMjUxSDkuODNjLTguMTkgMC0xMi43NTktOS40Ni03LjY2NS0xNS44NzV6Ii8+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iNTMuOTc0IiB4Mj0iOTQuMTYzIiB5MT0iNTQuOTc0IiB5Mj0iNzEuODI5IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3Agc3RvcC1jb2xvcj0iIzI0OTM2MSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzNFQ0Y4RSIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJiIiB4MT0iMzYuMTU2IiB4Mj0iNTQuNDg0IiB5MT0iMzAuNTc4IiB5Mj0iNjUuMDgxIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3AvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1vcGFjaXR5PSIwIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PC9zdmc+"
+        },
+        "displayName": "Supabase",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 837,
+        "icon": "fa:sign-out-alt",
+        "name": "n8n-nodes-base.executeWorkflowTrigger",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.executeworkflowtrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "When Executed by Another Workflow",
+          "color": "#ff6d5a"
+        },
+        "iconData": {
+          "icon": "sign-out-alt",
+          "type": "icon"
+        },
+        "displayName": "Execute Workflow Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1119,
+        "icon": "fa:robot",
+        "name": "@n8n/n8n-nodes-langchain.agent",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain",
+              "Chat",
+              "Conversational",
+              "Plan and Execute",
+              "ReAct",
+              "Tools"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Agents",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "AI Agent",
+          "color": "#404040"
+        },
+        "iconData": {
+          "icon": "robot",
+          "type": "icon"
+        },
+        "displayName": "AI Agent",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1139,
+        "icon": "file:huggingface.svg",
+        "name": "@n8n/n8n-nodes-langchain.embeddingsHuggingFaceInference",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.embeddingshuggingfaceinference/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Embeddings"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Embeddings HuggingFace Inference"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMjU2IiBmaWxsPSJub25lIj48cGF0aCBmaWxsPSIjZmZmIiBkPSJNMjMwLjcyMSAxNzIuN2ExOSAxOSAwIDAgMC0yLjU3NS01LjY5MnEuMzc2LTEuMzc3LjU2OC0yLjc5MWMuODI5LTUuOTc2LTEuMjQzLTExLjQ0Ny01LjE0Ny0xNS42OC0yLjExNS0yLjMxMi00LjM4Mi0zLjgzOS02Ljc4My00Ljc3NmE5MC42IDkwLjYgMCAwIDAgMi4zNzctMjAuNTY4YzAtMy4xNjMtLjE3OS02LjI2MS0uNDc5LTkuMzEzYTEwNiAxMDYgMCAwIDAtLjU2Ny00LjU2IDkxIDkxIDAgMCAwLTMuMDUxLTEzLjIxIDkxIDkxIDAgMCAwLTMuMDU0LTguMzc0IDkyIDkyIDAgMCAwLTYuMDQxLTExLjc1NCA4MSA4MSAwIDAgMC00LjkwNy03LjI2MiA2OSA2OSAwIDAgMC0yLjcwNC0zLjQ0NiA5MC41IDkwLjUgMCAwIDAtOS4wMzMtOS40ODYgNzAgNzAgMCAwIDAtMy4zMTUtMi44NjIgODIgODIgMCAwIDAtMy40MjQtMi43MDQgOTYgOTYgMCAwIDAtNy4yNjItNC45MDdjLTEzLjc4MS04LjM3LTI5Ljk0Mi0xMy4xNy00Ny4yMTUtMTMuMTctNTAuMjkyIDAtOTEuMDUyIDQwLjc2Mi05MS4wNTIgOTEuMDUxLS4wMDIgNy4wMTIuODEgMTQgMi40MiAyMC44MjQtMi4xNi45MzgtNC4yMyAyLjQtNi4xNSA0LjUxNS0zLjkwMyA0LjIzMS01Ljk3NiA5LjY4Mi01LjE0NyAxNS42NThxLjE4OSAxLjQyNS41NjcgMi44MTNhMTkgMTkgMCAwIDAtMi41NzMgNS42OTRjLTEuMiA0LjU2MS0uODA1IDguNjc0LjcyIDEyLjI3OC0xLjY1OCA0LjcxLTEuMjQ0IDkuNzI2LjkxNSAxNC4wODcgMS41NyAzLjE4NSAzLjgxNyA1LjY0OSA2LjU4NyA3Ljg1MSAzLjI5MyAyLjYxOCA3LjQxNSA0Ljg0MiAxMi4zODcgNi45NzYgNS45MzIgMi41MyAxMy4xNzMgNC45MDcgMTYuNDY2IDUuNzc5IDguNTA2IDIuMjAyIDE2LjY2MiAzLjU5OCAyNC45MjggMy42NjYgMTEuNzc3LjEwOSAyMS45MTktMi42NiAyOS4xOC05Ljc0N2E4OCA4OCAwIDAgMCAxMC43NTIuNjU0IDk0IDk0IDAgMCAwIDExLjM1OC0uNzE1YzcuMjQ0IDcuMTMyIDE3LjQyNSA5LjkyNiAyOS4yNDUgOS44MTQgOC4yNjUtLjA2NiAxNi40MjEtMS40NjIgMjQuOTA1LTMuNjY3IDMuMzE1LS44NzIgMTAuNTUzLTMuMjQ5IDE2LjQ4OC01Ljc3OSA0Ljk3Mi0yLjEzNyA5LjA5NC00LjM2MSAxMi40MDktNi45NzUgMi43NDktMi4yMDMgNC45OTQtNC42NjYgNi41NjUtNy44NTEgMi4xODEtNC4zNjIgMi41NzMtOS4zNzguOTM4LTE0LjA4OCAxLjUxLTMuNjA0IDEuOTAzLTcuNzI2LjcwNC0xMi4yODNtLTguNDQgMTEuOTczYzEuNjcxIDMuMTcxIDEuNzc4IDYuNzU0LjMwNCAxMC4wOTEtMi4yMzYgNS4wNTctNy43OSA5LjA0MS0xOC41NzcgMTMuMzE4LTYuNzA4IDIuNjYtMTIuODUgNC4zNjEtMTIuOTA0IDQuMzc2LTguODcyIDIuMzAxLTE2Ljg5NiAzLjQ3LTIzLjg0MiAzLjQ3LTExLjUwMiAwLTIwLjA2MS0zLjE3NC0yNS40ODktOS40NDJhODUuNSA4NS41IDAgMCAxLTI3Ljc0Ny4xNThjLTUuNDM1IDYuMTY0LTEzLjk0NSA5LjI4NC0yNS4zNSA5LjI4NC02Ljk0NyAwLTE0Ljk3LTEuMTY5LTIzLjg0My0zLjQ3LS4wNTQtLjAxNS02LjE5NC0xLjcxNi0xMi45MDQtNC4zNzYtMTAuNzg2LTQuMjc3LTE2LjM0Mi04LjI1OC0xOC41NzctMTMuMzE4LTEuNDc0LTMuMzM3LTEuMzY3LTYuOTIuMzA0LTEwLjA5MXEuMjMxLS40NDMuNDk3LS44NmExMi44IDEyLjggMCAwIDEtMS43MjgtMTAuMzQxYy42NjQtMi41MjMgMi4wMzUtNC42MjEgMy44OTctNi4xMjhhMTIuNzUgMTIuNzUgMCAwIDEtMS43My00LjgyMmMtLjUzNi0zLjcxNC42OTctNy40MjIgMy40Ny0xMC40NDYgMi4xNi0yLjM1MyA1LjIxMy0zLjY0OCA4LjU5My0zLjY0OGguMDlhODQuNSA4NC41IDAgMCAxLTMuODMyLTI1LjIzNWMwLTQ2LjY3MSAzNy44MzYtODQuNTEgODQuNTE0LTg0LjUxczg0LjUxMyAzNy44MzUgODQuNTEzIDg0LjUxYTg0LjQgODQuNCAwIDAgMS0zLjg1OSAyNS4yOTlxLjYxMi0uMDYgMS4yMDEtLjA2MWMzLjM4IDAgNi40MzQgMS4yOTUgOC41OTIgMy42NDggMi43NzMgMy4wMjEgNC4wMDcgNi43MzIgMy40NyAxMC40NDZhMTIuOCAxMi44IDAgMCAxLTEuNzI5IDQuODIyYzEuODYyIDEuNTA3IDMuMjM0IDMuNjA1IDMuODk3IDYuMTI4YTEyLjggMTIuOCAwIDAgMS0xLjcyOCAxMC4zNDFxLjI2Ny40MTMuNDk3Ljg1NyIvPjxwYXRoIGZpbGw9IiNGRjlEMDAiIGQ9Ik0yMjEuNzg0IDE4My44MTZhMTIuOCAxMi44IDAgMCAwIDEuNzI4LTEwLjM0MWMtLjY2NC0yLjUyMy0yLjAzNi00LjYyMS0zLjg5Ny02LjEyOGExMi43IDEyLjcgMCAwIDAgMS43MjktNC44MjJjLjUzNy0zLjcxNC0uNjk2LTcuNDIyLTMuNDctMTAuNDQ2LTIuMTU4LTIuMzUzLTUuMjEyLTMuNjQ4LTguNTkyLTMuNjQ4cS0uNTkgMC0xLjIwMS4wNjFhODQuNCA4NC40IDAgMCAwIDMuODUyLTI1LjI5N2MwLTQ2LjY3Mi0zNy44MzYtODQuNTEtODQuNTA5LTg0LjUxUzQyLjkxIDc2LjUyIDQyLjkxIDEyMy4xOTVhODQuNSA4NC41IDAgMCAwIDMuODMyIDI1LjIzNWgtLjA5Yy0zLjM4IDAtNi40MzMgMS4yOTQtOC41OTIgMy42NDctMi43NzMgMy4wMjEtNC4wMDcgNi43MzMtMy40NyAxMC40NDZhMTIuOCAxMi44IDAgMCAwIDEuNzMgNC44MjNjLTEuODYyIDEuNTA2LTMuMjM0IDMuNjA0LTMuODk4IDYuMTI3YTEyLjggMTIuOCAwIDAgMCAxLjczIDEwLjM0M3EtLjI2Ni40MTctLjQ5Ny44NmMtMS42NyAzLjE3MS0xLjc3OCA2Ljc1NC0uMzAzIDEwLjA5MSAyLjIzNiA1LjA1NyA3Ljc5IDkuMDQxIDE4LjU3NyAxMy4zMTggNi43MDcgMi42NiAxMi44NSA0LjM2MSAxMi45MDQgNC4zNzYgOC44NzIgMi4zMDEgMTYuODk2IDMuNDcgMjMuODQyIDMuNDcgMTEuNDA2IDAgMTkuOTE2LTMuMTIgMjUuMzUxLTkuMjg0YTg1LjUgODUuNSAwIDAgMCAyNy43NDctLjE1OGM1LjQyOCA2LjI2OCAxMy45ODcgOS40NDIgMjUuNDg5IDkuNDQyIDYuOTQ2IDAgMTQuOTctMS4xNjkgMjMuODQxLTMuNDcuMDU1LS4wMTUgNi4xOTUtMS43MTYgMTIuOTA1LTQuMzc2IDEwLjc4Ny00LjI3NyAxNi4zNDItOC4yNjEgMTguNTc3LTEzLjMxOCAxLjQ3NC0zLjMzNyAxLjM2Ny02LjkyLS4zMDQtMTAuMDkxcS0uMjMtLjQ0Ny0uNDk3LS44Nm0tMTExLjY0NyAxMy4xODFhMzUgMzUgMCAwIDEtMS41MDIgMi4zOTRjLTEuNDA1IDIuMDU3LTMuMjUzIDMuNjI5LTUuMzk4IDQuNzk3LTQuMSAyLjIzNi05LjI5IDMuMDE3LTE0LjU2MiAzLjAxNy04LjMyOSAwLTE2Ljg2Ny0xLjk0OS0yMS42NTItMy4xOS0uMjM2LS4wNjEtMjkuMzM0LTguMjgtMjUuNjUtMTUuMjc2LjYyLTEuMTc3IDEuNjQtMS42NDcgMi45MjUtMS42NDcgNS4xODcgMCAxNC42MzIgNy43MjQgMTguNjkgNy43MjQuOTA4IDAgMS41NDgtLjM4NiAxLjgwOS0xLjMyOCAxLjczLTYuMjA0LTI2LjI5My04LjgxMi0yMy45MzMtMTcuNzk2LjQxNi0xLjU5IDEuNTQ2LTIuMjM2IDMuMTM0LTIuMjM2IDYuODU4LS4wMDEgMjIuMjUgMTIuMDYgMjUuNDY5IDEyLjA2LjI0NyAwIC40MjQtLjA3My41Mi0uMjI1bC4wNDEtLjA2OWMxLjUxMS0yLjQ5NS42NDQtNC4zMDktOS43MDctMTAuNjQ5bC0uOTk0LS42MDVjLTExLjM5MS02Ljg5NC0xOS4zODYtMTEuMDQzLTE0Ljg0LTE1Ljk5My41MjQtLjU3MSAxLjI2Ni0uODI0IDIuMTY3LS44MjQgMS4wNjggMCAyLjM2LjM1NyAzLjc4NS45NTcgNi4wMTYgMi41MzcgMTQuMzU0IDkuNDU2IDE3LjgzNyAxMi40NzNhMTQ2IDE0NiAwIDAgMSAxLjYzMyAxLjQ0MXM0LjQxIDQuNTg2IDcuMDc2IDQuNTg2Yy42MTQgMCAxLjEzNS0uMjQyIDEuNDg4LS44NCAxLjg5MS0zLjE4OC0xNy41NjMtMTcuOTMtMTguNjYtMjQuMDEzLS43NDQtNC4xMjEuNTIyLTYuMjA5IDIuODYyLTYuMjA5IDEuMTEzIDAgMi40Ny40NzQgMy45NyAxLjQyNSA0LjY1IDIuOTUxIDEzLjYyOCAxOC4zNzkgMTYuOTE1IDI0LjM4MSAxLjEwMiAyLjAxMSAyLjk4MyAyLjg2MSA0LjY3OCAyLjg2MSAzLjM2MyAwIDUuOTkyLTMuMzQzLjMwOC03LjU5MS04LjU0My02LjM5Mi01LjU0NS0xNi44NC0xLjQ2OC0xNy40ODNxLjI2Mi0uMDQyLjUyNS0uMDQyYzMuNzA4IDAgNS4zNDMgNi4zODkgNS4zNDMgNi4zODlzNC43OTQgMTIuMDM4IDEzLjAyOSAyMC4yNjdjNy40NzIgNy40NjkgOC41MTYgMTMuNTk4IDQuMTYyIDIxLjI0NG0yNi42MjkgMS40MS0uNDI3LjA1MS0uNzI4LjA4M3EtLjU3NS4wNi0xLjE1Mi4xMTNsLS4zNzUuMDM0LS4zNDMuMDI5LS40ODYuMDM5LS41MzcuMDM5LS41MzYuMDM1LS4xMTkuMDA4cS0uMjEuMDEzLS40MjIuMDI0bC0uMTc5LjAxcS0uMjQ4LjAxMy0uNS4wMjRsLS41ODEuMDI1LS41MjcuMDE4LS4zNTIuMDFoLS4xNzljLS4xMSAwLS4yMTkuMDA2LS4zMjkuMDA3aC0uMTc0cS0uMTY1LS4wMDEtLjMyOS4wMDVsLS40NDguMDA2aC0uNjI1cS0uNzM3IDAtMS40NjktLjAxNWwtLjM5Ni0uMDA5cS0uMTctLjAwMS0uMzM3LS4wMDlsLS40Mi0uMDEyLS41MjEtLjAyLS40Ny0uMDIxLS4xMjEtLjAwNS0uNDQ3LS4wMjNxLS4xODctLjAxLS4zNzItLjAyMmwtLjI4OS0uMDE3YTgwIDgwIDAgMCAxLTEuMDg5LS4wNzZsLS4zOC0uMDMxcS0uMjQtLjAxOS0uNDc5LS4wNDEtLjI4LS4wMjQtLjU2MS0uMDUyYTYwIDYwIDAgMCAxLS45MzktLjA5NWgtLjAxNWM0LjU3LTEwLjE5NSAyLjI1OS0xOS43MTctNi45NzYtMjguOTQ0LTYuMDU3LTYuMDQ5LTEwLjA4Ni0xNC45ODEtMTAuOTIyLTE2Ljk0Mi0xLjY5Mi01LjgwNS02LjE3LTEyLjI1OC0xMy42MDctMTIuMjU4cS0uOTQ1IDAtMS44NzguMTQ4Yy0zLjI1OC41MTMtNi4xMDYgMi4zODgtOC4xMzggNS4yMS0yLjE5Ni0yLjczMS00LjMzLTQuOTAyLTYuMjYtNi4xMjgtMi45MS0xLjg0NS01LjgxNC0yLjc4MS04LjY0My0yLjc4MS0zLjUzMSAwLTYuNjg3IDEuNDUtOC44ODcgNC4wOGwtLjA1Ni4wNjctLjEyMy0uNTItLjAwNS0uMDIzYTc0IDc0IDAgMCAxLTEuMDU0LTUuNDEycS4wMDItLjAxOC0uMDA2LS4wMzZsLS4wNjMtLjQxMnEtLjA5My0uNjEtLjE3My0xLjIybC0uMDczLS41NTUtLjA2OC0uNTU1Yy0uMDIyLS4xODUtLjA0LS4zNTMtLjA2LS41MjlsLS4wMDYtLjA0NHEtLjEyLTEuMDgtLjIxLTIuMTYybC0uMDIyLS4yNzctLjAzNS0uNDcycS0uMDE2LS4xOTQtLjAyNy0uMzg5YzAtLjAzMS0uMDA1LS4wNjEtLjAwNi0uMDlhNTMgNTMgMCAwIDEtLjA2NS0xLjA4OHEtLjAxNi0uMjgzLS4wMjgtLjU2N2wtLjAyLS40OTYtLjAwNS0uMTUtLjAxNi0uNDU3LS4wMS0uMzg5YzAtLjE1NS0uMDA4LS4zMS0uMDEtLjQ2NS0uMDAzLS4xNTUtLjAwNy0uMzI1LS4wMDgtLjQ4OS0uMDAyLS4xNjQgMC0uMzI2LS4wMDUtLjQ4OS0uMDA0LS4xNjQgMC0uMzI3IDAtLjQ5IDAtNDEuODUzIDMzLjkzLTc1Ljc4NCA3NS43ODgtNzUuNzg0IDQxLjg1NiAwIDc1Ljc4NiAzMy45MyA3NS43ODYgNzUuNzg0di45NzlxLS4wMDIuMjQ1LS4wMDguNDg5YzAgLjEzNS0uMDA2LjI2OC0uMDEuNDA1cS0uMDAyLjE4Mi0uMDA5LjM1N2MwIC4xNTMtLjAwOS4zMDYtLjAxNC40NTl2LjAxMmwtLjAyMS41MzEtLjAyMS40NjYtLjAwNS4xMS0uMDI3LjQ5NmE4MSA4MSAwIDAgMS0uMjQxIDMuMTg0di4wMTNxLS4wMjUuMjYxLS4wNTMuNTIybC0uMDQ1LjQxMS0uMDg5LjgwNC0uMDUxLjQwNy0uMDYzLjQ3OXEtLjAzNC4yNjItLjA3Mi41MjItLjA0LjI5Mi0uMDg0LjU4M2wtLjA2OS40NTktLjA4Mi41MnEtLjA0Mi4yNi0uMDkuNTE3Yy0uMDMzLjE3My0uMDU5LjM0NS0uMDg5LjUxN3EtLjA5LjUxNi0uMTg5IDEuMDMxLS4xNTEuNzctLjMxIDEuNTM3bC0uMTEuNTA3cS0uMDU1LjI1NC0uMTEzLjUwOGMtMi4xMzMtMi4wNzMtNC45NTgtMy4yMDItOC4wNzMtMy4yMDItMi44MjcgMC01LjczNC45MzUtOC42NDMgMi43OC0xLjkzIDEuMjI2LTQuMDYzIDMuMzk4LTYuMjYgNi4xMjgtMi4wMzUtMi44MjItNC44ODMtNC42OTctOC4xMzktNS4yMWExMiAxMiAwIDAgMC0xLjg3OC0uMTQ4Yy03LjQzOSAwLTExLjkxNCA2LjQ1My0xMy42MDcgMTIuMjU4LS44NCAxLjk2MS00Ljg3IDEwLjg5My0xMC45MzIgMTYuOTUxLTkuMjI5IDkuMTk4LTExLjU1NyAxOC42NzctNy4wNTkgMjguODNtNzguMjQxLTIwLjQwOS0uMDMuMDg5YTUgNSAwIDAgMS0uMjYzLjU4N3EtLjExMi4yMS0uMjQ0LjQwOC0uMjUuMzc0LS41NDkuNzExYy0uMDQ2LjA1Mi0uMDkuMTA0LS4xNDIuMTU1YTggOCAwIDAgMS0uMjIuMjI3Yy0xLjM0NiAxLjMzNC0zLjM5OCAyLjUwNC01LjcxOCAzLjU3N2wtLjc5OS4zNTgtLjI2OC4xMTljLS4xNzkuMDc5LS4zNTguMTU3LS41NDYuMjM0cS0uMjcuMTE4LS41NTEuMjMybC0uNTU4LjIzYy0xLjMwNS41MzctMi42NDIgMS4wNDktMy45NDYgMS41NTRsLS41NTguMjE3LS41NTEuMjE2cS0uNTUuMjE0LTEuMDg1LjQyOWwtLjUzMS4yMTQtLjUyMi4yMTMtLjI1Ni4xMDgtLjUwNS4yMTNjLTMuODM3IDEuNjQ3LTYuNTk4IDMuMzIyLTYuMDE4IDUuNHEuMDI0LjA4OC4wNTQuMTcuMDc4LjIzLjIxMi40MzYuMDc4LjEyMi4xNzkuMjI4Yy42ODIuNzA5IDEuOTIzLjU5NyAzLjQ4OC4wMzRxLjMzLS4xMjEuNjU2LS4yNTNsLjEzNi0uMDU2Yy4zNTgtLjE1Mi43MzctLjMyMiAxLjEyNC0uNTA2LjA5Ny0uMDQ2LjE5NS0uMDkuMjkzLS4xNDEgMS45MTQtLjkzNiA0LjA4My0yLjE5NiA2LjIzNS0zLjM0M2E1NiA1NiAwIDAgMSAyLjYxOC0xLjMyNWMyLjAzOC0uOTU5IDMuOTU0LTEuNjM5IDUuNDk0LTEuNjM5LjcyMyAwIDEuMzYxLjE0OCAxLjg5My40ODhsLjA4OS4wNTljLjMzNC4yMzUuNjE0LjUzNy44MjMuODg3cS4wNjEuMTAxLjEyLjIxMWMuNzYxIDEuNDQ1LjEyNCAyLjk0MS0xLjM2NyA0LjQwOC0xLjQzMSAxLjQwOS0zLjY1NyAyLjc5LTYuMTg3IDQuMDY4cS0uMjgxLjE0My0uNTY3LjI4M2MtNy41MyAzLjY5OC0xNy4zOTEgNi40ODMtMTcuNTI4IDYuNTE4LTIuNjI4LjY4MS02LjM4NiAxLjU3NS0xMC42MiAyLjI0NGwtLjYyNi4wOTgtLjEwMy4wMTVxLS43MTEuMTA4LTEuNDI1LjIwMS0uNzI1LjA5Ny0xLjQ2Mi4xNzlsLS4wOS4wMWE2OSA2OSAwIDAgMS01LjM1OC40MDZoLS4wMjZxLS45NzEuMDM1LTEuOTQzLjAzNWgtLjc0N2E0NiA0NiAwIDAgMS0yLjk1OS0uMTM0cS0uMDM1LjAwMi0uMDcxLS4wMDYtLjUzLS4wNC0xLjA1Ny0uMDk5YTQwIDQwIDAgMCAxLTEuMDkyLS4xMzIgMjUgMjUgMCAwIDEtLjcxNS0uMTA3IDU4IDU4IDAgMCAxLS43MjUtLjEyMWwtLjMyOS0uMDYyLS4wMjUtLjAwNWEyNiAyNiAwIDAgMS0xLjAzNi0uMjE5Yy0uMi0uMDQ1LS4zOTktLjA4OS0uNTk2LS4xNDNsLS4xMTktLjAzcS0uMTQ2LS4wMzctLjI5LS4wNzZsLS4wNTMtLjAxNC0uMzA4LS4wOS0uMzM2LS4wOTgtLjAzOS0uMDExLS4yOTEtLjA4OXEtLjE2NS0uMDUyLS4zMjktLjEwNmwtLjI2OC0uMDg5LS4xOTctLjA2OXEtLjI4NS0uMS0uNTY2LS4yMDhsLS4xNzgtLjA3LS4xNDctLjA1OGEyMyAyMyAwIDAgMS0uODQ1LS4zNThsLS4xODUtLjA5LS4wMzEtLjAxNHEtLjA5OS0uMDQ4LS4xOTctLjA4OWExNyAxNyAwIDAgMS0uMzg0LS4xOTFsLS4wMzktLjAxOS0uMTg0LS4wOTdhMTYgMTYgMCAwIDEtLjk2MS0uNTQ2bC0uMTcyLS4xMDZhOSA5IDAgMCAxLS4yNTYtLjE2NGwtLjIyNC0uMTQ4LS4yNDEtLjE2Ni0uMTQ0LS4xMDNxLS4yMjgtLjE2Mi0uNDQ3LS4zMzVsLS4yMzMtLjE3OWExNSAxNSAwIDAgMS0uMjc2LS4yMjhxLS4xMTUtLjA5NS0uMjI3LS4xOTVsLS4wMDYtLjAwNXEtLjEyMS0uMTA2LS4yMzktLjIxNWExMiAxMiAwIDAgMS0uMjMyLS4yMTZsLS4wMDktLjAwOWE5IDkgMCAwIDEtLjIzNS0uMjMycS0uMTE3LS4xMTctLjIzMS0uMjM2dC0uMjI2LS4yNDNjLS4wNzQtLjA4Mi0uMTQyLS4xNTctLjIxMi0uMjM4bC0uMDIzLS4wMjdhOSA5IDAgMCAxLS4yMDEtLjIzOCAxMiAxMiAwIDAgMS0uNDE2LS41MjVxLS4yMDMtLjI3LS4zOTYtLjU1MWwtLjEyMy0uMTg0cS0uMjQ2LS4zNi0uNDc5LS43MjhhMTkgMTkgMCAwIDEtLjMzOS0uNTM2cS0uMTA2LS4xNy0uMjA3LS4zMzlsLS4wMjgtLjA0NnEtLjA5OC0uMTY0LS4xOTEtLjMyN2EzIDMgMCAwIDEtLjEwMi0uMTc5Yy0uMDMzLS4wNjItLjA3MS0uMTI1LS4xMDYtLjE4OGwtLjA1Ny0uMDk5LS4wMzUtLjA2NHEtLjEtLjE4LS4xOTctLjM2My0uMDQ0LS4wODItLjA5LS4xNmwtLjA4OS0uMTczLS4wOS0uMTcxcS0uMzM4LS42NzUtLjYzOC0xLjM2OGwtLjA3MS0uMTY5cS0uMDY3LS4xNy0uMTM1LS4zMzYtLjAzNC0uMDgtLjA2My0uMTYxYTE3IDE3IDAgMCAxLS43NzYtMi42MzlxLS4wMTctLjA4My0uMDMxLS4xNjNhMTIgMTIgMCAwIDEtLjEyNy0uODA2cS0uMDEyLS4wOC0uMDItLjE1OWwtLjAxNy0uMTYyYTExIDExIDAgMCAxLS4wNDktLjYzOHEtLjAwMi0uMDgyLS4wMDctLjE2YTggOCAwIDAgMS0uMDA4LS4zMThjLS4wNTYtNC4yNzMgMi4xMDYtOC4zODEgNi43MjktMTMuMDAyIDguMjM1LTguMjI3IDEzLjAyOS0yMC4yNjYgMTMuMDI5LTIwLjI2NnMuMTI5LS41MDUuMzk3LTEuMjMycS4wNTUtLjE1MS4xMi0uMzE0LjIzNC0uNjExLjUyNy0xLjE5N2wuMDM5LS4wNzVxLjI1LS40OTguNTQ0LS45NzFjLjA0Ni0uMDczLjA5LS4xNDUuMTQxLS4yMThxLjIyLS4zMjYuNDY1LS42MzRjLjA4OS0uMTExLjE4Ni0uMjIxLjI4My0uMzI4cS4wNTctLjA2NC4xMTgtLjEyNGMuNDc3LS40OTMgMS4wMjItLjg5NSAxLjYzOS0xLjEwOWwuMDc4LS4wMjZxLjA3OC0uMDI1LjE1Ny0uMDQ4LjA5MS0uMDI0LjE4NS0uMDQzbC4wMjktLjAwNnEuMTk1LS4wMzkuMzk1LS4wNTJoLjAxMWMuMDY5IDAgLjEzOS0uMDA3LjIxLS4wMDcuMDg5IDAgLjE3MiAwIC4yNTkuMDA5cS4xMzUuMDEyLjI2OS4wMzJjLjc0Mi4xMTggMS40NDguNTYgMi4wNTYgMS4yNDJxLjM0Ny4zOTEuNjIxLjgzNi4xOC4yODguMzQuNjA5Yy4wNDMuMDg5LjA4NC4xNzEuMTI0LjI1OWE4IDggMCAwIDEgLjI4LjY5MXEuMjkzLjgyNy40MzkgMS42OTIuMTI2Ljc1OC4xNSAxLjUyNi4wMTIuNDEgMCAuODI5YTEyIDEyIDAgMCAxLS43ODcgMy43OTJxLS4wNjUuMTY3LS4xMzQuMzM1YTkgOSAwIDAgMS0uMzAyLjY2NXEtLjEyLjI0OC0uMjU4LjQ5Ni0uMDkuMTY1LS4xODYuMzMtLjI0Mi40MS0uNTIyLjgxN2wtLjExMy4xNjJhMTMuNiAxMy42IDAgMCAxLTEuNDcyIDEuNzI4IDE1LjQgMTUuNCAwIDAgMS0xLjY5OSAxLjQ3cS0uOTA1LjY3LTEuNjg5IDEuNDc3Yy0xLjUwMyAxLjU3Ny0xLjg1MyAyLjk2OS0xLjUxNSA0LjAyNHEuMDgxLjI1LjIxMS40NzkuMTUyLjI2MS4zNTcuNDhsLjA1My4wNTUuMDU0LjA1NHEuMDguMDc4LjE3Mi4xNTNsLjA2LjA0OHEuMjE4LjE2OC40Ni4zYy4wNDcuMDI1LjA4OS4wNS4xNDIuMDc0cS4yNjEuMTI4LjUzNy4yMTcuMDc2LjAyNS4xNTQuMDQ4bC4wNjUuMDE3LjA5LjAyNC4wNzcuMDE5LjA4NC4wMTguMDgzLjAxNy4wNzkuMDEzcS4wODcuMDE2LjE3OC4wMjdsLjA1Ny4wMDkuMTA0LjAxLjA2NC4wMDcuMTA1LjAwN2guMDYybC4xMS4wMDZoLjM0NmwuMDk5LS4wMDYuMTE0LS4wMDcuMTM5LS4wMTMuMTMtLjAxNWMuMDMgMCAuMDYtLjAwOC4wOS0uMDE0LjQtLjA1OC43OTItLjE2NCAxLjE2Ny0uMzE2bC4xNTktLjA2N2E1IDUgMCAwIDAgLjc3Mi0uNDIxcS4zNDQtLjIyNS42NDctLjUwMy4wNzItLjA2Ni4xNDEtLjEzMy4wMzQtLjAzMi4wNjctLjA2Ny4wNjctLjA2Ni4xMzMtLjEzOC40ODItLjUzLjgyNS0xLjE1N2EyMjkgMjI5IDAgMCAxIDYuMTUxLTEwLjUxNGwuMjk0LS40NzEuMjk3LS40NzFxLjIyMy0uMzU4LjQ0Ny0uNzA4bC4xNS0uMjM0cS43NDctMS4xNyAxLjUxOS0yLjMyNGwuMzA1LS40NTZjLjYxMi0uOTA3IDEuMjIyLTEuNzg5IDEuODI3LTIuNjI3bC4zMDEtLjQxNWE1NiA1NiAwIDAgMSAyLjA1NC0yLjY2MWwuMjgyLS4zMzhjLjA0Ny0uMDU2LjA5LS4xMTIuMTQxLS4xNjZxLjE0LS4xNjUuMjc3LS4zMjFjLjA0Ni0uMDUzLjA4OS0uMTA1LjEzOC0uMTU3bC4yNjgtLjMwMi4xMzQtLjE0N3EuMjAyLS4yMTcuMzk3LS40MTdjLjA5LS4wOS4xNzMtLjE3OS4yNTktLjI2M2ExMC41IDEwLjUgMCAwIDEgMS42NjktMS4zODZsLjE0LS4wOXEuMjAxLS4xMzYuNDE1LS4yNWMyLjM2NC0xLjM0MiA0LjMyMS0xLjQ0MSA1LjQ0OC0uMzE0LjY4Mi42ODIgMS4wNiAxLjgxMyAxLjAzOSAzLjM4N3EuMDAxLjEwMy0uMDA1LjIxMXYuMDc3cS0uMDAyLjEwOC0uMDEyLjIxN2MwIC4wOS0uMDEuMTc5LS4wMTkuMjY5LS4wMDkuMDg5LS4wMTQuMTU3LS4wMjMuMjM3cS0uMDAxLjAzMy0uMDA4LjA2OS0uMDEuMTA0LS4wMjUuMjExLjAwMi4wMzItLjAwOC4wNjVhNSA1IDAgMCAxLS4wNDEuMjgzYy0uMDExLjA5LS4wMjYuMTc0LS4wNDIuMjYybC0uMDI2LjE0OWE0IDQgMCAwIDEtLjEuNDIgNiA2IDAgMCAxLS4yODMuNzU4IDExIDExIDAgMCAxLS41MTQuOTg3cS0uMTU2LjI2Ny0uMzIyLjUyNi0uMTcyLjI2OS0uMzU4LjU0My0uNDc0LjY3OC0uOTg1IDEuMzI4bC0uMTU2LjE5N2E1MSA1MSAwIDAgMS0xLjcyMiAyLjAzNWwtLjE4Ny4yMXEtLjM3OC40MjItLjc3Ljg0OGwtLjE5Ny4yMTRjLS4xMzEuMTQzLS4yNjguMjg2LS40LjQzcS0uMTk4LjIxNS0uNDA2LjQzM2wtLjQxMS40MzMtLjQxNy40MzYtLjQyLjQzNnEtLjQyMy40MzgtLjg1Ljg3NmMtNC4wNTUgNC4xNTktOC4zMjcgOC4zMDQtOS43NzMgMTAuODg4YTUgNSAwIDAgMC0uMjYyLjUxOWMtLjIwNi40Ny0uMjkyLjg3Mi0uMjMzIDEuMTk3YS45LjkgMCAwIDAgLjExMS4zMDNxLjEyMi4yMTIuMjk1LjM4Ny4wOC4wNzguMTY4LjE0NGMuMjk4LjIxMi42NTcuMzIxIDEuMDIzLjMxMWguMTE0bC4xMTctLjAwOS4xMTctLjAxMy4wOTctLjAxNHEuMDItLjAwMi4wNC0uMDA4bC4wODktLjAxNy4wMjMtLjAwNS4wOTktLjAyMS4wMzUtLjAwOS4xMDQtLjAyOGMuMDM1LS4wMS4wODMtLjAyMy4xMjUtLjAzN3EuMjY0LS4wOC41MTctLjE4OC4xMzMtLjA1NC4yNjItLjExNy4wNjgtLjAzLjEzMi0uMDYzbC4xMzQtLjA2NnEuNDgtLjI1LjkzNi0uNTQxbC4xMzMtLjA5cS4wNjgtLjA0MS4xMzMtLjA4OWwuMTMzLS4wODkuMDcxLS4wNDkuMTkyLS4xMzVjLjE3OS0uMTIzLjM0Ni0uMjUuNTE1LS4zNzlsLjAxNS0uMDEyLjI2OS0uMjA4Yy4zNjctLjI5LjcxNS0uNTgyIDEuMDMxLS44NTdsLjIxLS4xODQuMDE5LS4wMTguMTEtLjA5N2MuMjU4LS4yMzIuNDg4LS40NDguNjc5LS42MjZsLjA3OS0uMDc3cS4xMDMtLjA5OS4xODktLjE3OGwuMTEyLS4xMTEuMDQtLjAzOS4wMTEtLjAxMS4xMTctLjExNy4wNzQtLjA3Ny4wMDktLjAwNy4wMzUtLjAzMi4wNDQtLjA0LjAxNC0uMDEzLjAzNy0uMDM0LjIwNC0uMTc5LjExNC0uMTAycS4wOTEtLjA4LjE3OS0uMTYybC4xMzYtLjEyMXEuMDM3LS4wMy4wNzQtLjA2NGwuMTQzLS4xMjUuMjEtLjE4NS4xMTItLjA5N2MuNDM1LS4zNzguOTY0LS44MzUgMS41NzItMS4zNWwuMjQ5LS4yMTEuNDExLS4zNDUuNDIxLS4zNTFjLjU1LS40NTcgMS4xNDItLjk0MiAxLjc2OC0xLjQ0NWwuNDExLS4zM3EuNTI2LS40MiAxLjA3My0uODQ5LjIyLS4xNzMuNDQ4LS4zNDQuNTU4LS40MzQgMS4xMjMtLjg1OWMuODU4LS42NDggMS43NDMtMS4yOTcgMi42MzktMS45MjlsLjM4NC0uMjY4cS40MDMtLjI3OS44MDUtLjU1MmwuMjQzLS4xNjRxLjcyLS40ODggMS40NTUtLjk1MWwuMjQzLS4xNTMuMjQxLS4xNXEuMzYzLS4yMjUuNzIxLS40NGwuMjM5LS4xNDMuNDc4LS4yNzguNDY5LS4yNjkuMDk1LS4wNTIuMzcxLS4yMDRxLjIzMi0uMTI2LjQ2My0uMjQ0bC4yMjktLjExOC4yMjMtLjExMi4yMzEtLjExM2EyMiAyMiAwIDAgMSAxLjk1NC0uODQ1bC40MS0uMTQ0cS4xODUtLjA2Mi4zNTgtLjExNWwuMDQtLjAxMnEuMDkzLS4wMy4xODUtLjA1NGwuMDE4LS4wMDVxLjE5Mi0uMDU1LjM4LS4wOTloLjAwOWE4IDggMCAwIDEgMS4wNzctLjE4M3EuMjUtLjAyNi41MDItLjAyNWguMDg0cS4xNjcgMCAuMzI3LjAxOGMuMDQ5IDAgLjA5OC4wMS4xNDYuMDE2aC4wMnEuMDcyLjAwOC4xNDQuMDI0LjA3MS4wMTMuMTQxLjAyOGguMDE1Yy4wNDcuMDEuMDg5LjAyMi4xMzguMDM2LjI1NC4wNzEuNDk2LjE4MS43MTguMzI1cS4xNjQuMTA3LjMwNS4yNGwuMDI3LjAyNi4wNTEuMDUuMDQ5LjA1M2MuNDAyLjQyMS43MzQuOTA0Ljk4NCAxLjQzbC4wMzguMDlxLjEyOC4zLjIuNjE4Yy4xNDIuNjQ2LjA4NyAxLjMyLS4xNTggMS45MzVhNC43IDQuNyAwIDAgMS0uMzM5LjcxNSA4IDggMCAwIDEtMS4wOTkgMS40NTJsLS4wODkuMDk1cS0uMTk5LjIxLS40MTYuNDItLjA5Ny4wOTQtLjE5OC4xODhsLS4yMDUuMTg5LS4xMDcuMDk1cS0uMzg4LjM0NS0uNzkyLjY2OS0uMjQ0LjE5OC0uNDkzLjM4OC0uODc5LjY3Mi0xLjc5MSAxLjI5N2E2MCA2MCAwIDAgMS0xLjExLjc0MyAxMDAgMTAwIDAgMCAxLTIuNzg2IDEuNzYzYy0xLjk2OCAxLjIxLTQuMTQ5IDIuNTA0LTYuNDc0IDMuOTExbC0uNjAyLjM2NXEtLjk4OC42MDMtMS44NjcgMS4xNTJsLS4yOTUuMTg1LS41NTguMzU4cS0uNTU1LjM1Ni0xLjEwOC43MTVsLS4yOTcuMTk2cS0uMjE3LjE0Mi0uNDMzLjI4NmwtLjE0MS4wOS0uNDMyLjI5MS0uMjI5LjE1Ny0uMjY4LjE4Ni0uMjQ5LjE3M3EtLjYyNi40NDItMS4xNjIuODQzbC0uMTM0LjEwMnEtLjMxNS4yMzktLjYyMy40ODYtLjQ2NC4zNzMtLjg0NC43MTZsLS4xMjQuMTEzcS0uMTA3LjA5OC0uMjA4LjE5NC0uMDY3LjA2OC0uMTM3LjEzM2wtLjA2NC4wNjRxLS4yMTUuMjE2LS40MTguNDQybC0uMDY2LjA3NnEtLjIyLjI1NC0uMzg3LjQ5MmwtLjA1LjA3MXEtLjEzMi4xOTItLjI0Mi4zOTYtLjAyOC4wNTEtLjA1My4xMDJsLS4wNDkuMTAyLS4wMzMuMDc0LS4wMjEuMDUtLjAxNy4wNDUtLjAyMy4wNjFhMi42IDIuNiAwIDAgMC0uMTMuNTIzbC0uMDA4LjA2Mi0uMDA2LjA1OHYuMzE1cS0uMDAyLjAzOC4wMDcuMDhsLjAwNS4wNDhjMCAuMDI2LjAwNi4wNTEuMDEuMDc5LjAwNC4wMjYuMDExLjA3My4wMTkuMTF2LjAwNXEuMDEuMDUyLjAyMy4xMDRjLjAwOS4wMzUuMDE4LjA3NS4wMjkuMTExcS4wMy4xMDYuMDY4LjIxMS4wMjMuMDYzLjA0OC4xMjQuMDAyLjAxMi4wMS4wMjVsLjAzNi4wODEuMDUuMTExcS4wODEuMTcyLjE3Ny4zMzZsLjA2Ni4xMTQuMDY4LjExNGEuNC40IDAgMCAwIC4wNDEuMDU0bC4wMjIuMDIzLjAyNS4wMjMuMDI2LjAyYS41LjUgMCAwIDAgLjEyMi4wNjNxLjAzNS4wMTIuMDcxLjAyYy41NzcuMTMgMS43NjMtLjM0NyAzLjMzOS0xLjE3OS4wODktLjA0OC4xODctLjA5OC4yODItLjE1bC40OC0uMjYyLjIzNC0uMTNjLjE2Ny0uMDg5LjMzNy0uMTkuNTExLS4yODlsLjMxNy0uMTc5YzIuMDgzLTEuMTk5IDQuNTcxLTIuNzM5IDcuMTQzLTQuMjQzcS4zNjItLjIxMi43MjUtLjQyMWwuNDg2LS4zMTFxLjg0Ni0uNDg1IDEuNy0uOTU3YTgwIDgwIDAgMCAxIDIuMTY4LTEuMTVsLjQ3Ni0uMjQxcS40NzQtLjIzNC45MzgtLjQ1NmE0MSA0MSAwIDAgMSAxLjgxNS0uODA5bC4zMzUtLjEzNi4wNC0uMDE2YzEuNzc1LS43MDMgMy4zODQtMS4xMzcgNC42ODYtMS4xMzdxLjQyMy0uMDA0Ljg0LjA2OWguMDA5Yy4wODkuMDE2LjE3LjAzNC4yNTMuMDU0aC4wMTVxLjMyLjA4MS42MTYuMjNjLjI3NS4xNDIuNTIyLjMzMS43MzEuNTU5cS4xNDQuMTYuMjU2LjM0My4yMS4zMjQuMzI5LjY5MmMuMDMyLjA5NS4wNi4xODguMDg5LjI4N2EzLjkzIDMuOTMgMCAwIDEtLjA2IDIuMzA1Ii8+PHBhdGggZmlsbD0iI0ZGRDIxRSIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMjAzLjIxIDEyMy42ODV2LS40OTFjMC00MS44NTQtMzMuOTE4LTc1Ljc4My03NS43NzUtNzUuNzgzLTQxLjg1NiAwLTc1Ljc4NyAzMy45MzEtNzUuNzg3IDc1Ljc4M3YuMTY0YTcgNyAwIDAgMCAwIC4zMjdxLjAwOC4yNDQuMDA1LjQ4OWwuMDA1LjM2LjAwMy4xMjlxMCAuMDkuMDA0LjE3OS4wMDUuMTQzLjAwNS4yODZsLjAxMS4zODkuMDE2LjQ1Ny4wMDUuMTUuMDIuNDczdi4wMjNsLjAyNy41NTMuMDAxLjAxNHEuMDE0LjI4Mi4wMzIuNTY2LjAxNC4yNjEuMDMzLjUyMmwuMDAyLjAzMS4wMy40NDguMDAzLjA0LjAzMy40MzIuMDAzLjAyOHEuMDA4LjEyNy4wMi4yNDkuMDkgMS4wODIuMjEgMi4xNjFsLjAwNC4wNDUuMDYxLjUyOS4wNjguNTU1LjA1LjM3Ny4wMjMuMTc3cS4wOC42MTIuMTczIDEuMjIxbC4wMDQuMDI3LjA1OS4zODRxLjQyOSAyLjc0NSAxLjA2IDUuNDVsLjAwNS4wMjIuMDMyLjEzNS4wOTEuMzg1LjA1Ni0uMDY3YzIuMi0yLjYzIDUuMzU2LTQuMDggOC44ODctNC4wOCAyLjgzIDAgNS43MzMuOTM2IDguNjQzIDIuNzgxIDEuOTMgMS4yMjYgNC4wNjQgMy4zOTcgNi4yNiA2LjEyOCAyLjAzMi0yLjgyMiA0Ljg4LTQuNjk4IDguMTM4LTUuMjEuNjIxLS4wOTggMS4yNS0uMTQ3IDEuODc4LS4xNDggNy40MzYgMCAxMS45MTUgNi40NTMgMTMuNjA3IDEyLjI1OC44MzYgMS45NjEgNC44NjUgMTAuODkzIDEwLjk0MSAxNi45MzUgOS4yMzYgOS4yMjcgMTEuNTQ3IDE4Ljc0OCA2Ljk3NiAyOC45NDNoLjAxNnEuNDY2LjA1My45MzkuMDk2LjI4LjAyOC41NjEuMDUybC4wNjYuMDA2LjQxMy4wMzUuMzguMDNxLjU0My4wNDIgMS4wODkuMDc3bC4yODkuMDE3LjIyOS4wMTQuMTQyLjAwOC40NDcuMDIzLjEyMi4wMDUuNDY5LjAyMS41MjIuMDIuNDE5LjAxMi4wNy4wMDJxLjEzMy4wMDYuMjY3LjAwN2wuMDk2LjAwM3EuODg1LjAyMSAxLjc2OS4wMmguNjI2bC40NDctLjAwNXEuMTY0LS4wMDYuMzMtLjAwNWguMTc0bC4xNTEtLjAwNHEuMDg4LS4wMDQuMTc4LS4wMDRoLjE3OWwuMzUxLS4wMDkuNTI4LS4wMTguNTgxLS4wMjZxLjI1Mi0uMDEuNS0uMDIzbC4xNzktLjAxMS4yNjYtLjAxNC4xNTYtLjAwOS4xMTgtLjAwOC41MzctLjAzNS41MzYtLjAzOS40ODctLjAzOS4zNDItLjAyOS4zNzYtLjAzNGE2MiA2MiAwIDAgMCAxLjg4LS4xOTdsLjQyNy0uMDUxYy00LjQ5OS0xMC4xNTItMi4xNy0xOS42MzIgNy4wMjctMjguODIyIDYuMDYzLTYuMDU4IDEwLjA5Mi0xNC45OSAxMC45MzItMTYuOTUyIDEuNjkzLTUuODA0IDYuMTY5LTEyLjI1NyAxMy42MDctMTIuMjU3LjYyOSAwIDEuMjU4LjA1IDEuODc5LjE0OCAzLjI1NS41MTIgNi4xMDMgMi4zODggOC4xMzggNS4yMSAyLjE5Ny0yLjczIDQuMzMtNC45MDMgNi4yNjEtNi4xMjkgMi45MDktMS44NDQgNS44MTUtMi43OCA4LjY0Mi0yLjc4IDMuMTE2IDAgNS45NCAxLjEzIDguMDczIDMuMjAzcS4wNTgtLjI1My4xMTQtLjUwOGwuMTA5LS41MDZxLjA1OS0uMjc4LjExNS0uNTU1LjEtLjQ5LjE5NS0uOTg0LjA5OS0uNTEzLjE4OS0xLjAzbC4wMzEtLjE4Ni4wNTgtLjMzMXEuMDUtLjI1OC4wOS0uNTE4bC4wMTEtLjA2Ni4wNzEtLjQ1My4wNy0uNDU5di0uMDA0cS4wNzYtLjUwOC4xNDQtMS4wMTdsLjAxMS0uMDg0LjA2My0uNDc4LjA1MS0uNDA4LjA5LS44MDQuMDM1LS4zMjMuMDA5LS4wODhxLjAyOS0uMjYxLjA1My0uNTIydi0uMDE0bC4wMzktLjQxNnEuMTA3LTEuMTgyLjE3OS0yLjM3NS4wMTMtLjE5NS4wMjQtLjM5MnYtLjAwNmwuMDI2LS40OTEuMDA2LS4xMXEuMDI0LS40OTguMDQxLS45OTZ2LS4wMTJsLjAwNS0uMTNxLjAwOC0uMTY0LjAwOS0uMzI5bC4wMDItLjA0NHEuMDA3LS4xNTYuMDA4LS4zMTRsLjAwMy0uMDlxLjAwNS0uMTU3LjAwNi0uMzE0bC4wMDItLjA4OXEuMDA1LS4yLjAwNi0uNHptLTk0LjU3MiA3NS43MDZjNi4wMDItOC44MDEgNS41NzYtMTUuNDA3LTIuNjU4LTIzLjYzNy04LjIzNi04LjIzMS0xMy4wMjktMjAuMjY3LTEzLjAyOS0yMC4yNjdzLTEuNzg5LTYuOTkxLTUuODY5LTYuMzQ5LTcuMDczIDExLjA4OSAxLjQ3IDE3LjQ4NGM4LjU0MiA2LjM5NS0xLjcgMTAuNzMxLTQuOTg4IDQuNzMtMy4yODgtNi4wMDItMTIuMjY1LTIxLjQyOS0xNi45MTktMjQuMzhzLTcuOTI3LTEuMjk3LTYuODMgNC43ODVjLjU0NSAzLjAxOSA1LjYxMyA4LjE3MiAxMC4zNDggMTIuOTg2IDQuODA0IDQuODg0IDkuMjY1IDkuNDIgOC4zMTEgMTEuMDI1LTEuODkzIDMuMTg3LTguNTYtMy43NDUtOC41Ni0zLjc0NXMtMjAuODc2LTE4Ljk5OC0yNS40Mi0xNC4wNDdjLTQuMTkgNC41NjMgMi4yNzEgOC40NDIgMTIuMjI3IDE0LjQyMXExLjI3Ljc2MiAyLjYxMSAxLjU3MmMxMS4zOTEgNi44OTYgMTIuMjc3IDguNzE1IDEwLjY2IDExLjMyNC0uNTk3Ljk2NC00LjQxLTEuMzI1LTkuMS00LjE0LTcuOTk1LTQuODAxLTE4LjUzNy0xMS4xMy0yMC4wMjYtNS40NjUtMS4yODggNC45MDMgNi40NjggNy45MDcgMTMuNTAyIDEwLjYzMiA1Ljg2IDIuMjcgMTEuMjIgNC4zNDYgMTAuNDMxIDcuMTY0LS44MTcgMi45MjItNS4yNDYuNDg1LTEwLjA4Ny0yLjE3OS01LjQzNS0yLjk5MS0xMS4zOS02LjI2Ny0xMy4zMzktMi41Ny0zLjY4MyA2Ljk5IDI1LjQxIDE1LjIxOSAyNS42NSAxNS4yOCA5LjQgMi40MzggMzMuMjcyIDcuNjA0IDQxLjYxNS00LjYyNG0zOC42NjUgMGMtNi4wMDItOC44MDEtNS41NzYtMTUuNDA3IDIuNjU5LTIzLjYzN3MxMy4wMjgtMjAuMjY3IDEzLjAyOC0yMC4yNjcgMS43ODktNi45OTEgNS44NjktNi4zNDkgNy4wNzMgMTEuMDg5LTEuNDY5IDE3LjQ4NCAxLjY5OSAxMC43MzEgNC45ODcgNC43M2MzLjI4OS02LjAwMiAxMi4yNi0yMS40MjkgMTYuOTE0LTI0LjM4czcuOTI5LTEuMjk3IDYuODMxIDQuNzg1Yy0uNTQ0IDMuMDE5LTUuNjEzIDguMTcyLTEwLjM0OCAxMi45ODctNC44MDQgNC44ODQtOS4yNjUgOS40MTktOC4zMTIgMTEuMDI0IDEuODkzIDMuMTg3IDguNTY1LTMuNzQ5IDguNTY1LTMuNzQ5czIwLjg3NS0xOC45OTcgMjUuNDIxLTE0LjA0NmM0LjE4OSA0LjU2Mi0yLjI3MiA4LjQ0Mi0xMi4yMjkgMTQuNDIxcS0xLjMwNi43ODQtMi42MSAxLjU3MmMtMTEuMzkxIDYuODk2LTEyLjI3NyA4LjcxNS0xMC42NjEgMTEuMzIzLjU5OC45NjUgNC40MTEtMS4zMjUgOS4xLTQuMTQgNy45OTYtNC44IDE4LjUzOC0xMS4xMyAyMC4wMjctNS40NjQgMS4yODkgNC45MDMtNi40NjggNy45MDctMTMuNTAyIDEwLjYzMi01Ljg2IDIuMjctMTEuMjIgNC4zNDYtMTAuNDMyIDcuMTY0LjgxNiAyLjkyMSA1LjI0NC40ODQgMTAuMDg0LTIuMTggNS40MzUtMi45OTEgMTEuMzkxLTYuMjY5IDEzLjMzOS0yLjU2OSAzLjY4NCA2Ljk5NC0yNS40MTQgMTUuMjE1LTI1LjY0OSAxNS4yNzUtOS40IDIuNDQ2LTMzLjI3MiA3LjYxMi00MS42MTItNC42MTYiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGZpbGw9IiMzMjM0M0QiIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTE1Mi4wNDcgMTAyLjU2N2MxLjE4Mi40MTggMi4wNjEgMS42OSAyLjg5NyAyLjkwMSAxLjEzIDEuNjM2IDIuMTgyIDMuMTU5IDMuNzk2IDIuMzAxYTEwLjkxIDEwLjkxIDAgMCAwIDQuMjQ3LTE1LjIxNCAxMC45MSAxMC45MSAwIDAgMC03Ljc0Mi01LjE5OCAxMC45MDQgMTAuOTA0IDAgMCAwLTExLjY4OSA2LjU4OSAxMC45IDEwLjkgMCAwIDAgLjQzNiA5LjMxNGMuNzQ4IDEuNDA3IDIuNDA4Ljc0MyA0LjE2LjA0MiAxLjM3My0uNTQ5IDIuODA0LTEuMTIxIDMuODk1LS43MzVtLTUxLjM3NSAwYy0xLjE4Mi40MTgtMi4wNjEgMS42OTEtMi44OTcgMi45MDEtMS4xMyAxLjYzNy0yLjE4MyAzLjE1OS0zLjc5NiAyLjMwMWExMC45MDMgMTAuOTAzIDAgMCAxIDguMjYzLTIwLjA2OCAxMC45MSAxMC45MSAwIDAgMSA3LjcwNyA5LjM0OCAxMC45IDEwLjkgMCAwIDEtMS4yMjEgNi4yMTFjLS43NDkgMS40MDctMi40MDkuNzQzLTQuMTYxLjA0My0xLjM3NC0uNTUtMi44MDMtMS4xMjItMy44OTUtLjczNm00My40MjcgNDYuNzUxYzguMTQzLTYuNDE1IDExLjEzNC0xNi44ODkgMTEuMTM0LTIzLjM0MSAwLTUuMS0zLjQzMS0zLjQ5NS04LjkyNC0uNzc1bC0uMzEuMTUzYy01LjA0MiAyLjQ5Ny0xMS43NTQgNS44MjItMTkuMTIyIDUuODIycy0xNC4wODEtMy4zMjUtMTkuMTIyLTUuODIzYy01LjY3MS0yLjgwOS05LjIyOC00LjU3MS05LjIyOC42MjQgMCA2LjY1NiAzLjE4MiAxNy41ODUgMTEuOTE2IDIzLjkzNGExOC45NyAxOC45NyAwIDAgMSAxMS41NzUtOS43ODZjLjg3Mi0uMjYgMS43NyAxLjI0MSAyLjY4OSAyLjc3OC44ODcgMS40ODIgMS43OTQgMi45OTggMi43MTYgMi45OTguOTgzIDAgMS45NDgtMS40OTQgMi44OTEtMi45NTIuOTg1LTEuNTI1IDEuOTQ2LTMuMDEgMi44NzUtMi43MTNhMTguOTcgMTguOTcgMCAwIDEgMTAuOTEgOS4wODEiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGZpbGw9IiNGRjMyM0QiIGQ9Ik0xNDQuMDk3IDE0OS4zMTdjLTQuMjQxIDMuMzQyLTkuODc4IDUuNTgzLTE3LjIxOSA1LjU4My02Ljg5NyAwLTEyLjI5MS0xLjk3OC0xNi40MzUtNC45ODlhMTguOTcgMTguOTcgMCAwIDEgMTEuNTc1LTkuNzg2YzEuNzEyLS41MTEgMy41MjcgNS43NzYgNS40MDUgNS43NzYgMi4wMSAwIDMuOTQ3LTYuMjQ2IDUuNzY2LTUuNjY1YTE4Ljk3IDE4Ljk3IDAgMCAxIDEwLjkwOCA5LjA4MSIvPjxwYXRoIGZpbGw9IiNGRkFEMDMiIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTgxLjIgMTExLjY0YTcuMDggNy4wOCAwIDAgMS02LjY1LjY1NSA3LjA2IDcuMDYgMCAwIDEtMy44MzctMy44MzcgNy4wOCA3LjA4IDAgMCAxIC42NTctNi42NSA3LjA4NyA3LjA4NyAwIDEgMSA5LjgzIDkuODMybTEwMS40MTMgMGE3LjA4IDcuMDggMCAwIDEtNi42NTEuNjU1IDcuMDYgNy4wNiAwIDAgMS0zLjgzNy0zLjgzNyA3LjEgNy4xIDAgMCAxLS41MDQtMy40MDcgNy4xIDcuMSAwIDAgMSAzLjQxMS01LjM4NSA3LjA4IDcuMDggMCAwIDEgOC42NTYgMS4wNyA3LjA4IDcuMDggMCAwIDEgMS41MzYgNy43MjQgNy4xIDcuMSAwIDAgMS0yLjYxMSAzLjE4IiBjbGlwLXJ1bGU9ImV2ZW5vZGQiLz48L3N2Zz4="
+        },
+        "displayName": "Embeddings Hugging Face Inference",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1141,
+        "icon": "file:openAiLight.svg",
+        "name": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.embeddingsopenai/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Embeddings"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Embeddings OpenAI"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTM2Ljg2NzEgMTYuMzcxOEMzNy43NzQ2IDEzLjY0OCAzNy40NjIxIDEwLjY2NDIgMzYuMDEwOCA4LjE4NjYxQzMzLjgyODIgNC4zODY1MyAyOS40NDA3IDIuNDMxNDkgMjUuMTU1NiAzLjM1MTUxQzIzLjI0OTMgMS4yMDM5NiAyMC41MTA1IC0wLjAxNzMxNDggMTcuNjM5MiAwLjAwMDE4NTUzM0MxMy4yNTkxIC0wLjAwOTgxNDY4IDkuMzcyNzMgMi44MTAyNSA4LjAyNTIgNi45Nzc4M0M1LjIxMTM5IDcuNTU0MSAyLjc4MjU4IDkuMzE1MzggMS4zNjEzIDExLjgxMTdDLTAuODM3NDkzIDE1LjYwMTggLTAuMzM2MjMyIDIwLjM3OTQgMi42MDEzMyAyMy42Mjk0QzEuNjkzODEgMjYuMzUzMiAyLjAwNjMyIDI5LjMzNzEgMy40NTc2IDMxLjgxNDZDNS42NDAxNSAzNS42MTQ3IDEwLjAyNzcgMzcuNTY5NyAxNC4zMTI4IDM2LjY0OTdDMTYuMjE3OSAzOC43OTczIDE4Ljk1NzkgNDAuMDE4NSAyMS44MjkyIDM5Ljk5OThDMjYuMjExOCA0MC4wMTEgMzAuMDk5NCAzNy4xODg1IDMxLjQ0NjkgMzMuMDE3MUMzNC4yNjA4IDMyLjQ0MDkgMzYuNjg5NiAzMC42Nzk2IDM4LjExMDggMjguMTgzM0M0MC4zMDcxIDI0LjM5MzIgMzkuODA0NiAxOS42MTk0IDM2Ljg2ODMgMTYuMzY5M0wzNi44NjcxIDE2LjM3MThaTTIxLjgzMTcgMzcuMzg2QzIwLjA3OCAzNy4zODg1IDE4LjM3OTIgMzYuNzc0NyAxNy4wMzI5IDM1LjY1MDlDMTcuMDk0MSAzNS42MTg0IDE3LjIwMDQgMzUuNTU5NyAxNy4yNjkxIDM1LjUxNzJMMjUuMjM0MyAzMC45MTcxQzI1LjY0MTggMzAuNjg1OCAyNS44OTE4IDMwLjI1MjEgMjUuODg5MyAyOS43ODMzVjE4LjU1NDNMMjkuMjU1NyAyMC40OTgxQzI5LjI5MTkgMjAuNTE1NiAyOS4zMTU3IDIwLjU1MDYgMjkuMzIwNyAyMC41OTA2VjI5Ljg4OTZDMjkuMzE1NyAzNC4wMjQ3IDI1Ljk2NjggMzcuMzc3MiAyMS44MzE3IDM3LjM4NlpNNS43MjY0IDMwLjUwNzFDNC44NDc2MyAyOC45ODk2IDQuNTMxMzcgMjcuMjEwOCA0LjgzMjYzIDI1LjQ4NDVDNC44OTEzOCAyNS41MTk1IDQuOTk1MTMgMjUuNTgzMiA1LjA2ODg4IDI1LjYyNTdMMTMuMDM0MSAzMC4yMjU4QzEzLjQzNzggMzAuNDYyMSAxMy45Mzc4IDMwLjQ2MjEgMTQuMzQyOCAzMC4yMjU4TDI0LjA2NjggMjQuNjEwN1YyOC40OTgzQzI0LjA2OTMgMjguNTM4MyAyNC4wNTA1IDI4LjU3NyAyNC4wMTkzIDI4LjYwMkwxNS45Njc5IDMzLjI1MDlDMTIuMzgxNSAzNS4zMTU5IDcuODAxNDQgMzQuMDg4NCA1LjcyNzY1IDMwLjUwNzFINS43MjY0Wk0zLjYzMDEgMTMuMTIwNUM0LjUwNTEyIDExLjYwMDQgNS44ODY0IDEwLjQzNzkgNy41MzE0NCA5LjgzNDE1QzcuNTMxNDQgOS45MDI5IDcuNTI3NjkgMTAuMDI0MiA3LjUyNzY5IDEwLjEwOTJWMTkuMzEwNkM3LjUyNTE5IDE5Ljc3ODEgNy43NzUxOSAyMC4yMTE5IDguMTgxNDUgMjAuNDQzMUwxNy45MDU0IDI2LjA1N0wxNC41MzkxIDI4LjAwMDhDMTQuNTA1MyAyOC4wMjMzIDE0LjQ2MjggMjguMDI3IDE0LjQyNTMgMjguMDEwOEw2LjM3MjY2IDIzLjM1ODJDMi43OTM4MyAyMS4yODU2IDEuNTY2MzEgMTYuNzA2OCAzLjYyODg1IDEzLjEyMTdMMy42MzAxIDEzLjEyMDVaTTMxLjI4ODIgMTkuNTU2OUwyMS41NjQyIDEzLjk0MTdMMjQuOTMwNiAxMS45OTkyQzI0Ljk2NDMgMTEuOTc2NyAyNS4wMDY4IDExLjk3MjkgMjUuMDQ0MyAxMS45ODkyTDMzLjA5NyAxNi42MzhDMzYuNjgyMSAxOC43MDkzIDM3LjkxMDggMjMuMjk1NyAzNS44Mzk1IDI2Ljg4MDhDMzQuOTYzMyAyOC4zOTgzIDMzLjU4MzIgMjkuNTYwOCAzMS45Mzk1IDMwLjE2NThWMjAuNjg5NEMzMS45NDMyIDIwLjIyMTkgMzEuNjk0NSAxOS43ODk0IDMxLjI4OTQgMTkuNTU2OUgzMS4yODgyWk0zNC42MzgzIDE0LjUxNDJDMzQuNTc5NSAxNC40NzggMzQuNDc1OCAxNC40MTU1IDM0LjQwMiAxNC4zNzNMMjYuNDM2OCA5Ljc3Mjg5QzI2LjAzMzEgOS41MzY2NCAyNS41MzMxIDkuNTM2NjQgMjUuMTI4MSA5Ljc3Mjg5TDE1LjQwNDEgMTUuMzg4VjExLjUwMDRDMTUuNDAxNiAxMS40NjA0IDE1LjQyMDQgMTEuNDIxNyAxNS40NTE2IDExLjM5NjdMMjMuNTAzIDYuNzUxNThDMjcuMDg5NCA0LjY4Mjc5IDMxLjY3NDUgNS45MTQwNiAzMy43NDIgOS41MDE2NEMzNC42MTU4IDExLjAxNjcgMzQuOTMyIDEyLjc5MDUgMzQuNjM1OCAxNC41MTQySDM0LjYzODNaTTEzLjU3NDEgMjEuNDQzMUwxMC4yMDY1IDE5LjQ5OTRDMTAuMTcwMiAxOS40ODE5IDEwLjE0NjUgMTkuNDQ2OCAxMC4xNDE1IDE5LjQwNjhWMTAuMTA3OUMxMC4xNDQgNS45Njc4MSAxMy41MDI4IDIuNjEyNzQgMTcuNjQyOSAyLjYxNTI0QzE5LjM5NDIgMi42MTUyNCAyMS4wODkyIDMuMjMwMjUgMjIuNDM1NSA0LjM1MDI4QzIyLjM3NDMgNC4zODI3OCAyMi4yNjkzIDQuNDQxNTMgMjIuMTk5MiA0LjQ4NDAzTDE0LjIzNDEgOS4wODQxM0MxMy44MjY2IDkuMzE1MzggMTMuNTc2NiA5Ljc0Nzg5IDEzLjU3OTEgMTAuMjE2N0wxMy41NzQxIDIxLjQ0MDZWMjEuNDQzMVpNMTUuNDAyOSAxNy41MDA2TDE5LjczNDIgMTQuOTk5M0wyNC4wNjU1IDE3LjQ5OTNWMjIuNTAwN0wxOS43MzQyIDI1LjAwMDdMMTUuNDAyOSAyMi41MDA3VjE3LjUwMDZaIiBmaWxsPSIjN0Q3RDg3Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "Embeddings OpenAI",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1153,
+        "icon": "file:openAiLight.svg",
+        "name": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmchatopenai/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Language Models",
+                "Root Nodes"
+              ],
+              "Language Models": [
+                "Chat Models (Recommended)"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "OpenAI Chat Model"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTM2Ljg2NzEgMTYuMzcxOEMzNy43NzQ2IDEzLjY0OCAzNy40NjIxIDEwLjY2NDIgMzYuMDEwOCA4LjE4NjYxQzMzLjgyODIgNC4zODY1MyAyOS40NDA3IDIuNDMxNDkgMjUuMTU1NiAzLjM1MTUxQzIzLjI0OTMgMS4yMDM5NiAyMC41MTA1IC0wLjAxNzMxNDggMTcuNjM5MiAwLjAwMDE4NTUzM0MxMy4yNTkxIC0wLjAwOTgxNDY4IDkuMzcyNzMgMi44MTAyNSA4LjAyNTIgNi45Nzc4M0M1LjIxMTM5IDcuNTU0MSAyLjc4MjU4IDkuMzE1MzggMS4zNjEzIDExLjgxMTdDLTAuODM3NDkzIDE1LjYwMTggLTAuMzM2MjMyIDIwLjM3OTQgMi42MDEzMyAyMy42Mjk0QzEuNjkzODEgMjYuMzUzMiAyLjAwNjMyIDI5LjMzNzEgMy40NTc2IDMxLjgxNDZDNS42NDAxNSAzNS42MTQ3IDEwLjAyNzcgMzcuNTY5NyAxNC4zMTI4IDM2LjY0OTdDMTYuMjE3OSAzOC43OTczIDE4Ljk1NzkgNDAuMDE4NSAyMS44MjkyIDM5Ljk5OThDMjYuMjExOCA0MC4wMTEgMzAuMDk5NCAzNy4xODg1IDMxLjQ0NjkgMzMuMDE3MUMzNC4yNjA4IDMyLjQ0MDkgMzYuNjg5NiAzMC42Nzk2IDM4LjExMDggMjguMTgzM0M0MC4zMDcxIDI0LjM5MzIgMzkuODA0NiAxOS42MTk0IDM2Ljg2ODMgMTYuMzY5M0wzNi44NjcxIDE2LjM3MThaTTIxLjgzMTcgMzcuMzg2QzIwLjA3OCAzNy4zODg1IDE4LjM3OTIgMzYuNzc0NyAxNy4wMzI5IDM1LjY1MDlDMTcuMDk0MSAzNS42MTg0IDE3LjIwMDQgMzUuNTU5NyAxNy4yNjkxIDM1LjUxNzJMMjUuMjM0MyAzMC45MTcxQzI1LjY0MTggMzAuNjg1OCAyNS44OTE4IDMwLjI1MjEgMjUuODg5MyAyOS43ODMzVjE4LjU1NDNMMjkuMjU1NyAyMC40OTgxQzI5LjI5MTkgMjAuNTE1NiAyOS4zMTU3IDIwLjU1MDYgMjkuMzIwNyAyMC41OTA2VjI5Ljg4OTZDMjkuMzE1NyAzNC4wMjQ3IDI1Ljk2NjggMzcuMzc3MiAyMS44MzE3IDM3LjM4NlpNNS43MjY0IDMwLjUwNzFDNC44NDc2MyAyOC45ODk2IDQuNTMxMzcgMjcuMjEwOCA0LjgzMjYzIDI1LjQ4NDVDNC44OTEzOCAyNS41MTk1IDQuOTk1MTMgMjUuNTgzMiA1LjA2ODg4IDI1LjYyNTdMMTMuMDM0MSAzMC4yMjU4QzEzLjQzNzggMzAuNDYyMSAxMy45Mzc4IDMwLjQ2MjEgMTQuMzQyOCAzMC4yMjU4TDI0LjA2NjggMjQuNjEwN1YyOC40OTgzQzI0LjA2OTMgMjguNTM4MyAyNC4wNTA1IDI4LjU3NyAyNC4wMTkzIDI4LjYwMkwxNS45Njc5IDMzLjI1MDlDMTIuMzgxNSAzNS4zMTU5IDcuODAxNDQgMzQuMDg4NCA1LjcyNzY1IDMwLjUwNzFINS43MjY0Wk0zLjYzMDEgMTMuMTIwNUM0LjUwNTEyIDExLjYwMDQgNS44ODY0IDEwLjQzNzkgNy41MzE0NCA5LjgzNDE1QzcuNTMxNDQgOS45MDI5IDcuNTI3NjkgMTAuMDI0MiA3LjUyNzY5IDEwLjEwOTJWMTkuMzEwNkM3LjUyNTE5IDE5Ljc3ODEgNy43NzUxOSAyMC4yMTE5IDguMTgxNDUgMjAuNDQzMUwxNy45MDU0IDI2LjA1N0wxNC41MzkxIDI4LjAwMDhDMTQuNTA1MyAyOC4wMjMzIDE0LjQ2MjggMjguMDI3IDE0LjQyNTMgMjguMDEwOEw2LjM3MjY2IDIzLjM1ODJDMi43OTM4MyAyMS4yODU2IDEuNTY2MzEgMTYuNzA2OCAzLjYyODg1IDEzLjEyMTdMMy42MzAxIDEzLjEyMDVaTTMxLjI4ODIgMTkuNTU2OUwyMS41NjQyIDEzLjk0MTdMMjQuOTMwNiAxMS45OTkyQzI0Ljk2NDMgMTEuOTc2NyAyNS4wMDY4IDExLjk3MjkgMjUuMDQ0MyAxMS45ODkyTDMzLjA5NyAxNi42MzhDMzYuNjgyMSAxOC43MDkzIDM3LjkxMDggMjMuMjk1NyAzNS44Mzk1IDI2Ljg4MDhDMzQuOTYzMyAyOC4zOTgzIDMzLjU4MzIgMjkuNTYwOCAzMS45Mzk1IDMwLjE2NThWMjAuNjg5NEMzMS45NDMyIDIwLjIyMTkgMzEuNjk0NSAxOS43ODk0IDMxLjI4OTQgMTkuNTU2OUgzMS4yODgyWk0zNC42MzgzIDE0LjUxNDJDMzQuNTc5NSAxNC40NzggMzQuNDc1OCAxNC40MTU1IDM0LjQwMiAxNC4zNzNMMjYuNDM2OCA5Ljc3Mjg5QzI2LjAzMzEgOS41MzY2NCAyNS41MzMxIDkuNTM2NjQgMjUuMTI4MSA5Ljc3Mjg5TDE1LjQwNDEgMTUuMzg4VjExLjUwMDRDMTUuNDAxNiAxMS40NjA0IDE1LjQyMDQgMTEuNDIxNyAxNS40NTE2IDExLjM5NjdMMjMuNTAzIDYuNzUxNThDMjcuMDg5NCA0LjY4Mjc5IDMxLjY3NDUgNS45MTQwNiAzMy43NDIgOS41MDE2NEMzNC42MTU4IDExLjAxNjcgMzQuOTMyIDEyLjc5MDUgMzQuNjM1OCAxNC41MTQySDM0LjYzODNaTTEzLjU3NDEgMjEuNDQzMUwxMC4yMDY1IDE5LjQ5OTRDMTAuMTcwMiAxOS40ODE5IDEwLjE0NjUgMTkuNDQ2OCAxMC4xNDE1IDE5LjQwNjhWMTAuMTA3OUMxMC4xNDQgNS45Njc4MSAxMy41MDI4IDIuNjEyNzQgMTcuNjQyOSAyLjYxNTI0QzE5LjM5NDIgMi42MTUyNCAyMS4wODkyIDMuMjMwMjUgMjIuNDM1NSA0LjM1MDI4QzIyLjM3NDMgNC4zODI3OCAyMi4yNjkzIDQuNDQxNTMgMjIuMTk5MiA0LjQ4NDAzTDE0LjIzNDEgOS4wODQxM0MxMy44MjY2IDkuMzE1MzggMTMuNTc2NiA5Ljc0Nzg5IDEzLjU3OTEgMTAuMjE2N0wxMy41NzQxIDIxLjQ0MDZWMjEuNDQzMVpNMTUuNDAyOSAxNy41MDA2TDE5LjczNDIgMTQuOTk5M0wyNC4wNjU1IDE3LjQ5OTNWMjIuNTAwN0wxOS43MzQyIDI1LjAwMDdMMTUuNDAyOSAyMi41MDA3VjE3LjUwMDZaIiBmaWxsPSIjN0Q3RDg3Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "OpenAI Chat Model",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1231,
+        "icon": "file:supabase.svg",
+        "name": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.vectorstoresupabase/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Vector Stores",
+                "Tools",
+                "Root Nodes"
+              ],
+              "Tools": [
+                "Other Tools"
+              ],
+              "Vector Stores": [
+                "Other Vector Stores"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Supabase Vector Store"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDkiIGhlaWdodD0iMTEzIiBmaWxsPSJub25lIj48cGF0aCBmaWxsPSJ1cmwoI2EpIiBkPSJNNjMuNzA4IDExMC4yODRjLTIuODYgMy42MDEtOC42NTggMS42MjgtOC43MjctMi45N2wtMS4wMDctNjcuMjUxaDQ1LjIyYzguMTkgMCAxMi43NTggOS40NiA3LjY2NSAxNS44NzR6Ii8+PHBhdGggZmlsbD0idXJsKCNiKSIgZmlsbC1vcGFjaXR5PSIuMiIgZD0iTTYzLjcwOCAxMTAuMjg0Yy0yLjg2IDMuNjAxLTguNjU4IDEuNjI4LTguNzI3LTIuOTdsLTEuMDA3LTY3LjI1MWg0NS4yMmM4LjE5IDAgMTIuNzU4IDkuNDYgNy42NjUgMTUuODc0eiIvPjxwYXRoIGZpbGw9IiMzRUNGOEUiIGQ9Ik00NS4zMTcgMi4wNzFjMi44Ni0zLjYwMSA4LjY1Ny0xLjYyOCA4LjcyNiAyLjk3bC40NDIgNjcuMjUxSDkuODNjLTguMTkgMC0xMi43NTktOS40Ni03LjY2NS0xNS44NzV6Ii8+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iNTMuOTc0IiB4Mj0iOTQuMTYzIiB5MT0iNTQuOTc0IiB5Mj0iNzEuODI5IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3Agc3RvcC1jb2xvcj0iIzI0OTM2MSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzNFQ0Y4RSIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJiIiB4MT0iMzYuMTU2IiB4Mj0iNTQuNDg0IiB5MT0iMzAuNTc4IiB5Mj0iNjUuMDgxIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3AvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1vcGFjaXR5PSIwIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PC9zdmc+"
+        },
+        "displayName": "Supabase Vector Store",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1235,
+        "icon": "file:extractFromFile.svg",
+        "name": "n8n-nodes-base.extractFromFile",
+        "codex": {
+          "data": {
+            "alias": [
+              "CSV",
+              "Spreadsheet",
+              "Excel",
+              "xls",
+              "xlsx",
+              "ods",
+              "tabular",
+              "decode",
+              "decoding",
+              "Move Binary Data",
+              "Binary",
+              "File",
+              "PDF",
+              "JSON",
+              "HTML",
+              "ICS",
+              "iCal",
+              "txt",
+              "Text",
+              "RTF",
+              "XML",
+              "64",
+              "Base64",
+              "Convert"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.extractfromfile/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Files",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Extract from File"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTAuOTM3NSAyQzAuNDE5NzMzIDIgMCAyLjQxOTczIDAgMi45Mzc1VjM3LjMyMjFDMCAzNy44Mzk5IDAuNDE5NzMzIDM4LjI1OTYgMC45Mzc1IDM4LjI1OTZIMjYuMjE1NEMyNi43MzMyIDM4LjI1OTYgMjcuMTUyOSAzNy44Mzk5IDI3LjE1MjkgMzcuMzIyMUwyNy4xNTI5IDMwLjY3MTlMMTYuNzk2OSAzMC42NzE5QzE0Ljg5ODQgMzAuNjcxOSAxMy4zNTk0IDI5LjEzMjkgMTMuMzU5NCAyNy4yMzQ0VjI1LjM1OTRDMTMuMzU5NCAyMy40NjA5IDE0Ljg5ODQgMjEuOTIxOSAxNi43OTY5IDIxLjkyMTlIMjcuMTUyOUwyNy4xNTI5IDE1Ljc4MjFIMTQuMzA4M0MxMy43OTA2IDE1Ljc4MjEgMTMuMzcwOCAxNS4zNjI0IDEzLjM3MDggMTQuODQ0NlYySDAuOTM3NVoiIGZpbGw9IiMzNTNGNkUiLz4KPHBhdGggZD0iTTE2LjAyNzEgMkMxNS45NDA4IDIgMTUuODcwOCAyLjA2OTk2IDE1Ljg3MDggMi4xNTYyNVYxMi44MTM0QzE1Ljg3MDggMTMuMDcyMyAxNi4wODA3IDEzLjI4MjEgMTYuMzM5NiAxMy4yODIxSDI2Ljk5NjdDMjcuMDgzIDEzLjI4MjEgMjcuMTUyOSAxMy4yMTIyIDI3LjE1MjkgMTMuMTI1OUwyNy4xNTI5IDEyLjYxNzFDMjcuMTUyOSAxMi4zNjg4IDI3LjA1NDUgMTIuMTMwNyAyNi44NzkxIDExLjk1NUwxNy4yMjI1IDIuMjc1MzhDMTcuMDQ2NiAyLjA5OTA4IDE2LjgwNzkgMiAxNi41NTg4IDJIMTYuMDI3MVoiIGZpbGw9IiMzNTNGNkUiLz4KPHBhdGggZD0iTTI5Ljc2NDIgMzQuNjUwM0MyOS4wMzQgMzMuOTE2IDI5LjAzNzQgMzIuNzI4OCAyOS43NzE2IDMxLjk5ODZMMzMuNjE5NyAyOC4xNzE5TDE2Ljc5NjkgMjguMTcxOUMxNi4yNzkxIDI4LjE3MTkgMTUuODU5NCAyNy43NTIxIDE1Ljg1OTQgMjcuMjM0NFYyNS4zNTk0QzE1Ljg1OTQgMjQuODQxNiAxNi4yNzkxIDI0LjQyMTkgMTYuNzk2OSAyNC40MjE5TDMzLjU0MTIgMjQuNDIxOUwyOS43NzE2IDIwLjY3MzNDMjkuMDM3NCAxOS45NDMxIDI5LjAzNCAxOC43NTU5IDI5Ljc2NDIgMTguMDIxNkMzMC40OTQ0IDE3LjI4NzQgMzEuNjgxNiAxNy4yODQgMzIuNDE1OSAxOC4wMTQyTDM5LjQ0NzEgMjUuMDA2NEMzOS44MDEgMjUuMzU4MyA0MCAyNS44MzY4IDQwIDI2LjMzNTlDNDAgMjYuODM1IDM5LjgwMSAyNy4zMTM1IDM5LjQ0NzEgMjcuNjY1NUwzMi40MTU5IDM0LjY1NzZDMzEuNjgxNiAzNS4zODc4IDMwLjQ5NDQgMzUuMzg0NSAyOS43NjQyIDM0LjY1MDNaIiBmaWxsPSIjMzUzRjZFIi8+Cjwvc3ZnPgo="
+        },
+        "displayName": "Extract from File",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1243,
+        "icon": "file:binary.svg",
+        "name": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.documentdefaultdataloader/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Document Loaders"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Default Data Loader"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3NjgiIGhlaWdodD0iMTAyNCI+PHBhdGggZmlsbD0iIzdEN0Q4NyIgZD0iTTAgOTYwVjY0aDU3NmwxOTIgMTkydjcwNHptNzA0LTY0MEw1MTIgMTI4SDY0djc2OGg2NDB6TTMyMCA1MTJIMTI4VjI1NmgxOTJ6bS02NC0xOTJoLTY0djEyOGg2NHptMCA0NDhoNjR2NjRIMTI4di02NGg2NFY2NDBoLTY0di02NGgxMjh6bTI1Ni0zMjBoNjR2NjRIMzg0di02NGg2NFYzMjBoLTY0di02NGgxMjh6bTY0IDM4NEgzODRWNTc2aDE5MnptLTY0LTE5MmgtNjR2MTI4aDY0eiIvPjwvc3ZnPg=="
+        },
+        "displayName": "Default Data Loader",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1267,
+        "icon": "file:postgres.svg",
+        "name": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.memorypostgreschat/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Memory"
+              ],
+              "Memory": [
+                "Other memories"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Postgres Chat Memory"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgNzkgODEiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48ZyBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSI+PHBhdGggZmlsbD0iIzAwMCIgZD0iTTc3LjM5MSA0Ny45MjJjLS40NjYtMS40MTItMS42ODgtMi4zOTYtMy4yNjgtMi42MzItLjc0NS0uMTExLTEuNTk4LS4wNjQtMi42MDguMTQ0LTEuNzYuMzYzLTMuMDY1LjUwMS00LjAxOC41MjggMy41OTYtNi4wNzIgNi41MjEtMTIuOTk3IDguMjA0LTE5LjUxNSAyLjcyMi0xMC41NCAxLjI2OC0xNS4zNDEtLjQzMi0xNy41MTNDNzAuNzcgMy4xODUgNjQuMjA2LjA5NyA1Ni4yODcuMDAyYy00LjIyNC0uMDUyLTcuOTMzLjc4Mi05Ljg2NyAxLjM4MmEzNyAzNyAwIDAgMC01Ljc3LS41MjhjLTMuODA5LS4wNjEtNy4xNzQuNzctMTAuMDUgMi40NzZhNDYgNDYgMCAwIDAtNy4wOTgtMS43ODJDMTYuNTYxLjQxMSAxMC45NjggMS4yOTkgNi44NzYgNC4xOSAxLjkyMiA3LjY4OS0uMzc1IDEzLjc3LjA1IDIyLjI2MmMuMTM1IDIuNjk2IDEuNjQzIDEwLjkgNC4wMTggMTguNjggMS4zNjUgNC40NzIgMi44MiA4LjE4NSA0LjMyNiAxMS4wMzggMi4xMzUgNC4wNDYgNC40MTkgNi40MjggNi45ODQgNy4yODQgMS40MzguNDc5IDQuMDQ5LjgxNCA2Ljc5Ny0xLjQ3M2E2IDYgMCAwIDAgMS40MjkgMS4yM2MuNzgzLjQ5NCAxLjc0Ljg5NyAyLjY5NiAxLjEzNiAzLjQ0Ni44NjIgNi42NzQuNjQ2IDkuNDI3LS41NjFsLjA0MSAxLjM2Mi4wNiAxLjg5OWMuMTYzIDQuMDY0LjQ0IDcuMjIzIDEuMjU5IDkuNDM0LjA0NS4xMjIuMTA1LjMwNy4xNjkuNTAzLjQwOSAxLjI1MSAxLjA5MiAzLjM0NiAyLjgzIDQuOTg3IDEuOCAxLjY5OSAzLjk3OCAyLjIyIDUuOTcyIDIuMjIgMSAwIDEuOTU1LS4xMzEgMi43OTItLjMxMSAyLjk4NC0uNjM5IDYuMzczLTEuNjE0IDguODI0LTUuMTA0IDIuMzE4LTMuMyAzLjQ0NC04LjI3IDMuNjQ4LTE2LjEwMWwuMDc0LS42MzQuMDQ4LS40MTQuNTQ2LjA0OC4xNDEuMDFjMy4wMzkuMTM4IDYuNzU1LS41MDYgOS4wMzctMS41NjYgMS44MDMtLjgzNyA3LjU4Mi0zLjg4OCA2LjIyMS04LjAwNyIvPjxwYXRoIGZpbGw9IiMzMzY3OTEiIGQ9Ik03Mi4xOTUgNDguNzIzYy05LjAzNiAxLjg2NC05LjY1Ny0xLjE5NS05LjY1Ny0xLjE5NSA5LjU0MS0xNC4xNTcgMTMuNTI5LTMyLjEyNyAxMC4wODctMzYuNTI1QzYzLjIzNS0uOTk0IDQ2Ljk4MSA0LjY4IDQ2LjcxIDQuODI3bC0uMDg3LjAxNmMtMS43ODUtLjM3MS0zLjc4My0uNTkxLTYuMDI5LS42MjgtNC4wODktLjA2Ny03LjE5IDEuMDcyLTkuNTQ0IDIuODU3IDAgMC0yOC45OTUtMTEuOTQ1LTI3LjY0NyAxNS4wMjMuMjg3IDUuNzM3IDguMjIzIDQzLjQxIDE3LjY4OSAzMi4wMzEgMy40Ni00LjE2MSA2LjgwMy03LjY3OSA2LjgwMy03LjY3OSAxLjY2IDEuMTAzIDMuNjQ4IDEuNjY2IDUuNzMyIDEuNDYzbC4xNjItLjEzN2E2LjMgNi4zIDAgMCAwIC4wNjUgMS42MmMtMi40MzkgMi43MjUtMS43MjIgMy4yMDMtNi41OTcgNC4yMDYtNC45MzMgMS4wMTctMi4wMzUgMi44MjYtLjE0MyAzLjI5OSAyLjI5NC41NzQgNy42IDEuMzg2IDExLjE4NS0zLjYzM2wtLjE0My41NzNjLjk1Ni43NjUgMS42MjYgNC45NzggMS41MTQgOC43OTdzLS4xODggNi40NDEuNTY1IDguNDg5IDEuNTAzIDYuNjU2IDcuOTEyIDUuMjgyYzUuMzU1LTEuMTQ4IDguMTMtNC4xMjEgOC41MTYtOS4wODEuMjc0LTMuNTI2Ljg5NC0zLjAwNS45MzMtNi4xNThsLjQ5Ny0xLjQ5M2MuNTczLTQuNzguMDkxLTYuMzIyIDMuMzktNS42MDVsLjgwMi4wN2MyLjQyOC4xMSA1LjYwNi0uMzkxIDcuNDcxLTEuMjU3IDQuMDE2LTEuODY0IDYuMzk4LTQuOTc2IDIuNDM4LTQuMTU4Ii8+PHBhdGggZD0iTTMyLjc0NyAyNC42NmMtLjgxNC0uMTEzLTEuNTUyLS4wMDgtMS45MjUuMjc0YS43LjcgMCAwIDAtLjI5Mi40N2MtLjA0Ny4zMzYuMTg4LjcwNy4zMzMuODk4LjQwOS41NDIgMS4wMDYuOTE1IDEuNTk4Ljk5N2EyIDIgMCAwIDAgLjI1Ni4wMThjLjk4NiAwIDEuODgzLS43NjggMS45NjItMS4zMzUuMDk5LS43MS0uOTMyLTEuMTgzLTEuOTMxLTEuMzIybTI2Ljk3NS4wMjJjLS4wNzgtLjU1Ni0xLjA2OC0uNzE1LTIuMDA3LS41ODRzLTEuODQ4LjU1NC0xLjc3MiAxLjExMmMuMDYxLjQzNC44NDQgMS4xNzQgMS43NzEgMS4xNzRxLjExNyAwIC4yMzctLjAxNmMuNjE5LS4wODYgMS4wNzMtLjQ3OSAxLjI4OC0uNzA1LjMyOS0uMzQ1LjUxOC0uNzMuNDg0LS45OG0xNS40NzcgMjMuODI4Yy0uMzQ1LTEuMDQyLTEuNDUzLTEuMzc3LTMuMjk2LS45OTctNS40NzEgMS4xMjktNy40My4zNDctOC4wNzMtLjEyNyA0LjI1Mi02LjQ3OCA3Ljc1LTE0LjMwOCA5LjYzNy0yMS42MTQuODk0LTMuNDYxIDEuMzg4LTYuNjc1IDEuNDI4LTkuMjk0LjA0NS0yLjg3Ni0uNDQ1LTQuOTg4LTEuNDU1LTYuMjc5LTQuMDcyLTUuMjAzLTEwLjA0OC03Ljk5NC0xNy4yODMtOC4wNy00Ljk3My0uMDU2LTkuMTc1IDEuMjE3LTkuOTkgMS41NzVhMjUgMjUgMCAwIDAtNS42MjItLjcyMmMtMy43MzQtLjA2LTYuOTYxLjgzNC05LjYzMyAyLjY1NWE0MyA0MyAwIDAgMC03LjgyOC0yLjA1MmMtNi4zNDItMS4wMjEtMTEuMzgxLS4yNDgtMTQuOTc4IDIuMy00LjI5MSAzLjA0LTYuMjcyIDguNDc1LTUuODg4IDE2LjE1Mi4xMjkgMi41ODMgMS42MDEgMTAuNTI5IDMuOTIzIDE4LjEzOSAzLjA1NyAxMC4wMTYgNi4zOCAxNS42ODYgOS44NzcgMTYuODUyYTQuNCA0LjQgMCAwIDAgMS40MDIuMjMyYzEuMjc2IDAgMi44MzktLjU3NSA0LjQ2Ni0yLjUzMWExNjEgMTYxIDAgMCAxIDYuMTU2LTYuOTY2IDkuOSA5LjkgMCAwIDAgNC40MjkgMS4xOTFsLjAxLjEyMWMtLjMxLjM2OC0uNTY0LjY5LS43ODEuOTY1LTEuMDcgMS4zNTgtMS4yOTMgMS42NDEtNC43MzggMi4zNTEtLjk4LjIwMi0zLjU4Mi43MzgtMy42MiAyLjU2My0uMDQxIDEuOTkzIDMuMDc2IDIuODMgMy40MzEgMi45MTkgMS4yMzguMzEgMi40My40NjMgMy41NjguNDYzIDIuNzY2IDAgNS4yLS45MDkgNy4xNDUtMi42NjgtLjA2IDcuMTA2LjIzNiAxNC4xMDcgMS4wODkgMTYuMjQxLjY5OSAxLjc0NiAyLjQwNiA2LjAxNCA3Ljc5OCA2LjAxNC43OTEgMCAxLjY2Mi0uMDkyIDIuNjItLjI5NyA1LjYyNy0xLjIwNyA4LjA3MS0zLjY5NCA5LjAxNi05LjE3Ny41MDYtMi45MyAxLjM3NC05LjkyOCAxLjc4Mi0xMy42ODIuODYyLjI2OSAxLjk3MS4zOTIgMy4xNy4zOTIgMi41MDEgMCA1LjM4Ny0uNTMxIDcuMTk3LTEuMzcyIDIuMDMzLS45NDQgNS43MDItMy4yNjEgNS4wMzctNS4yNzR6TTYxLjggMjMuMTQ3Yy0uMDE5IDEuMTA4LS4xNzEgMi4xMTQtLjMzMyAzLjE2NC0uMTc0IDEuMTI5LS4zNTQgMi4yOTctLjM5OSAzLjcxNS0uMDQ1IDEuMzc5LjEyOCAyLjgxNC4yOTQgNC4yLjMzNyAyLjgwMS42ODIgNS42ODUtLjY1NSA4LjUzMWExMSAxMSAwIDAgMS0uNTkyLTEuMjE4Yy0uMTY2LS40MDMtLjUyNy0xLjA1LTEuMDI3LTEuOTQ2LTEuOTQ0LTMuNDg3LTYuNDk3LTExLjY1Mi00LjE2Ny0xNC45ODQuNjk0LS45OTIgMi40NTYtMi4wMTEgNi44NzktMS40NjN6TTU2LjQzOSA0LjM3NGM2LjQ4Mi4xNDMgMTEuNjA5IDIuNTY4IDE1LjI0IDcuMjA3IDIuNzg0IDMuNTU4LS4yODIgMTkuNzQ5LTkuMTU4IDMzLjcxNmwtLjI2OS0uMzM5LS4xMTItLjE0YzIuMjk0LTMuNzg4IDEuODQ1LTcuNTM2IDEuNDQ2LTEwLjg1OS0uMTY0LTEuMzY0LS4zMTktMi42NTItLjI4LTMuODYxLjA0MS0xLjI4My4yMS0yLjM4Mi4zNzQtMy40NDYuMjAyLTEuMzExLjQwNy0yLjY2Ny4zNS00LjI2NWExLjggMS44IDAgMCAwIC4wMzctLjYwMWMtLjE0NC0xLjUzMy0xLjg5NC02LjEyLTUuNDYyLTEwLjI3My0xLjk1MS0yLjI3MS00Ljc5Ny00LjgxMy04LjY4Mi02LjUyN2EyOS4zIDI5LjMgMCAwIDEgNi41MTUtLjYxMnpNMjAuMTY3IDUzLjI5OGMtMS43OTMgMi4xNTUtMy4wMzEgMS43NDItMy40MzggMS42MDctMi42NTMtLjg4NS01LjczLTYuNDkxLTguNDQ0LTE1LjM4Mi0yLjM0OC03LjY5My0zLjcyLTE1LjQyOC0zLjgyOS0xNy41OTctLjM0My02Ljg2IDEuMzItMTEuNjQxIDQuOTQzLTE0LjIxIDUuODk2LTQuMTgxIDE1LjU4OS0xLjY3OSAxOS40ODQtLjQwOWwtLjE3LjE2M2MtNi4zOTEgNi40NTUtNi4yNCAxNy40ODMtNi4yMjQgMTguMTU3YTIyIDIyIDAgMCAwIC4wNTEgMS4xMzVjLjExIDEuODU1LjMxNSA1LjMwNy0uMjMyIDkuMjE3LS41MDggMy42MzMuNjEyIDcuMTg5IDMuMDcyIDkuNzU2cS4zODMuMzk4Ljc5NS43NWExNjQgMTY0IDAgMCAwLTYuMDA4IDYuODE0em02LjgzLTkuMTEzYy0xLjk4My0yLjA2OS0yLjg4NC00Ljk0Ny0yLjQ3MS03Ljg5Ni41NzctNC4xMy4zNjQtNy43MjcuMjUtOS42NTlsLS4wMzktLjY5NGMuOTM0LS44MjggNS4yNjEtMy4xNDYgOC4zNDYtMi40MzkgMS40MDguMzIzIDIuMjY2IDEuMjgxIDIuNjIzIDIuOTMxIDEuODQ2IDguNTM5LjI0NCAxMi4wOTgtMS4wNDMgMTQuOTU3LS4yNjUuNTg5LS41MTYgMS4xNDYtLjczIDEuNzIybC0uMTY2LjQ0NWMtLjQyIDEuMTI2LS44MTEgMi4xNzMtMS4wNTMgMy4xNjctMi4xMDgtLjAwNi00LjE1OS0uOTA3LTUuNzE4LTIuNTM0em0uMzI0IDExLjUxNmE1IDUgMCAwIDEtMS40OTQtLjY0MmMuMjcxLS4xMjguNzU0LS4zMDEgMS41OTEtLjQ3NCA0LjA1Mi0uODM0IDQuNjc4LTEuNDIzIDYuMDQ1LTMuMTU4LjMxMy0uMzk4LjY2OS0uODQ5IDEuMTYtMS4zOTguNzMzLS44MjEgMS4wNjgtLjY4MiAxLjY3Ni0uNDMuNDkzLjIwNC45NzIuODIxIDEuMTY3IDEuNTAxLjA5Mi4zMjEuMTk1LjkzLS4xNDMgMS40MDQtMi44NTUgMy45OTctNy4wMTUgMy45NDYtMTAuMDAzIDMuMTk4em0yMS4yMDcgMTkuNzM1Yy00Ljk1NyAxLjA2Mi02LjcxMy0xLjQ2Ny03Ljg2OS00LjM1OS0uNzQ3LTEuODY3LTEuMTEzLTEwLjI4NS0uODUzLTE5LjU4MmExLjEgMS4xIDAgMCAwLS4wNDgtLjM1NiA1IDUgMCAwIDAtLjEzOS0uNjU3Yy0uMzg3LTEuMzUzLTEuMzMxLTIuNDg0LTIuNDYyLTIuOTUzLS40NS0uMTg2LTEuMjc1LS41MjgtMi4yNjctLjI3NC4yMTItLjg3MS41NzgtMS44NTUuOTc2LTIuOTIxbC4xNjctLjQ0OGMuMTg4LS41MDUuNDIzLTEuMDI5LjY3My0xLjU4MyAxLjM0Ny0yLjk5MiAzLjE5Mi03LjA5MSAxLjE5LTE2LjM1LS43NS0zLjQ2OC0zLjI1NC01LjE2MS03LjA1LTQuNzY4LTIuMjc2LjIzNS00LjM1OCAxLjE1NC01LjM5NiAxLjY4cS0uMzM0LjE2OS0uNjE4LjMyOWMuMjktMy40OTQgMS4zODUtMTAuMDI0IDUuNDgxLTE0LjE1NiAyLjU3OS0yLjYwMSA2LjAxNC0zLjg4NiAxMC4xOTktMy44MTcgOC4yNDYuMTM1IDEzLjUzNCA0LjM2NyAxNi41MTggNy44OTMgMi41NzEgMy4wMzkgMy45NjQgNi4xIDQuNTIgNy43NTEtNC4xNzktLjQyNS03LjAyMi40LTguNDYzIDIuNDYtMy4xMzUgNC40ODEgMS43MTUgMTMuMTc4IDQuMDQ2IDE3LjM1OC40MjcuNzY2Ljc5NiAxLjQyOC45MTIgMS43MDkuNzU5IDEuODM5IDEuNzQyIDMuMDY3IDIuNDU5IDMuOTY0LjIyLjI3NS40MzMuNTQxLjU5Ni43NzQtMS4yNjYuMzY1LTMuNTM5IDEuMjA4LTMuMzMyIDUuNDIyLS4xNjcgMi4xMTUtMS4zNTYgMTIuMDE2LTEuOTU5IDE1LjUxNC0uNzk3IDQuNjIxLTIuNDk3IDYuMzQzLTcuMjc5IDcuMzY4em0yMC42OTMtMjMuNjhjLTEuMjk0LjYwMS0zLjQ2IDEuMDUyLTUuNTE4IDEuMTQ4LTIuMjczLjEwNy0zLjQzLS4yNTUtMy43MDItLjQ3Ny0uMTI4LTIuNjI2Ljg1LTIuOTAxIDEuODg0LTMuMTkxLjE2My0uMDQ2LjMyMS0uMDkuNDc0LS4xNDRhNCA0IDAgMCAwIC4zMTMuMjNjMS44MjcgMS4yMDYgNS4wODUgMS4zMzYgOS42ODUuMzg2bC4wNS0uMDFjLS42Mi41OC0xLjY4MiAxLjM1OS0zLjE4NyAyLjA1OHoiLz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Postgres Chat Memory",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 40,
+        "name": "Support Chatbot"
+      },
+      {
+        "id": 47,
+        "name": "AI Chatbot"
+      }
+    ],
+    "image": []
+  }
+}

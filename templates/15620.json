@@ -1,0 +1,1996 @@
+{
+  "workflow": {
+    "id": 15620,
+    "name": "Screen and schedule recruitment interviews on WhatsApp with OpenAI",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-11T13:03:56.144Z",
+    "description": "This workflow automates three key recruitment processes through WhatsApp:\n1. **Candidate Screening** \u2014 AI evaluates applicants against job criteria\n2. **Interview Scheduling** \u2014 Checks availability and books meeting slots\n3. **Hiring Updates** \u2014 Notifies candidates of status changes and outcomes\n\n### Who's it for\n\u2022 HR teams handling 20+ applicants per week\n\u2022 Recruiting agencies managing multiple job roles\n\u2022 Startups automating early-stage candidate pipelines\n\n### How it works\n1. Candidate sends a WhatsApp message to apply\n2. AI screens the candidate against predefined job criteria\n3. Qualified candidates receive available interview slots\n4. Confirmed bookings are added to calendar and CRM\n5. Post-interview, hiring status is sent via WhatsApp\n6. All interactions are logged in Google Sheets / CRM\n\n### Setup Steps\n1. Import this workflow\n2. Configure credentials (Twilio/WhatsApp, OpenAI, Google Calendar, Google Sheets)\n3. Update job criteria and scoring thresholds in the AI node\n4. Set your calendar availability windows\n5. Activate the workflow\n\n### Requirements\n\u2022 Twilio WhatsApp Business API (or Meta WhatsApp Cloud API)\n\u2022 OpenAI / Anthropic API\n\u2022 Google Calendar API\n\u2022 Google Sheets (CRM tracker)\n\u2022 SendGrid or Gmail (backup notifications)\n\n### Customization\n\u2022 Adjust screening score threshold in the Filter node\n\u2022 Modify interview slot logic in the Python scheduler\n\u2022 Add more job roles by extending the AI system prompt\n\u2022 Change notification templates in the message formatting nodes",
+    "workflow": {
+      "id": "1vviCR37ylmqZKih",
+      "meta": {
+        "instanceId": "dd69efaf8212c74ad206700d104739d3329588a6f3f8381a46a481f34c9cc281",
+        "templateCredsSetupCompleted": true
+      },
+      "name": "AI WhatsApp Recruitment Assistant",
+      "tags": [
+        {
+          "id": "DiwTzDkTaFSX5bEX",
+          "name": "recruitment",
+          "createdAt": "2026-05-11T13:01:00.870Z",
+          "updatedAt": "2026-05-11T13:01:00.870Z"
+        },
+        {
+          "id": "z6mxJFPmp5Jq0Lnu",
+          "name": "whatsapp",
+          "createdAt": "2026-05-11T13:01:00.955Z",
+          "updatedAt": "2026-05-11T13:01:00.955Z"
+        },
+        {
+          "id": "fmYbvcTTTlbTp6aj",
+          "name": "ai-powered",
+          "createdAt": "2026-05-11T13:01:00.986Z",
+          "updatedAt": "2026-05-11T13:01:00.986Z"
+        },
+        {
+          "id": "s4xffeURdnx7oinT",
+          "name": "hr-automation",
+          "createdAt": "2026-05-11T13:01:00.986Z",
+          "updatedAt": "2026-05-11T13:01:00.986Z"
+        }
+      ],
+      "nodes": [
+        {
+          "id": "ec4d5a42-6b4b-432f-a816-091a850c8a28",
+          "name": "Sticky Note - Overview",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -320,
+            -112
+          ],
+          "parameters": {
+            "width": 980,
+            "height": 960,
+            "content": "## AI WhatsApp Recruitment Assistant\n\nThis workflow automates three key recruitment processes through WhatsApp:\n1. **Candidate Screening** \u2014 AI evaluates applicants against job criteria\n2. **Interview Scheduling** \u2014 Checks availability and books meeting slots\n3. **Hiring Updates** \u2014 Notifies candidates of status changes and outcomes\n\n### Who's it for\n\u2022 HR teams handling 20+ applicants per week\n\u2022 Recruiting agencies managing multiple job roles\n\u2022 Startups automating early-stage candidate pipelines\n\n### How it works\n1. Candidate sends a WhatsApp message to apply\n2. AI screens the candidate against predefined job criteria\n3. Qualified candidates receive available interview slots\n4. Confirmed bookings are added to calendar and CRM\n5. Post-interview, hiring status is sent via WhatsApp\n6. All interactions are logged in Google Sheets / CRM\n\n### Setup Steps\n1. Import this workflow\n2. Configure credentials (Twilio/WhatsApp, OpenAI, Google Calendar, Google Sheets)\n3. Update job criteria and scoring thresholds in the AI node\n4. Set your calendar availability windows\n5. Activate the workflow\n\n### Requirements\n\u2022 Twilio WhatsApp Business API (or Meta WhatsApp Cloud API)\n\u2022 OpenAI / Anthropic API\n\u2022 Google Calendar API\n\u2022 Google Sheets (CRM tracker)\n\u2022 SendGrid or Gmail (backup notifications)\n\n### Customization\n\u2022 Adjust screening score threshold in the Filter node\n\u2022 Modify interview slot logic in the Python scheduler\n\u2022 Add more job roles by extending the AI system prompt\n\u2022 Change notification templates in the message formatting nodes"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "72f509a6-ec05-42be-b415-4de8b1e1b6c1",
+          "name": "Sticky Note - Phase 1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            832,
+            48
+          ],
+          "parameters": {
+            "color": 4,
+            "width": 912,
+            "height": 520,
+            "content": "## 1. WhatsApp Intake & Candidate Identification"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "2bae1b5b-88d0-484b-a84f-61bb44e2a4d0",
+          "name": "Sticky Note - Phase 2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1776,
+            48
+          ],
+          "parameters": {
+            "color": 3,
+            "width": 780,
+            "height": 660,
+            "content": "## 2. AI Screening & Qualification"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "f27c1836-3695-4c7f-9c23-092139732410",
+          "name": "Sticky Note - Phase 3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            2624,
+            48
+          ],
+          "parameters": {
+            "color": 2,
+            "width": 1740,
+            "height": 696,
+            "content": "## 3. Interview Scheduling"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "7d1e63ab-0738-489d-b9c3-ecbd3e9c5a47",
+          "name": "Sticky Note - Phase 4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            4432,
+            -32
+          ],
+          "parameters": {
+            "color": 6,
+            "width": 1436,
+            "height": 916,
+            "content": "## 4. Hiring Decision & Notifications"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "b10f6415-65f7-4183-b905-d9384a413cab",
+          "name": "Webhook - WhatsApp Inbound",
+          "type": "n8n-nodes-base.webhook",
+          "position": [
+            960,
+            208
+          ],
+          "webhookId": "wa-recruit-inbound-001",
+          "parameters": {
+            "path": "whatsapp-recruitment-inbound",
+            "options": {},
+            "httpMethod": "POST",
+            "responseMode": "responseNode"
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "331b2ec6-738c-48e1-9ee9-b204ffc96449",
+          "name": "Poll Hiring Status Updates",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "position": [
+            960,
+            400
+          ],
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "cronExpression",
+                  "expression": "*/15 * * * *"
+                }
+              ]
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "262ded1a-140c-4d32-a20d-7634c411469c",
+          "name": "Normalize Candidate Message",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            1184,
+            304
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "name": "candidatePhone",
+                  "type": "string",
+                  "value": "={{ $json.From || $json.body?.From || $json.WaId || '' }}"
+                },
+                {
+                  "name": "candidateName",
+                  "type": "string",
+                  "value": "={{ $json.ProfileName || $json.body?.ProfileName || 'Candidate' }}"
+                },
+                {
+                  "name": "messageBody",
+                  "type": "string",
+                  "value": "={{ $json.Body || $json.body?.Body || $json.text || '' }}"
+                },
+                {
+                  "name": "messageId",
+                  "type": "string",
+                  "value": "={{ $json.MessageSid || $json.body?.MessageSid || Date.now().toString() }}"
+                },
+                {
+                  "name": "receivedAt",
+                  "type": "string",
+                  "value": "={{ new Date().toISOString() }}"
+                },
+                {
+                  "name": "channel",
+                  "type": "string",
+                  "value": "whatsapp"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "67fe9afc-2c16-4bcc-b5ad-45e800323453",
+          "name": "Python - Detect Message Intent",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1408,
+            304
+          ],
+          "parameters": {
+            "mode": "runOnceForEachItem",
+            "language": "python"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "c42c655e-e340-4229-980c-b9bf107417e5",
+          "name": "Filter Recruitment Messages",
+          "type": "n8n-nodes-base.filter",
+          "position": [
+            1632,
+            304
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "conditions": [
+                {
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "true"
+                  },
+                  "leftValue": "={{ $json.isRecruitmentMessage }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "d1efaf9d-d28c-4ac4-b697-503f1b38cc4b",
+          "name": "Wait 1 - Rate Limit",
+          "type": "n8n-nodes-base.wait",
+          "position": [
+            1856,
+            304
+          ],
+          "webhookId": "wa-wait-rate-001",
+          "parameters": {},
+          "typeVersion": 1
+        },
+        {
+          "id": "3512dea0-db3a-46b4-ac21-594084b4d0a6",
+          "name": "AI - Screen Candidate",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "position": [
+            2080,
+            304
+          ],
+          "parameters": {
+            "text": "=You are a professional AI recruitment screener for a company. Your task is to evaluate a candidate's WhatsApp message against the job criteria below and produce a structured screening assessment.\n\n## Job Requirements\n- Role: Software Engineer / Product Manager / Data Analyst (match to {{ $json.detectedRole }})\n- Required Experience: 2+ years in relevant field\n- Key Skills: Communication, problem-solving, technical aptitude\n- Education: Bachelor's degree or equivalent experience\n- Location: Remote-friendly / On-site (specify if mentioned)\n\n## Candidate Message\nName: {{ $json.candidateName }}\nPhone: {{ $json.candidatePhone }}\nMessage: {{ $json.messageBody }}\n\n## Your Task\nAnalyze the message and respond ONLY with a valid JSON object (no markdown, no explanation) in this exact format:\n{\n  \"screeningScore\": <integer 0-100>,\n  \"qualificationStatus\": \"<qualified|maybe|unqualified>\",\n  \"detectedExperience\": \"<years or description>\",\n  \"detectedSkills\": [\"<skill1>\", \"<skill2>\"],\n  \"redFlags\": [\"<flag1 or empty array>\"],\n  \"extractedJobRole\": \"<role candidate seems to be applying for>\",\n  \"recommendedAction\": \"<schedule_interview|request_more_info|reject|follow_up>\",\n  \"personalizedReply\": \"<A warm, professional WhatsApp reply under 160 words that addresses the candidate by name, acknowledges their message, and states the next step clearly>\"\n}",
+            "options": {},
+            "promptType": "define"
+          },
+          "typeVersion": 1.6
+        },
+        {
+          "id": "3083b8f2-f88d-4e77-a190-06600df53b08",
+          "name": "JS - Parse Screening Result",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            2432,
+            304
+          ],
+          "parameters": {
+            "mode": "runOnceForEachItem",
+            "jsCode": "const item = $input.item.json;\n\n// Parse AI response - handle both direct JSON and wrapped response\nlet screeningResult = {};\ntry {\n  const rawText = item.output || item.response || item.text || '{}';\n  const cleaned = rawText.replace(/```json|```/g, '').trim();\n  screeningResult = JSON.parse(cleaned);\n} catch (e) {\n  screeningResult = {\n    screeningScore: 50,\n    qualificationStatus: 'maybe',\n    detectedExperience: 'unknown',\n    detectedSkills: [],\n    redFlags: [],\n    extractedJobRole: item.detectedRole || 'general',\n    recommendedAction: 'request_more_info',\n    personalizedReply: `Hi ${item.candidateName}, thank you for reaching out! We received your message and our team will review your application shortly. We'll get back to you within 24 hours.`\n  };\n}\n\nreturn {\n  json: {\n    ...item,\n    ...screeningResult,\n    screeningTimestamp: new Date().toISOString(),\n    isQualified: screeningResult.screeningScore >= 60,\n    shouldSchedule: screeningResult.recommendedAction === 'schedule_interview'\n  }\n};"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "d908488f-2fad-462c-8d1d-ec85256d438f",
+          "name": "Route - Qualified for Interview?",
+          "type": "n8n-nodes-base.filter",
+          "position": [
+            2656,
+            304
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "conditions": [
+                {
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "true"
+                  },
+                  "leftValue": "={{ $json.shouldSchedule }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "5510fd32-6bbb-4aa7-af53-c886be1ad8f3",
+          "name": "Python - Generate Interview Slots",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            2880,
+            304
+          ],
+          "parameters": {
+            "mode": "runOnceForEachItem",
+            "language": "python"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "5eb8eb74-c7ff-40dc-8945-8d9c34eba1e7",
+          "name": "Format Schedule Message",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            3104,
+            304
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "name": "whatsappTo",
+                  "type": "string",
+                  "value": "={{ 'whatsapp:' + $json.candidatePhone }}"
+                },
+                {
+                  "name": "whatsappFrom",
+                  "type": "string",
+                  "value": "whatsapp:+1234567890"
+                },
+                {
+                  "name": "messageOut",
+                  "type": "string",
+                  "value": "={{ $json.scheduleMessage || $json.personalizedReply }}"
+                },
+                {
+                  "name": "messageType",
+                  "type": "string",
+                  "value": "schedule_offer"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "30658f28-0750-4e67-9ed0-eb2aa54b83e7",
+          "name": "Send WhatsApp - Interview Slots",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            3328,
+            304
+          ],
+          "parameters": {
+            "url": "https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
+            "method": "POST",
+            "options": {},
+            "sendBody": true,
+            "authentication": "genericCredentialType",
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "To",
+                  "value": "={{ $json.whatsappTo }}"
+                },
+                {
+                  "name": "From",
+                  "value": "={{ $json.whatsappFrom }}"
+                },
+                {
+                  "name": "Body",
+                  "value": "={{ $json.messageOut }}"
+                }
+              ]
+            },
+            "genericAuthType": "httpBasicAuth"
+          },
+          "credentials": {
+            "httpBasicAuth": {
+              "id": "credential-id",
+              "name": "vrushti-linkedin"
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "34fd5f4f-46db-4281-9db3-0235dccb939c",
+          "name": "Format Screening Reply",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            4800,
+            496
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "name": "whatsappTo",
+                  "type": "string",
+                  "value": "={{ 'whatsapp:' + $json.candidatePhone }}"
+                },
+                {
+                  "name": "whatsappFrom",
+                  "type": "string",
+                  "value": "whatsapp:+1234567890"
+                },
+                {
+                  "name": "messageOut",
+                  "type": "string",
+                  "value": "={{ $json.personalizedReply || 'Hi ' + $json.candidateName + ', thank you for your application. Unfortunately, your profile does not match our current requirements. We encourage you to apply for future openings. Best of luck!' }}"
+                },
+                {
+                  "name": "messageType",
+                  "type": "string",
+                  "value": "screening_reply"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "97df6844-90d0-40e7-84bb-d23ada7fb667",
+          "name": "Send WhatsApp - Screening Reply",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            5024,
+            496
+          ],
+          "parameters": {
+            "url": "https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
+            "method": "POST",
+            "options": {},
+            "sendBody": true,
+            "authentication": "genericCredentialType",
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "To",
+                  "value": "={{ $json.whatsappTo }}"
+                },
+                {
+                  "name": "From",
+                  "value": "={{ $json.whatsappFrom }}"
+                },
+                {
+                  "name": "Body",
+                  "value": "={{ $json.messageOut }}"
+                }
+              ]
+            },
+            "genericAuthType": "httpBasicAuth"
+          },
+          "credentials": {
+            "httpBasicAuth": {
+              "id": "credential-id",
+              "name": "vrushti-linkedin"
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "cba5c75c-6ab0-4171-896e-5937a9560f6e",
+          "name": "Wait 2 - Candidate Reply Buffer",
+          "type": "n8n-nodes-base.wait",
+          "position": [
+            3552,
+            304
+          ],
+          "webhookId": "wa-wait-slot-selection-001",
+          "parameters": {},
+          "typeVersion": 1
+        },
+        {
+          "id": "5c105b41-bbc3-4166-b17a-b92eedc643d8",
+          "name": "Python - Validate Slot Selection",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            3776,
+            304
+          ],
+          "parameters": {
+            "mode": "runOnceForEachItem",
+            "language": "python"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "558bd4d7-8af5-4391-b18d-546767a69bae",
+          "name": "Filter Valid Slot Selections",
+          "type": "n8n-nodes-base.filter",
+          "position": [
+            4000,
+            304
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "conditions": [
+                {
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "true"
+                  },
+                  "leftValue": "={{ $json.isValidSelection }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "108cacc2-4262-4be4-8ca2-a282fe8f1274",
+          "name": "Book Calendar Event",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            4224,
+            208
+          ],
+          "parameters": {
+            "url": "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+            "method": "POST",
+            "options": {},
+            "jsonBody": "={\n  \"summary\": \"{{ $json.calendarEventTitle }}\",\n  \"description\": \"Interview via WhatsApp Recruitment Assistant\\nCandidate: {{ $json.candidateName }}\\nPhone: {{ $json.candidatePhone }}\\nRole: {{ $json.extractedJobRole }}\\nScreening Score: {{ $json.screeningScore }}\",\n  \"start\": {\n    \"dateTime\": \"{{ $json.chosenSlot.iso }}\",\n    \"timeZone\": \"UTC\"\n  },\n  \"end\": {\n    \"dateTime\": \"{{ $json.chosenSlot.iso }}\",\n    \"timeZone\": \"UTC\"\n  },\n  \"attendees\": [\n    {\"email\": \"recruiter@yourcompany.com\"},\n    {\"displayName\": \"{{ $json.candidateName }}\"}\n  ],\n  \"conferenceData\": {\n    \"createRequest\": {\n      \"requestId\": \"{{ $json.messageId }}\",\n      \"conferenceSolutionKey\": {\"type\": \"hangoutsMeet\"}\n    }\n  },\n  \"reminders\": {\n    \"useDefault\": false,\n    \"overrides\": [\n      {\"method\": \"email\", \"minutes\": 1440},\n      {\"method\": \"popup\", \"minutes\": 30}\n    ]\n  }\n}",
+            "sendBody": true,
+            "specifyBody": "json"
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "2698a3a6-be10-41ca-a0e0-b5c97063bab3",
+          "name": "Send WhatsApp - Booking Confirmation",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            4224,
+            400
+          ],
+          "parameters": {
+            "url": "https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
+            "method": "POST",
+            "options": {},
+            "sendBody": true,
+            "authentication": "genericCredentialType",
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "To",
+                  "value": "={{ 'whatsapp:' + $json.candidatePhone }}"
+                },
+                {
+                  "name": "From",
+                  "value": "whatsapp:+1234567890"
+                },
+                {
+                  "name": "Body",
+                  "value": "={{ $json.confirmationMessage }}"
+                }
+              ]
+            },
+            "genericAuthType": "httpBasicAuth"
+          },
+          "credentials": {
+            "httpBasicAuth": {
+              "id": "credential-id",
+              "name": "vrushti-linkedin"
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "d77f198c-b7b8-47cb-873a-4daa53e1b173",
+          "name": "AI - Generate Hiring Update",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "position": [
+            4448,
+            304
+          ],
+          "parameters": {
+            "text": "=You are a recruitment coordinator. Write a hiring status update message for a candidate to be sent via WhatsApp.\n\nCandidate: {{ $json.candidateName }}\nRole Applied For: {{ $json.extractedJobRole }}\nInterview Date: {{ $json.chosenSlot.display || 'N/A' }}\nCurrent Status: {{ $json.hiringStatus || 'under_review' }}\nHR Notes: {{ $json.hrNotes || 'Interview completed successfully' }}\n\nStatus options and their meaning:\n- 'moving_forward': Candidate is progressing to next round\n- 'offer_extended': Job offer is being made\n- 'rejected': Candidate was not selected\n- 'on_hold': Decision pending\n\nWrite a concise, empathetic, and professional WhatsApp message (under 140 words) appropriate for the status. Be warm, clear, and end with a clear next step. Return ONLY the message text.",
+            "options": {},
+            "promptType": "define"
+          },
+          "typeVersion": 1.6
+        },
+        {
+          "id": "a4846286-8ff9-49fb-b62a-e58a200402be",
+          "name": "JS - Format Hiring Update",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            4800,
+            304
+          ],
+          "parameters": {
+            "mode": "runOnceForEachItem",
+            "jsCode": "const item = $input.item.json;\nconst hiringMsg = item.output || item.response || item.text || `Hi ${item.candidateName}, thank you for interviewing with us. We will be in touch shortly regarding next steps.`;\n\nreturn {\n  json: {\n    ...item,\n    hiringUpdateMessage: hiringMsg.trim(),\n    notificationSentAt: new Date().toISOString(),\n    finalStatus: item.hiringStatus || 'under_review'\n  }\n};"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "e79c6351-5f8b-452d-8691-7c5952471f9e",
+          "name": "Send WhatsApp - Hiring Decision",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            5024,
+            304
+          ],
+          "parameters": {
+            "url": "https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
+            "method": "POST",
+            "options": {},
+            "sendBody": true,
+            "authentication": "genericCredentialType",
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "To",
+                  "value": "={{ 'whatsapp:' + $json.candidatePhone }}"
+                },
+                {
+                  "name": "From",
+                  "value": "whatsapp:+1234567890"
+                },
+                {
+                  "name": "Body",
+                  "value": "={{ $json.hiringUpdateMessage }}"
+                }
+              ]
+            },
+            "genericAuthType": "httpBasicAuth"
+          },
+          "credentials": {
+            "httpBasicAuth": {
+              "id": "credential-id",
+              "name": "vrushti-linkedin"
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "81ed779b-f9f8-42d9-ac9a-a9c3dd66013f",
+          "name": "Update CRM - Google Sheet",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            5248,
+            400
+          ],
+          "parameters": {
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/YOUR_RECRUITMENT_SHEET_ID/values/Candidates!A1:append?valueInputOption=USER_ENTERED",
+            "method": "POST",
+            "options": {},
+            "jsonBody": "={\n  \"values\": [[\n    \"{{ $json.receivedAt.split('T')[0] }}\",\n    \"{{ $json.candidateName }}\",\n    \"{{ $json.candidatePhone }}\",\n    \"{{ $json.extractedJobRole }}\",\n    \"{{ $json.screeningScore }}\",\n    \"{{ $json.qualificationStatus }}\",\n    \"{{ $json.recommendedAction }}\",\n    \"{{ $json.chosenSlot ? $json.chosenSlot.display : 'N/A' }}\",\n    \"{{ $json.finalStatus || $json.bookingStatus || 'screened' }}\",\n    \"{{ $json.notificationSentAt || $json.screeningTimestamp }}\"\n  ]]\n}",
+            "sendBody": true,
+            "specifyBody": "json"
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "20068677-2b46-496a-a8c8-257a1e7ea793",
+          "name": "Webhook Response - 200 OK",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "position": [
+            5680,
+            400
+          ],
+          "parameters": {
+            "options": {},
+            "respondWith": "json",
+            "responseBody": "={ \"status\": \"ok\", \"messageId\": \"{{ $json.messageId }}\" }"
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "04089495-18fd-4821-8e82-d0dc00a4a4cf",
+          "name": "OpenAI - Screening Model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "position": [
+            2160,
+            528
+          ],
+          "parameters": {
+            "model": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gpt-4.1-mini"
+            },
+            "options": {
+              "maxTokens": 1000,
+              "temperature": 0.4
+            },
+            "builtInTools": {}
+          },
+          "credentials": {
+            "openAiApi": {
+              "id": "credential-id",
+              "name": "OpenAi account 2 - test"
+            }
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "afa1ec8c-54ff-4913-bb85-d1c3e660ff5d",
+          "name": "OpenAI - Hiring Update Model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "position": [
+            4528,
+            528
+          ],
+          "parameters": {
+            "model": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gpt-4.1-mini"
+            },
+            "options": {
+              "maxTokens": 400,
+              "temperature": 0.6
+            },
+            "builtInTools": {}
+          },
+          "credentials": {
+            "openAiApi": {
+              "id": "credential-id",
+              "name": "OpenAi ajay"
+            }
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "4b1e5c4a-a237-4b72-a638-3fb8b41074f6",
+          "name": "Wait For Finish Task",
+          "type": "n8n-nodes-base.wait",
+          "position": [
+            5456,
+            400
+          ],
+          "webhookId": "10b6af3f-2e73-4712-97f3-2ba661d50a41",
+          "parameters": {
+            "amount": 15
+          },
+          "typeVersion": 1.1
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "executionOrder": "v1"
+      },
+      "versionId": "34a1286d-7f58-45e6-8180-887381cbba81",
+      "connections": {
+        "Book Calendar Event": {
+          "main": [
+            [
+              {
+                "node": "AI - Generate Hiring Update",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Wait 1 - Rate Limit": {
+          "main": [
+            [
+              {
+                "node": "AI - Screen Candidate",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Wait For Finish Task": {
+          "main": [
+            [
+              {
+                "node": "Webhook Response - 200 OK",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "AI - Screen Candidate": {
+          "main": [
+            [
+              {
+                "node": "JS - Parse Screening Result",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Format Screening Reply": {
+          "main": [
+            [
+              {
+                "node": "Send WhatsApp - Screening Reply",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Format Schedule Message": {
+          "main": [
+            [
+              {
+                "node": "Send WhatsApp - Interview Slots",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenAI - Screening Model": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "AI - Screen Candidate",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "JS - Format Hiring Update": {
+          "main": [
+            [
+              {
+                "node": "Send WhatsApp - Hiring Decision",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Update CRM - Google Sheet": {
+          "main": [
+            [
+              {
+                "node": "Wait For Finish Task",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Poll Hiring Status Updates": {
+          "main": [
+            [
+              {
+                "node": "Normalize Candidate Message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Webhook - WhatsApp Inbound": {
+          "main": [
+            [
+              {
+                "node": "Normalize Candidate Message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "AI - Generate Hiring Update": {
+          "main": [
+            [
+              {
+                "node": "JS - Format Hiring Update",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Format Screening Reply",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Filter Recruitment Messages": {
+          "main": [
+            [
+              {
+                "node": "Wait 1 - Rate Limit",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "JS - Parse Screening Result": {
+          "main": [
+            [
+              {
+                "node": "Route - Qualified for Interview?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Normalize Candidate Message": {
+          "main": [
+            [
+              {
+                "node": "Python - Detect Message Intent",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Filter Valid Slot Selections": {
+          "main": [
+            [
+              {
+                "node": "Book Calendar Event",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Send WhatsApp - Booking Confirmation",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenAI - Hiring Update Model": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "AI - Generate Hiring Update",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Python - Detect Message Intent": {
+          "main": [
+            [
+              {
+                "node": "Filter Recruitment Messages",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Send WhatsApp - Hiring Decision": {
+          "main": [
+            [
+              {
+                "node": "Update CRM - Google Sheet",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Send WhatsApp - Interview Slots": {
+          "main": [
+            [
+              {
+                "node": "Wait 2 - Candidate Reply Buffer",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Send WhatsApp - Screening Reply": {
+          "main": [
+            [
+              {
+                "node": "Update CRM - Google Sheet",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Wait 2 - Candidate Reply Buffer": {
+          "main": [
+            [
+              {
+                "node": "Python - Validate Slot Selection",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Python - Validate Slot Selection": {
+          "main": [
+            [
+              {
+                "node": "Filter Valid Slot Selections",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Route - Qualified for Interview?": {
+          "main": [
+            [
+              {
+                "node": "Python - Generate Interview Slots",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Python - Generate Interview Slots": {
+          "main": [
+            [
+              {
+                "node": "Format Schedule Message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Send WhatsApp - Booking Confirmation": {
+          "main": [
+            [
+              {
+                "node": "AI - Generate Hiring Update",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 32,
+      "nodeTypes": {
+        "n8n-nodes-base.set": {
+          "count": 3
+        },
+        "n8n-nodes-base.code": {
+          "count": 5
+        },
+        "n8n-nodes-base.wait": {
+          "count": 3
+        },
+        "n8n-nodes-base.filter": {
+          "count": 3
+        },
+        "n8n-nodes-base.webhook": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 5
+        },
+        "n8n-nodes-base.httpRequest": {
+          "count": 6
+        },
+        "@n8n/n8n-nodes-langchain.agent": {
+          "count": 2
+        },
+        "n8n-nodes-base.scheduleTrigger": {
+          "count": 1
+        },
+        "n8n-nodes-base.respondToWebhook": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.lmChatOpenAi": {
+          "count": 2
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Oneclick AI Squad",
+      "username": "oneclick-ai",
+      "bio": "The AI Squad Initiative is a pioneering effort to build, automate and scale AI-powered workflows using n8n.io. Our mission is to help individuals and businesses integrate AI agents seamlessly into their daily operations  from automating tasks and enhancing productivity to creating innovative, intelligent solutions. We design modular, reusable AI workflow templates that empower creators, developers and teams to supercharge their automation with minimal effort and maximum impact.",
+      "verified": true,
+      "links": [
+        "https://www.oneclickitsolution.com/"
+      ],
+      "avatar": "https://gravatar.com/avatar/848fca91367142f65f9e5c55d64e5c9952b160d7b060d103b52aa343c6bc7b3d?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 19,
+        "icon": "file:httprequest.svg",
+        "name": "n8n-nodes-base.httpRequest",
+        "codex": {
+          "data": {
+            "alias": [
+              "API",
+              "Request",
+              "URL",
+              "Build",
+              "cURL"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-designs-with-bannerbear-and-n8n/",
+                  "icon": "\ud83c\udfa8",
+                  "label": "Automate Designs with Bannerbear and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-use-the-http-request-node-the-swiss-army-knife-for-workflow-automation/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "How to use the HTTP Request Node - The Swiss Army Knife for Workflow Automation"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HTTP Request",
+          "color": "#0004F5"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MCAyMEM0MCA4Ljk1MzE0IDMxLjA0NjkgMCAyMCAwQzguOTUzMTQgMCAwIDguOTUzMTQgMCAyMEMwIDMxLjA0NjkgOC45NTMxNCA0MCAyMCA0MEMzMS4wNDY5IDQwIDQwIDMxLjA0NjkgNDAgMjBaTTIwIDM2Ljk0NThDMTguODg1MiAzNi45NDU4IDE3LjEzNzggMzUuOTY3IDE1LjQ5OTggMzIuNjk4NUMxNC43OTY0IDMxLjI5MTggMTQuMTk2MSAyOS41NDMxIDEzLjc1MjYgMjcuNjg0N0gyNi4xODk4QzI1LjgwNDUgMjkuNTQwMyAyNS4yMDQ0IDMxLjI5MDEgMjQuNTAwMiAzMi42OTg1QzIyLjg2MjIgMzUuOTY3IDIxLjExNDggMzYuOTQ1OCAyMCAzNi45NDU4Wk0xMi45MDY0IDIwQzEyLjkwNjQgMjEuNjA5NyAxMy4wMDg3IDIzLjE2NCAxMy4yMDAzIDI0LjYzMDVIMjYuNzk5N0MyNi45OTEzIDIzLjE2NCAyNy4wOTM2IDIxLjYwOTcgMjcuMDkzNiAyMEMyNy4wOTM2IDE4LjM5MDMgMjYuOTkxMyAxNi44MzYgMjYuNzk5NyAxNS4zNjk1SDEzLjIwMDNDMTMuMDA4NyAxNi44MzYgMTIuOTA2NCAxOC4zOTAzIDEyLjkwNjQgMjBaTTIwIDMuMDU0MTlDMjEuMTE0OSAzLjA1NDE5IDIyLjg2MjIgNC4wMzA3OCAyNC41MDAxIDcuMzAwMzlDMjUuMjA2NiA4LjcxNDA4IDI1LjgwNzIgMTAuNDA2NyAyNi4xOTIgMTIuMzE1M0gxMy43NTAxQzE0LjE5MzMgMTAuNDA0NyAxNC43OTQyIDguNzEyNTQgMTUuNDk5OCA3LjMwMDY0QzE3LjEzNzcgNC4wMzA4MyAxOC44ODUxIDMuMDU0MTkgMjAgMy4wNTQxOVpNMzAuMTQ3OCAyMEMzMC4xNDc4IDE4LjQwOTkgMzAuMDU0MyAxNi44NjE3IDI5LjgyMjcgMTUuMzY5NUgzNi4zMDQyQzM2LjcyNTIgMTYuODQyIDM2Ljk0NTggMTguMzk2NCAzNi45NDU4IDIwQzM2Ljk0NTggMjEuNjAzNiAzNi43MjUyIDIzLjE1OCAzNi4zMDQyIDI0LjYzMDVIMjkuODIyN0MzMC4wNTQzIDIzLjEzODMgMzAuMTQ3OCAyMS41OTAxIDMwLjE0NzggMjBaTTI2LjI3NjcgNC4yNTUxMkMyNy42MzY1IDYuMzYwMTkgMjguNzExIDkuMTMyIDI5LjM3NzQgMTIuMzE1M0gzNS4xMDQ2QzMzLjI1MTEgOC42NjggMzAuMTA3IDUuNzgzNDYgMjYuMjc2NyA0LjI1NTEyWk0xMC42MjI2IDEyLjMxNTNINC44OTI5M0M2Ljc1MTQ3IDguNjY3ODQgOS44OTM1MSA1Ljc4MzQxIDEzLjcyMzIgNC4yNTUxM0MxMi4zNjM1IDYuMzYwMjEgMTEuMjg5IDkuMTMyMDEgMTAuNjIyNiAxMi4zMTUzWk0zLjA1NDE5IDIwQzMuMDU0MTkgMjEuNjAzIDMuMjc3NDMgMjMuMTU3NSAzLjY5NDg0IDI0LjYzMDVIMTAuMTIxN0M5Ljk0NjE5IDIzLjE0MiA5Ljg1MjIyIDIxLjU5NDMgOS44NTIyMiAyMEM5Ljg1MjIyIDE4LjQwNTcgOS45NDYxOSAxNi44NTggMTAuMTIxNyAxNS4zNjk1SDMuNjk0ODRDMy4yNzc0MyAxNi44NDI1IDMuMDU0MTkgMTguMzk3IDMuMDU0MTkgMjBaTTI2LjI3NjYgMzUuNzQyN0MyNy42MzY1IDMzLjYzOTMgMjguNzExIDMwLjg2OCAyOS4zNzc0IDI3LjY4NDdIMzUuMTA0NkMzMy4yNTEgMzEuMzMyMiAzMC4xMDY4IDM0LjIxNzkgMjYuMjc2NiAzNS43NDI3Wk0xMy43MjM0IDM1Ljc0MjdDOS44OTM2OSAzNC4yMTc5IDYuNzUxNTUgMzEuMzMyNCA0Ljg5MjkzIDI3LjY4NDdIMTAuNjIyNkMxMS4yODkgMzAuODY4IDEyLjM2MzUgMzMuNjM5MyAxMy43MjM0IDM1Ljc0MjdaIiBmaWxsPSIjM0E0MkU5Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "HTTP Request",
+        "typeVersion": 4,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 47,
+        "icon": "file:webhook.svg",
+        "name": "n8n-nodes-base.webhook",
+        "codex": {
+          "data": {
+            "alias": [
+              "HTTP",
+              "API",
+              "Build",
+              "WH"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "\ud83d\udcbb",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-automatically-give-kudos-to-contributors-with-github-slack-and-n8n/",
+                  "icon": "\ud83d\udc4f",
+                  "label": "How to automatically give kudos to contributors with GitHub, Slack, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-custom-incident-response-workflows-with-n8n/",
+                  "label": "How to automate every step of an incident response workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Webhook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTM1IDM3Yy0yLjIgMC00LTEuOC00LTRzMS44LTQgNC00IDQgMS44IDQgNC0xLjggNC00IDQiLz48cGF0aCBmaWxsPSIjMzc0NzRmIiBkPSJNMzUgNDNjLTMgMC01LjktMS40LTcuOC0zLjdsMy4xLTIuNWMxLjEgMS40IDIuOSAyLjMgNC43IDIuMyAzLjMgMCA2LTIuNyA2LTZzLTIuNy02LTYtNmMtMSAwLTIgLjMtMi45LjdsLTEuNyAxTDIzLjMgMTZsMy41LTEuOSA1LjMgOS40YzEtLjMgMi0uNSAzLS41IDUuNSAwIDEwIDQuNSAxMCAxMFM0MC41IDQzIDM1IDQzIi8+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTE0IDQzQzguNSA0MyA0IDM4LjUgNCAzM2MwLTQuNiAzLjEtOC41IDcuNS05LjdsMSAzLjlDOS45IDI3LjkgOCAzMC4zIDggMzNjMCAzLjMgMi43IDYgNiA2czYtMi43IDYtNnYtMmgxNXY0SDIzLjhjLS45IDQuNi01IDgtOS44IDgiLz48cGF0aCBmaWxsPSIjZTkxZTYzIiBkPSJNMTQgMzdjLTIuMiAwLTQtMS44LTQtNHMxLjgtNCA0LTQgNCAxLjggNCA0LTEuOCA0LTQgNCIvPjxwYXRoIGZpbGw9IiMzNzQ3NGYiIGQ9Ik0yNSAxOWMtMi4yIDAtNC0xLjgtNC00czEuOC00IDQtNCA0IDEuOCA0IDQtMS44IDQtNCA0Ii8+PHBhdGggZmlsbD0iI2U5MWU2MyIgZD0ibTE1LjcgMzQtMy40LTIgNS45LTkuN2MtMi0xLjktMy4yLTQuNS0zLjItNy4zIDAtNS41IDQuNS0xMCAxMC0xMHMxMCA0LjUgMTAgMTBjMCAuOS0uMSAxLjctLjMgMi41bC0zLjktMWMuMS0uNS4yLTEgLjItMS41IDAtMy4zLTIuNy02LTYtNnMtNiAyLjctNiA2YzAgMi4xIDEuMSA0IDIuOSA1LjFsMS43IDF6Ii8+PC9zdmc+"
+        },
+        "displayName": "Webhook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 514,
+        "icon": "fa:pause-circle",
+        "name": "n8n-nodes-base.wait",
+        "codex": {
+          "data": {
+            "alias": [
+              "pause",
+              "sleep",
+              "delay",
+              "timeout"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.wait/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Wait",
+          "color": "#804050"
+        },
+        "iconData": {
+          "icon": "pause-circle",
+          "type": "icon"
+        },
+        "displayName": "Wait",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 535,
+        "icon": "file:webhook.svg",
+        "name": "n8n-nodes-base.respondToWebhook",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.respondtowebhook/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes",
+              "Utility"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Respond to Webhook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTM1IDM3Yy0yLjIgMC00LTEuOC00LTRzMS44LTQgNC00IDQgMS44IDQgNC0xLjggNC00IDQiLz48cGF0aCBmaWxsPSIjMzc0NzRmIiBkPSJNMzUgNDNjLTMgMC01LjktMS40LTcuOC0zLjdsMy4xLTIuNWMxLjEgMS40IDIuOSAyLjMgNC43IDIuMyAzLjMgMCA2LTIuNyA2LTZzLTIuNy02LTYtNmMtMSAwLTIgLjMtMi45LjdsLTEuNyAxTDIzLjMgMTZsMy41LTEuOSA1LjMgOS40YzEtLjMgMi0uNSAzLS41IDUuNSAwIDEwIDQuNSAxMCAxMFM0MC41IDQzIDM1IDQzIi8+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTE0IDQzQzguNSA0MyA0IDM4LjUgNCAzM2MwLTQuNiAzLjEtOC41IDcuNS05LjdsMSAzLjlDOS45IDI3LjkgOCAzMC4zIDggMzNjMCAzLjMgMi43IDYgNiA2czYtMi43IDYtNnYtMmgxNXY0SDIzLjhjLS45IDQuNi01IDgtOS44IDgiLz48cGF0aCBmaWxsPSIjZTkxZTYzIiBkPSJNMTQgMzdjLTIuMiAwLTQtMS44LTQtNHMxLjgtNCA0LTQgNCAxLjggNCA0LTEuOCA0LTQgNCIvPjxwYXRoIGZpbGw9IiMzNzQ3NGYiIGQ9Ik0yNSAxOWMtMi4yIDAtNC0xLjgtNC00czEuOC00IDQtNCA0IDEuOCA0IDQtMS44IDQtNCA0Ii8+PHBhdGggZmlsbD0iI2U5MWU2MyIgZD0ibTE1LjcgMzQtMy40LTIgNS45LTkuN2MtMi0xLjktMy4yLTQuNS0zLjItNy4zIDAtNS41IDQuNS0xMCAxMC0xMHMxMCA0LjUgMTAgMTBjMCAuOS0uMSAxLjctLjMgMi41bC0zLjktMWMuMS0uNS4yLTEgLjItMS41IDAtMy4zLTIuNy02LTYtNnMtNiAyLjctNiA2YzAgMi4xIDEuMSA0IDIuOSA1LjFsMS43IDF6Ii8+PC9zdmc+"
+        },
+        "displayName": "Respond to Webhook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 7,
+            "name": "Utility"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 839,
+        "icon": "fa:clock",
+        "name": "n8n-nodes-base.scheduleTrigger",
+        "codex": {
+          "data": {
+            "alias": [
+              "Time",
+              "Scheduler",
+              "Polling",
+              "Cron",
+              "Interval"
+            ],
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\",\"schedule\"]",
+        "defaults": {
+          "name": "Schedule Trigger",
+          "color": "#31C49F"
+        },
+        "iconData": {
+          "icon": "clock",
+          "type": "icon"
+        },
+        "displayName": "Schedule Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 844,
+        "icon": "fa:filter",
+        "name": "n8n-nodes-base.filter",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The Filter node can be used to filter items based on a condition. If the condition is met, the item will be passed on to the next node. If the condition is not met, the item will be omitted. Conditions can be combined together by AND(meet all conditions), or OR(meet at least one condition).",
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.filter/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Filter",
+          "color": "#229eff"
+        },
+        "iconData": {
+          "icon": "filter",
+          "type": "icon"
+        },
+        "displayName": "Filter",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1119,
+        "icon": "fa:robot",
+        "name": "@n8n/n8n-nodes-langchain.agent",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain",
+              "Chat",
+              "Conversational",
+              "Plan and Execute",
+              "ReAct",
+              "Tools"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Agents",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "AI Agent",
+          "color": "#404040"
+        },
+        "iconData": {
+          "icon": "robot",
+          "type": "icon"
+        },
+        "displayName": "AI Agent",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1153,
+        "icon": "file:openAiLight.svg",
+        "name": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmchatopenai/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Language Models",
+                "Root Nodes"
+              ],
+              "Language Models": [
+                "Chat Models (Recommended)"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "OpenAI Chat Model"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTM2Ljg2NzEgMTYuMzcxOEMzNy43NzQ2IDEzLjY0OCAzNy40NjIxIDEwLjY2NDIgMzYuMDEwOCA4LjE4NjYxQzMzLjgyODIgNC4zODY1MyAyOS40NDA3IDIuNDMxNDkgMjUuMTU1NiAzLjM1MTUxQzIzLjI0OTMgMS4yMDM5NiAyMC41MTA1IC0wLjAxNzMxNDggMTcuNjM5MiAwLjAwMDE4NTUzM0MxMy4yNTkxIC0wLjAwOTgxNDY4IDkuMzcyNzMgMi44MTAyNSA4LjAyNTIgNi45Nzc4M0M1LjIxMTM5IDcuNTU0MSAyLjc4MjU4IDkuMzE1MzggMS4zNjEzIDExLjgxMTdDLTAuODM3NDkzIDE1LjYwMTggLTAuMzM2MjMyIDIwLjM3OTQgMi42MDEzMyAyMy42Mjk0QzEuNjkzODEgMjYuMzUzMiAyLjAwNjMyIDI5LjMzNzEgMy40NTc2IDMxLjgxNDZDNS42NDAxNSAzNS42MTQ3IDEwLjAyNzcgMzcuNTY5NyAxNC4zMTI4IDM2LjY0OTdDMTYuMjE3OSAzOC43OTczIDE4Ljk1NzkgNDAuMDE4NSAyMS44MjkyIDM5Ljk5OThDMjYuMjExOCA0MC4wMTEgMzAuMDk5NCAzNy4xODg1IDMxLjQ0NjkgMzMuMDE3MUMzNC4yNjA4IDMyLjQ0MDkgMzYuNjg5NiAzMC42Nzk2IDM4LjExMDggMjguMTgzM0M0MC4zMDcxIDI0LjM5MzIgMzkuODA0NiAxOS42MTk0IDM2Ljg2ODMgMTYuMzY5M0wzNi44NjcxIDE2LjM3MThaTTIxLjgzMTcgMzcuMzg2QzIwLjA3OCAzNy4zODg1IDE4LjM3OTIgMzYuNzc0NyAxNy4wMzI5IDM1LjY1MDlDMTcuMDk0MSAzNS42MTg0IDE3LjIwMDQgMzUuNTU5NyAxNy4yNjkxIDM1LjUxNzJMMjUuMjM0MyAzMC45MTcxQzI1LjY0MTggMzAuNjg1OCAyNS44OTE4IDMwLjI1MjEgMjUuODg5MyAyOS43ODMzVjE4LjU1NDNMMjkuMjU1NyAyMC40OTgxQzI5LjI5MTkgMjAuNTE1NiAyOS4zMTU3IDIwLjU1MDYgMjkuMzIwNyAyMC41OTA2VjI5Ljg4OTZDMjkuMzE1NyAzNC4wMjQ3IDI1Ljk2NjggMzcuMzc3MiAyMS44MzE3IDM3LjM4NlpNNS43MjY0IDMwLjUwNzFDNC44NDc2MyAyOC45ODk2IDQuNTMxMzcgMjcuMjEwOCA0LjgzMjYzIDI1LjQ4NDVDNC44OTEzOCAyNS41MTk1IDQuOTk1MTMgMjUuNTgzMiA1LjA2ODg4IDI1LjYyNTdMMTMuMDM0MSAzMC4yMjU4QzEzLjQzNzggMzAuNDYyMSAxMy45Mzc4IDMwLjQ2MjEgMTQuMzQyOCAzMC4yMjU4TDI0LjA2NjggMjQuNjEwN1YyOC40OTgzQzI0LjA2OTMgMjguNTM4MyAyNC4wNTA1IDI4LjU3NyAyNC4wMTkzIDI4LjYwMkwxNS45Njc5IDMzLjI1MDlDMTIuMzgxNSAzNS4zMTU5IDcuODAxNDQgMzQuMDg4NCA1LjcyNzY1IDMwLjUwNzFINS43MjY0Wk0zLjYzMDEgMTMuMTIwNUM0LjUwNTEyIDExLjYwMDQgNS44ODY0IDEwLjQzNzkgNy41MzE0NCA5LjgzNDE1QzcuNTMxNDQgOS45MDI5IDcuNTI3NjkgMTAuMDI0MiA3LjUyNzY5IDEwLjEwOTJWMTkuMzEwNkM3LjUyNTE5IDE5Ljc3ODEgNy43NzUxOSAyMC4yMTE5IDguMTgxNDUgMjAuNDQzMUwxNy45MDU0IDI2LjA1N0wxNC41MzkxIDI4LjAwMDhDMTQuNTA1MyAyOC4wMjMzIDE0LjQ2MjggMjguMDI3IDE0LjQyNTMgMjguMDEwOEw2LjM3MjY2IDIzLjM1ODJDMi43OTM4MyAyMS4yODU2IDEuNTY2MzEgMTYuNzA2OCAzLjYyODg1IDEzLjEyMTdMMy42MzAxIDEzLjEyMDVaTTMxLjI4ODIgMTkuNTU2OUwyMS41NjQyIDEzLjk0MTdMMjQuOTMwNiAxMS45OTkyQzI0Ljk2NDMgMTEuOTc2NyAyNS4wMDY4IDExLjk3MjkgMjUuMDQ0MyAxMS45ODkyTDMzLjA5NyAxNi42MzhDMzYuNjgyMSAxOC43MDkzIDM3LjkxMDggMjMuMjk1NyAzNS44Mzk1IDI2Ljg4MDhDMzQuOTYzMyAyOC4zOTgzIDMzLjU4MzIgMjkuNTYwOCAzMS45Mzk1IDMwLjE2NThWMjAuNjg5NEMzMS45NDMyIDIwLjIyMTkgMzEuNjk0NSAxOS43ODk0IDMxLjI4OTQgMTkuNTU2OUgzMS4yODgyWk0zNC42MzgzIDE0LjUxNDJDMzQuNTc5NSAxNC40NzggMzQuNDc1OCAxNC40MTU1IDM0LjQwMiAxNC4zNzNMMjYuNDM2OCA5Ljc3Mjg5QzI2LjAzMzEgOS41MzY2NCAyNS41MzMxIDkuNTM2NjQgMjUuMTI4MSA5Ljc3Mjg5TDE1LjQwNDEgMTUuMzg4VjExLjUwMDRDMTUuNDAxNiAxMS40NjA0IDE1LjQyMDQgMTEuNDIxNyAxNS40NTE2IDExLjM5NjdMMjMuNTAzIDYuNzUxNThDMjcuMDg5NCA0LjY4Mjc5IDMxLjY3NDUgNS45MTQwNiAzMy43NDIgOS41MDE2NEMzNC42MTU4IDExLjAxNjcgMzQuOTMyIDEyLjc5MDUgMzQuNjM1OCAxNC41MTQySDM0LjYzODNaTTEzLjU3NDEgMjEuNDQzMUwxMC4yMDY1IDE5LjQ5OTRDMTAuMTcwMiAxOS40ODE5IDEwLjE0NjUgMTkuNDQ2OCAxMC4xNDE1IDE5LjQwNjhWMTAuMTA3OUMxMC4xNDQgNS45Njc4MSAxMy41MDI4IDIuNjEyNzQgMTcuNjQyOSAyLjYxNTI0QzE5LjM5NDIgMi42MTUyNCAyMS4wODkyIDMuMjMwMjUgMjIuNDM1NSA0LjM1MDI4QzIyLjM3NDMgNC4zODI3OCAyMi4yNjkzIDQuNDQxNTMgMjIuMTk5MiA0LjQ4NDAzTDE0LjIzNDEgOS4wODQxM0MxMy44MjY2IDkuMzE1MzggMTMuNTc2NiA5Ljc0Nzg5IDEzLjU3OTEgMTAuMjE2N0wxMy41NzQxIDIxLjQ0MDZWMjEuNDQzMVpNMTUuNDAyOSAxNy41MDA2TDE5LjczNDIgMTQuOTk5M0wyNC4wNjU1IDE3LjQ5OTNWMjIuNTAwN0wxOS43MzQyIDI1LjAwMDdMMTUuNDAyOSAyMi41MDA3VjE3LjUwMDZaIiBmaWxsPSIjN0Q3RDg3Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "OpenAI Chat Model",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 17,
+        "name": "HR"
+      },
+      {
+        "id": 47,
+        "name": "AI Chatbot"
+      }
+    ],
+    "image": []
+  }
+}

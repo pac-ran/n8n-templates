@@ -1,0 +1,1643 @@
+{
+  "workflow": {
+    "id": 15621,
+    "name": "Qualify WhatsApp leads and book sales calls with GPT\u20114.1 and Google Sheets",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-11T13:07:26.035Z",
+    "description": "This workflow automatically qualifies leads, answers FAQs, and books sales calls via WhatsApp using AI-powered conversation logic.\n\n### Who's it for\n\u2022 Sales teams handling high inbound message volume\n\u2022 SaaS / service businesses using WhatsApp for outreach\n\u2022 Agencies automating lead qualification pipelines\n\n### How it works\n1. WhatsApp message arrives via webhook (Twilio/Meta Cloud API)\n2. Conversation state is loaded from memory/sheet\n3. AI qualifies lead (Budget, Authority, Need, Timeline)\n4. Bot answers FAQs automatically\n5. Qualified leads get calendar booking link / slot picker\n6. All activity is logged to Google Sheets CRM\n7. Hot leads trigger Slack/email alert to sales rep\n\n### How to set up\n1. Import this workflow into n8n\n2. Set up credentials: Twilio/Meta WhatsApp, Google Sheets, Google Calendar, OpenAI\n3. Update YOUR_SHEET_ID and YOUR_CALENDAR_ID placeholders\n4. Update your product FAQ knowledge base in the AI node\n5. Activate workflow and configure your WhatsApp webhook URL\n\n### Requirements\n\u2022 Twilio WhatsApp API or Meta Cloud API\n\u2022 Google Sheets (CRM tracker)\n\u2022 Google Calendar or Calendly\n\u2022 OpenAI API key\n\u2022 n8n instance (cloud or self-hosted)\n\n### Customization\n\u2022 Edit BANT scoring thresholds in JS node\n\u2022 Update FAQ knowledge base in AI system prompt\n\u2022 Modify booking time slots in calendar node\n\u2022 Adjust Slack alert conditions",
+    "workflow": {
+      "id": "jPodSrGZLNPzZ2cy",
+      "meta": {
+        "instanceId": "dd69efaf8212c74ad206700d104739d3329588a6f3f8381a46a481f34c9cc281",
+        "templateCredsSetupCompleted": true
+      },
+      "name": "AI WhatsApp Sales Closer Bot",
+      "tags": [
+        {
+          "id": "DiwTzDkTaFSX5bEX",
+          "name": "recruitment",
+          "createdAt": "2026-05-11T13:01:00.870Z",
+          "updatedAt": "2026-05-11T13:01:00.870Z"
+        },
+        {
+          "id": "z6mxJFPmp5Jq0Lnu",
+          "name": "whatsapp",
+          "createdAt": "2026-05-11T13:01:00.955Z",
+          "updatedAt": "2026-05-11T13:01:00.955Z"
+        },
+        {
+          "id": "s4xffeURdnx7oinT",
+          "name": "hr-automation",
+          "createdAt": "2026-05-11T13:01:00.986Z",
+          "updatedAt": "2026-05-11T13:01:00.986Z"
+        },
+        {
+          "id": "fmYbvcTTTlbTp6aj",
+          "name": "ai-powered",
+          "createdAt": "2026-05-11T13:01:00.986Z",
+          "updatedAt": "2026-05-11T13:01:00.986Z"
+        },
+        {
+          "id": "aVLSLG3iHePWjrQE",
+          "name": "sales",
+          "createdAt": "2026-05-11T13:05:19.233Z",
+          "updatedAt": "2026-05-11T13:05:19.233Z"
+        },
+        {
+          "id": "F89H8wlybgmonk5J",
+          "name": "ai-bot",
+          "createdAt": "2026-05-11T13:05:19.248Z",
+          "updatedAt": "2026-05-11T13:05:19.248Z"
+        },
+        {
+          "id": "9lOfmvXjZotSSkKk",
+          "name": "lead-qualification",
+          "createdAt": "2026-05-11T13:05:19.238Z",
+          "updatedAt": "2026-05-11T13:05:19.238Z"
+        }
+      ],
+      "nodes": [
+        {
+          "id": "d3fbe3c4-2541-4591-af90-bf54a3b6b13a",
+          "name": "Sticky Note - Overview",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            0,
+            0
+          ],
+          "parameters": {
+            "width": 980,
+            "height": 960,
+            "content": "## AI WhatsApp Sales Closer Bot\n\nThis workflow automatically qualifies leads, answers FAQs, and books sales calls via WhatsApp using AI-powered conversation logic.\n\n### Who's it for\n\u2022 Sales teams handling high inbound message volume\n\u2022 SaaS / service businesses using WhatsApp for outreach\n\u2022 Agencies automating lead qualification pipelines\n\n### How it works\n1. WhatsApp message arrives via webhook (Twilio/Meta Cloud API)\n2. Conversation state is loaded from memory/sheet\n3. AI qualifies lead (Budget, Authority, Need, Timeline)\n4. Bot answers FAQs automatically\n5. Qualified leads get calendar booking link / slot picker\n6. All activity is logged to Google Sheets CRM\n7. Hot leads trigger Slack/email alert to sales rep\n\n### How to set up\n1. Import this workflow into n8n\n2. Set up credentials: Twilio/Meta WhatsApp, Google Sheets, Google Calendar, OpenAI\n3. Update YOUR_SHEET_ID and YOUR_CALENDAR_ID placeholders\n4. Update your product FAQ knowledge base in the AI node\n5. Activate workflow and configure your WhatsApp webhook URL\n\n### Requirements\n\u2022 Twilio WhatsApp API or Meta Cloud API\n\u2022 Google Sheets (CRM tracker)\n\u2022 Google Calendar or Calendly\n\u2022 OpenAI API key\n\u2022 n8n instance (cloud or self-hosted)\n\n### Customization\n\u2022 Edit BANT scoring thresholds in JS node\n\u2022 Update FAQ knowledge base in AI system prompt\n\u2022 Modify booking time slots in calendar node\n\u2022 Adjust Slack alert conditions"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "3f408032-4ab3-4d60-8a8a-cfc8ea7d193c",
+          "name": "Sticky Note - Intake",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1104,
+            240
+          ],
+          "parameters": {
+            "color": 4,
+            "width": 780,
+            "height": 520,
+            "content": "## 1. Intake & State Load"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "e7c28836-9c41-41f8-a458-2431470eb6bb",
+          "name": "Sticky Note - Intent",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1920,
+            160
+          ],
+          "parameters": {
+            "color": 3,
+            "width": 852,
+            "height": 620,
+            "content": "## 2. Intent Detection & Lead Scoring"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "29201094-f5ff-4721-a097-e0d0c94306ab",
+          "name": "Sticky Note - AI Response",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            2832,
+            160
+          ],
+          "parameters": {
+            "color": 4,
+            "width": 820,
+            "height": 640,
+            "content": "## 3. AI Response & Booking"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "10573369-9b91-4bbb-bf6c-3c7b34cad857",
+          "name": "Sticky Note - Send Track",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            3712,
+            208
+          ],
+          "parameters": {
+            "color": 3,
+            "width": 1012,
+            "height": 580,
+            "content": "## 4. Send & Track"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "777ea74f-90b7-4629-82c0-800a60d6041c",
+          "name": "Webhook - WhatsApp Inbound",
+          "type": "n8n-nodes-base.webhook",
+          "position": [
+            1264,
+            400
+          ],
+          "webhookId": "wa-inbound-001-sales-closer-bot",
+          "parameters": {
+            "path": "whatsapp-inbound",
+            "options": {},
+            "httpMethod": "POST",
+            "responseMode": "responseNode"
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "47ce6d03-f271-4a6a-89bd-6460930841df",
+          "name": "Normalize Message Fields",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            1504,
+            400
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "name": "phoneNumber",
+                  "type": "string",
+                  "value": "={{ $json.From || $json.body?.From || $json.WaId || $json.contacts?.[0]?.wa_id }}"
+                },
+                {
+                  "name": "incomingMessage",
+                  "type": "string",
+                  "value": "={{ $json.Body || $json.body?.Body || $json.messages?.[0]?.text?.body || $json.body }}"
+                },
+                {
+                  "name": "messageId",
+                  "type": "string",
+                  "value": "={{ $json.MessageSid || $json.messages?.[0]?.id || $now.toMillis().toString() }}"
+                },
+                {
+                  "name": "senderName",
+                  "type": "string",
+                  "value": "={{ $json.ProfileName || $json.contacts?.[0]?.profile?.name || 'Prospect' }}"
+                },
+                {
+                  "name": "timestamp",
+                  "type": "string",
+                  "value": "={{ $now.toISO() }}"
+                },
+                {
+                  "name": "channel",
+                  "type": "string",
+                  "value": "WhatsApp"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "f94351b4-644a-44d7-8863-4b5f2391ee8a",
+          "name": "Load Lead State from Sheet",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            1728,
+            400
+          ],
+          "parameters": {
+            "url": "=https://sheets.googleapis.com/v4/spreadsheets/YOUR_SHEET_ID/values/Leads!A:J?majorDimension=ROWS",
+            "options": {},
+            "authentication": "predefinedCredentialType",
+            "nodeCredentialType": "googleSheetsOAuth2Api"
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "sldw2qK7iVusK0rY",
+              "name": "Google Sheets account"
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "4c66e12a-940a-4c14-95d0-9acda08cb7ef",
+          "name": "JS - Resolve Lead State",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1952,
+            400
+          ],
+          "parameters": {
+            "mode": "runOnceForEachItem",
+            "jsCode": "// Find existing lead record by phone number\nconst phone = $('Normalize Message Fields').item.json.phoneNumber;\nconst sheetData = $input.item.json;\n\nlet existingLead = null;\nlet conversationStage = 'new';\nlet bantScore = { budget: false, authority: false, need: false, timeline: false };\nlet conversationHistory = [];\nlet leadScore = 0;\n\nif (sheetData.values && sheetData.values.length > 1) {\n  const rows = sheetData.values.slice(1); // skip header\n  const found = rows.find(row => row[1] === phone);\n  if (found) {\n    existingLead = {\n      id: found[0],\n      phone: found[1],\n      name: found[2],\n      stage: found[3] || 'new',\n      leadScore: parseInt(found[4]) || 0,\n      bantBudget: found[5] === 'TRUE',\n      bantAuthority: found[6] === 'TRUE',\n      bantNeed: found[7] === 'TRUE',\n      bantTimeline: found[8] === 'TRUE',\n      conversationHistory: found[9] ? JSON.parse(found[9]) : []\n    };\n    conversationStage = existingLead.stage;\n    bantScore = {\n      budget: existingLead.bantBudget,\n      authority: existingLead.bantAuthority,\n      need: existingLead.bantNeed,\n      timeline: existingLead.bantTimeline\n    };\n    conversationHistory = existingLead.conversationHistory;\n    leadScore = existingLead.leadScore;\n  }\n}\n\nconst message = $('Normalize Message Fields').item.json.incomingMessage;\n\n// Add incoming message to history\nconversationHistory.push({\n  role: 'user',\n  content: message,\n  ts: new Date().toISOString()\n});\n\n// Cap history at last 20 messages to stay within token limits\nif (conversationHistory.length > 20) {\n  conversationHistory = conversationHistory.slice(-20);\n}\n\nreturn {\n  json: {\n    ...$('Normalize Message Fields').item.json,\n    isNewLead: !existingLead,\n    conversationStage,\n    bantScore,\n    leadScore,\n    conversationHistory,\n    existingLead\n  }\n};"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "e03347d4-08b6-4693-a1eb-6f36ddeb0787",
+          "name": "Python - Detect Intent",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            2192,
+            400
+          ],
+          "parameters": {
+            "mode": "runOnceForEachItem",
+            "language": "python"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "ce92a186-75c4-4c80-86ed-5779b7534fd5",
+          "name": "Route - Book Call?",
+          "type": "n8n-nodes-base.filter",
+          "position": [
+            2432,
+            304
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "conditions": [
+                {
+                  "operator": {
+                    "type": "string",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $json.intent }}",
+                  "rightValue": "book_call"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "7b92ceb9-885a-4da0-a3ab-69904b165450",
+          "name": "Route - FAQ?",
+          "type": "n8n-nodes-base.filter",
+          "position": [
+            2432,
+            464
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "conditions": [
+                {
+                  "operator": {
+                    "type": "string",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $json.intent }}",
+                  "rightValue": "faq"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "5cab22e2-d764-4480-829f-7bc0eb14a69e",
+          "name": "Route - Hot Lead?",
+          "type": "n8n-nodes-base.filter",
+          "position": [
+            2432,
+            624
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "conditions": [
+                {
+                  "operator": {
+                    "type": "number",
+                    "operation": "gte"
+                  },
+                  "leftValue": "={{ $json.leadScore }}",
+                  "rightValue": 75
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "53406cc1-40b3-4c52-b9f6-0d0b631cd4a2",
+          "name": "Wait - Rate Limit",
+          "type": "n8n-nodes-base.wait",
+          "position": [
+            2672,
+            464
+          ],
+          "webhookId": "wa-rate-limit-001",
+          "parameters": {},
+          "typeVersion": 1
+        },
+        {
+          "id": "4e49f5d6-ad28-40b1-9fcb-ed4a5a060d41",
+          "name": "AI - Sales Closer Agent",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "position": [
+            3088,
+            400
+          ],
+          "parameters": {
+            "text": "={{ JSON.stringify($json.conversationHistory.map(m => ({role: m.role, content: m.content}))) }}",
+            "options": {
+              "systemMessage": "=You are Alex, a friendly and professional sales assistant for [YOUR COMPANY NAME]. Your goal is to qualify leads using the BANT framework, answer product questions, and book sales calls.\n\n## Your Personality\n- Warm, conversational, and consultative \u2014 never pushy\n- Use the prospect's first name when known\n- Keep messages short (under 80 words) \u2014 this is WhatsApp, not email\n- Use line breaks and emojis sparingly for readability\n- Never use more than 3 emojis per message\n\n## BANT Qualification (collect one at a time, naturally)\n- **Budget**: Do they have the budget? ($500\u2013$5000/mo range)\n- **Authority**: Are they the decision maker?\n- **Need**: What problem are they solving?\n- **Timeline**: When do they want to start?\n\nCurrent BANT status: {{ JSON.stringify($json.bantScore) }}\nCurrent lead score: {{ $json.leadScore }}/100\nConversation stage: {{ $json.conversationStage }}\nProspect name: {{ $json.senderName }}\n\n## FAQ Knowledge Base\n**What does your product do?**\nWe help [TARGET PERSONA] achieve [OUTCOME] through [METHOD]. Typical clients see [RESULT] within [TIMEFRAME].\n\n**How much does it cost?**\nOur plans range from $X to $Y/month depending on team size and features. We also offer custom enterprise pricing.\n\n**Do you offer a free trial?**\nYes! We offer a 14-day free trial, no credit card required.\n\n**How long does onboarding take?**\nMost clients are fully onboarded within 1\u20132 weeks. We provide dedicated support.\n\n**What integrations do you support?**\nWe integrate with Salesforce, HubSpot, Slack, Google Workspace, and 50+ tools via Zapier/n8n.\n\n**Is my data secure?**\nAbsolutely. We are SOC 2 Type II certified and GDPR compliant.\n\n## Booking a Call\nWhen a lead is qualified (score \u2265 75) or asks to book, say:\n\"Great! I'd love to connect you with our team. Here's a link to pick a time that works for you: [CALENDLY_LINK]\"\n\n## Guardrails\n- Never make up pricing or features not listed above\n- If you don't know the answer, say: \"Great question! Let me connect you with a specialist who can answer that.\"\n- Never discuss competitors\n- If the user seems frustrated, offer to escalate to a human immediately"
+            },
+            "promptType": "define"
+          },
+          "typeVersion": 1.6
+        },
+        {
+          "id": "a171ada3-410b-44e1-b019-6026dbe0c554",
+          "name": "OpenAI GPT-4.1-mini",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "position": [
+            3008,
+            608
+          ],
+          "parameters": {
+            "model": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gpt-4.1-mini"
+            },
+            "options": {
+              "temperature": 0.7
+            },
+            "builtInTools": {}
+          },
+          "credentials": {
+            "openAiApi": {
+              "id": "CDQ16eImh6D4tY15",
+              "name": "OpenAi account 2 - test"
+            }
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "d0f78a88-a412-4eb8-aa09-926d3207606b",
+          "name": "JS - Score & Format Reply",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            3424,
+            400
+          ],
+          "parameters": {
+            "mode": "runOnceForEachItem",
+            "jsCode": "const item = $input.item.json;\nconst aiResponse = item.output || item.response || item.text || 'Thank you for reaching out! How can I help you today?';\n\n// Update BANT score based on AI output hints\nconst bantScore = item.bantScore || { budget: false, authority: false, need: false, timeline: false };\nconst responseLower = aiResponse.toLowerCase();\n\n// Simple keyword-based BANT detection (AI handles the nuanced conversation)\nif (responseLower.includes('[budget_confirmed]')) bantScore.budget = true;\nif (responseLower.includes('[authority_confirmed]')) bantScore.authority = true;\nif (responseLower.includes('[need_confirmed]')) bantScore.need = true;\nif (responseLower.includes('[timeline_confirmed]')) bantScore.timeline = true;\n\n// Calculate lead score (25 points per BANT element)\nconst newLeadScore = Object.values(bantScore).filter(Boolean).length * 25;\n\n// Determine conversation stage\nlet stage = item.conversationStage || 'new';\nif (newLeadScore === 0) stage = 'awareness';\nelse if (newLeadScore <= 25) stage = 'qualifying';\nelse if (newLeadScore <= 75) stage = 'engaged';\nelse stage = 'hot_lead';\n\n// Add AI reply to history\nconst updatedHistory = [...(item.conversationHistory || []), {\n  role: 'assistant',\n  content: aiResponse,\n  ts: new Date().toISOString()\n}];\n\n// Clean reply text (remove internal tags)\nconst cleanReply = aiResponse\n  .replace(/\\[budget_confirmed\\]/gi, '')\n  .replace(/\\[authority_confirmed\\]/gi, '')\n  .replace(/\\[need_confirmed\\]/gi, '')\n  .replace(/\\[timeline_confirmed\\]/gi, '')\n  .trim();\n\nreturn {\n  json: {\n    ...item,\n    replyText: cleanReply,\n    bantScore,\n    leadScore: newLeadScore,\n    conversationStage: stage,\n    conversationHistory: updatedHistory,\n    updatedAt: new Date().toISOString().split('T')[0]\n  }\n};"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "54fa865e-c43c-4e58-a802-738748ac320d",
+          "name": "Send WhatsApp Reply (Twilio)",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            3760,
+            320
+          ],
+          "parameters": {
+            "url": "https://api.twilio.com/2010-04-01/Accounts/YOUR_TWILIO_ACCOUNT_SID/Messages.json",
+            "method": "POST",
+            "options": {},
+            "sendBody": true,
+            "specifyBody": "formUrlEncoded",
+            "authentication": "predefinedCredentialType",
+            "nodeCredentialType": "twilioApi"
+          },
+          "credentials": {
+            "twilioApi": {
+              "id": "4XZXejd5UmXan7os",
+              "name": "Twilio account-test"
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "07b30862-a4da-4689-8b2c-c9143b59e612",
+          "name": "Upsert Lead in Google Sheets",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            3776,
+            576
+          ],
+          "parameters": {
+            "url": "https://sheets.googleapis.com/v4/spreadsheets/YOUR_SHEET_ID/values/Leads!A1:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
+            "method": "POST",
+            "options": {},
+            "jsonBody": "={\n  \"values\": [[\n    \"{{ $json.isNewLead ? $now.toMillis().toString() : ($json.existingLead?.id || $now.toMillis().toString()) }}\",\n    \"{{ $json.phoneNumber }}\",\n    \"{{ $json.senderName }}\",\n    \"{{ $json.conversationStage }}\",\n    \"{{ $json.leadScore }}\",\n    \"{{ $json.bantScore?.budget }}\",\n    \"{{ $json.bantScore?.authority }}\",\n    \"{{ $json.bantScore?.need }}\",\n    \"{{ $json.bantScore?.timeline }}\",\n    {{ JSON.stringify(JSON.stringify($json.conversationHistory)) }},\n    \"{{ $json.updatedAt }}\",\n    \"{{ $json.channel }}\"\n  ]]\n}",
+            "sendBody": true,
+            "specifyBody": "json",
+            "authentication": "predefinedCredentialType",
+            "nodeCredentialType": "googleSheetsOAuth2Api"
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "sldw2qK7iVusK0rY",
+              "name": "Google Sheets account"
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "c0fcac11-cafa-416b-9272-f582bbd618cc",
+          "name": "Check - Hot Lead Alert?",
+          "type": "n8n-nodes-base.filter",
+          "position": [
+            4000,
+            400
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "conditions": [
+                {
+                  "operator": {
+                    "type": "number",
+                    "operation": "gte"
+                  },
+                  "leftValue": "={{ $json.leadScore }}",
+                  "rightValue": 75
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "191427d9-bb14-42a9-8ed2-b9be6bbd6c99",
+          "name": "Slack - Hot Lead Alert",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            4240,
+            320
+          ],
+          "parameters": {
+            "url": "https://slack.com/api/chat.postMessage",
+            "method": "POST",
+            "options": {},
+            "jsonBody": "={\n  \"channel\": \"#sales-alerts\",\n  \"text\": \"\ud83d\udd25 *Hot Lead Alert!*\",\n  \"blocks\": [\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"\ud83d\udd25 *Hot Lead Qualified!*\\n*Name:* {{ $json.senderName }}\\n*Phone:* {{ $json.phoneNumber }}\\n*Lead Score:* {{ $json.leadScore }}/100\\n*Stage:* {{ $json.conversationStage }}\\n*BANT:* Budget={{ $json.bantScore?.budget }} | Authority={{ $json.bantScore?.authority }} | Need={{ $json.bantScore?.need }} | Timeline={{ $json.bantScore?.timeline }}\\n\\n_Last message:_ {{ $json.incomingMessage?.substring(0, 200) }}\"\n      }\n    },\n    {\n      \"type\": \"actions\",\n      \"elements\": [\n        {\n          \"type\": \"button\",\n          \"text\": { \"type\": \"plain_text\", \"text\": \"View in CRM\" },\n          \"url\": \"https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID\",\n          \"style\": \"primary\"\n        }\n      ]\n    }\n  ]\n}",
+            "sendBody": true,
+            "specifyBody": "json",
+            "authentication": "predefinedCredentialType",
+            "nodeCredentialType": "slackApi"
+          },
+          "credentials": {
+            "slackApi": {
+              "id": "MQ0fgwuS8AzfwFvy",
+              "name": "Slack account - test "
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "7fcdb351-5a31-43aa-b3d7-0eea271e5dec",
+          "name": "Book Call in Google Calendar",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            4240,
+            480
+          ],
+          "parameters": {
+            "url": "https://www.googleapis.com/calendar/v3/calendars/YOUR_CALENDAR_ID/events",
+            "method": "POST",
+            "options": {},
+            "jsonBody": "={\n  \"summary\": \"Sales Call - {{ $json.senderName }}\",\n  \"description\": \"WhatsApp Lead\\nPhone: {{ $json.phoneNumber }}\\nLead Score: {{ $json.leadScore }}/100\\nBANT: Budget={{ $json.bantScore?.budget }}, Authority={{ $json.bantScore?.authority }}, Need={{ $json.bantScore?.need }}, Timeline={{ $json.bantScore?.timeline }}\\n\\nConversation Summary: Auto-booked via WhatsApp Sales Bot\",\n  \"start\": {\n    \"dateTime\": \"{{ $now.plus({days: 2}).startOf('day').plus({hours: 10}).toISO() }}\",\n    \"timeZone\": \"America/New_York\"\n  },\n  \"end\": {\n    \"dateTime\": \"{{ $now.plus({days: 2}).startOf('day').plus({hours: 10, minutes: 30}).toISO() }}\",\n    \"timeZone\": \"America/New_York\"\n  },\n  \"attendees\": [],\n  \"reminders\": {\n    \"useDefault\": false,\n    \"overrides\": [\n      { \"method\": \"email\", \"minutes\": 1440 },\n      { \"method\": \"popup\", \"minutes\": 30 }\n    ]\n  }\n}",
+            "sendBody": true,
+            "specifyBody": "json",
+            "authentication": "predefinedCredentialType",
+            "nodeCredentialType": "googleCalendarOAuth2Api"
+          },
+          "credentials": {
+            "googleCalendarOAuth2Api": {
+              "id": "H1gVnUVKrVsDfU5z",
+              "name": "Google Calendar account 2"
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "932736bb-ae5c-4b72-a08d-e207840c7483",
+          "name": "Webhook Response - 200 OK",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "position": [
+            4480,
+            400
+          ],
+          "parameters": {
+            "options": {},
+            "respondWith": "json",
+            "responseBody": "={{ JSON.stringify({ status: 'ok', messageId: $json.messageId }) }}"
+          },
+          "typeVersion": 1.1
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "executionOrder": "v1"
+      },
+      "versionId": "a3e24126-aa3b-4aaa-a5ad-ca1d0f404091",
+      "connections": {
+        "Route - FAQ?": {
+          "main": [
+            [
+              {
+                "node": "Wait - Rate Limit",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Route - Hot Lead?": {
+          "main": [
+            [
+              {
+                "node": "Wait - Rate Limit",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Wait - Rate Limit": {
+          "main": [
+            [
+              {
+                "node": "AI - Sales Closer Agent",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Route - Book Call?": {
+          "main": [
+            [
+              {
+                "node": "Wait - Rate Limit",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenAI GPT-4.1-mini": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "AI - Sales Closer Agent",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Python - Detect Intent": {
+          "main": [
+            [
+              {
+                "node": "Route - Book Call?",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Route - FAQ?",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Route - Hot Lead?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Slack - Hot Lead Alert": {
+          "main": [
+            [
+              {
+                "node": "Webhook Response - 200 OK",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "AI - Sales Closer Agent": {
+          "main": [
+            [
+              {
+                "node": "JS - Score & Format Reply",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Check - Hot Lead Alert?": {
+          "main": [
+            [
+              {
+                "node": "Slack - Hot Lead Alert",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Book Call in Google Calendar",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "JS - Resolve Lead State": {
+          "main": [
+            [
+              {
+                "node": "Python - Detect Intent",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Normalize Message Fields": {
+          "main": [
+            [
+              {
+                "node": "Load Lead State from Sheet",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "JS - Score & Format Reply": {
+          "main": [
+            [
+              {
+                "node": "Send WhatsApp Reply (Twilio)",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Upsert Lead in Google Sheets",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Load Lead State from Sheet": {
+          "main": [
+            [
+              {
+                "node": "JS - Resolve Lead State",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Webhook - WhatsApp Inbound": {
+          "main": [
+            [
+              {
+                "node": "Normalize Message Fields",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Book Call in Google Calendar": {
+          "main": [
+            [
+              {
+                "node": "Webhook Response - 200 OK",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Send WhatsApp Reply (Twilio)": {
+          "main": [
+            [
+              {
+                "node": "Check - Hot Lead Alert?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Upsert Lead in Google Sheets": {
+          "main": [
+            [
+              {
+                "node": "Check - Hot Lead Alert?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 23,
+      "nodeTypes": {
+        "n8n-nodes-base.set": {
+          "count": 1
+        },
+        "n8n-nodes-base.code": {
+          "count": 3
+        },
+        "n8n-nodes-base.wait": {
+          "count": 1
+        },
+        "n8n-nodes-base.filter": {
+          "count": 4
+        },
+        "n8n-nodes-base.webhook": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 5
+        },
+        "n8n-nodes-base.httpRequest": {
+          "count": 5
+        },
+        "@n8n/n8n-nodes-langchain.agent": {
+          "count": 1
+        },
+        "n8n-nodes-base.respondToWebhook": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.lmChatOpenAi": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Oneclick AI Squad",
+      "username": "oneclick-ai",
+      "bio": "The AI Squad Initiative is a pioneering effort to build, automate and scale AI-powered workflows using n8n.io. Our mission is to help individuals and businesses integrate AI agents seamlessly into their daily operations  from automating tasks and enhancing productivity to creating innovative, intelligent solutions. We design modular, reusable AI workflow templates that empower creators, developers and teams to supercharge their automation with minimal effort and maximum impact.",
+      "verified": true,
+      "links": [
+        "https://www.oneclickitsolution.com/"
+      ],
+      "avatar": "https://gravatar.com/avatar/848fca91367142f65f9e5c55d64e5c9952b160d7b060d103b52aa343c6bc7b3d?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 19,
+        "icon": "file:httprequest.svg",
+        "name": "n8n-nodes-base.httpRequest",
+        "codex": {
+          "data": {
+            "alias": [
+              "API",
+              "Request",
+              "URL",
+              "Build",
+              "cURL"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-designs-with-bannerbear-and-n8n/",
+                  "icon": "\ud83c\udfa8",
+                  "label": "Automate Designs with Bannerbear and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-use-the-http-request-node-the-swiss-army-knife-for-workflow-automation/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "How to use the HTTP Request Node - The Swiss Army Knife for Workflow Automation"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HTTP Request",
+          "color": "#0004F5"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MCAyMEM0MCA4Ljk1MzE0IDMxLjA0NjkgMCAyMCAwQzguOTUzMTQgMCAwIDguOTUzMTQgMCAyMEMwIDMxLjA0NjkgOC45NTMxNCA0MCAyMCA0MEMzMS4wNDY5IDQwIDQwIDMxLjA0NjkgNDAgMjBaTTIwIDM2Ljk0NThDMTguODg1MiAzNi45NDU4IDE3LjEzNzggMzUuOTY3IDE1LjQ5OTggMzIuNjk4NUMxNC43OTY0IDMxLjI5MTggMTQuMTk2MSAyOS41NDMxIDEzLjc1MjYgMjcuNjg0N0gyNi4xODk4QzI1LjgwNDUgMjkuNTQwMyAyNS4yMDQ0IDMxLjI5MDEgMjQuNTAwMiAzMi42OTg1QzIyLjg2MjIgMzUuOTY3IDIxLjExNDggMzYuOTQ1OCAyMCAzNi45NDU4Wk0xMi45MDY0IDIwQzEyLjkwNjQgMjEuNjA5NyAxMy4wMDg3IDIzLjE2NCAxMy4yMDAzIDI0LjYzMDVIMjYuNzk5N0MyNi45OTEzIDIzLjE2NCAyNy4wOTM2IDIxLjYwOTcgMjcuMDkzNiAyMEMyNy4wOTM2IDE4LjM5MDMgMjYuOTkxMyAxNi44MzYgMjYuNzk5NyAxNS4zNjk1SDEzLjIwMDNDMTMuMDA4NyAxNi44MzYgMTIuOTA2NCAxOC4zOTAzIDEyLjkwNjQgMjBaTTIwIDMuMDU0MTlDMjEuMTE0OSAzLjA1NDE5IDIyLjg2MjIgNC4wMzA3OCAyNC41MDAxIDcuMzAwMzlDMjUuMjA2NiA4LjcxNDA4IDI1LjgwNzIgMTAuNDA2NyAyNi4xOTIgMTIuMzE1M0gxMy43NTAxQzE0LjE5MzMgMTAuNDA0NyAxNC43OTQyIDguNzEyNTQgMTUuNDk5OCA3LjMwMDY0QzE3LjEzNzcgNC4wMzA4MyAxOC44ODUxIDMuMDU0MTkgMjAgMy4wNTQxOVpNMzAuMTQ3OCAyMEMzMC4xNDc4IDE4LjQwOTkgMzAuMDU0MyAxNi44NjE3IDI5LjgyMjcgMTUuMzY5NUgzNi4zMDQyQzM2LjcyNTIgMTYuODQyIDM2Ljk0NTggMTguMzk2NCAzNi45NDU4IDIwQzM2Ljk0NTggMjEuNjAzNiAzNi43MjUyIDIzLjE1OCAzNi4zMDQyIDI0LjYzMDVIMjkuODIyN0MzMC4wNTQzIDIzLjEzODMgMzAuMTQ3OCAyMS41OTAxIDMwLjE0NzggMjBaTTI2LjI3NjcgNC4yNTUxMkMyNy42MzY1IDYuMzYwMTkgMjguNzExIDkuMTMyIDI5LjM3NzQgMTIuMzE1M0gzNS4xMDQ2QzMzLjI1MTEgOC42NjggMzAuMTA3IDUuNzgzNDYgMjYuMjc2NyA0LjI1NTEyWk0xMC42MjI2IDEyLjMxNTNINC44OTI5M0M2Ljc1MTQ3IDguNjY3ODQgOS44OTM1MSA1Ljc4MzQxIDEzLjcyMzIgNC4yNTUxM0MxMi4zNjM1IDYuMzYwMjEgMTEuMjg5IDkuMTMyMDEgMTAuNjIyNiAxMi4zMTUzWk0zLjA1NDE5IDIwQzMuMDU0MTkgMjEuNjAzIDMuMjc3NDMgMjMuMTU3NSAzLjY5NDg0IDI0LjYzMDVIMTAuMTIxN0M5Ljk0NjE5IDIzLjE0MiA5Ljg1MjIyIDIxLjU5NDMgOS44NTIyMiAyMEM5Ljg1MjIyIDE4LjQwNTcgOS45NDYxOSAxNi44NTggMTAuMTIxNyAxNS4zNjk1SDMuNjk0ODRDMy4yNzc0MyAxNi44NDI1IDMuMDU0MTkgMTguMzk3IDMuMDU0MTkgMjBaTTI2LjI3NjYgMzUuNzQyN0MyNy42MzY1IDMzLjYzOTMgMjguNzExIDMwLjg2OCAyOS4zNzc0IDI3LjY4NDdIMzUuMTA0NkMzMy4yNTEgMzEuMzMyMiAzMC4xMDY4IDM0LjIxNzkgMjYuMjc2NiAzNS43NDI3Wk0xMy43MjM0IDM1Ljc0MjdDOS44OTM2OSAzNC4yMTc5IDYuNzUxNTUgMzEuMzMyNCA0Ljg5MjkzIDI3LjY4NDdIMTAuNjIyNkMxMS4yODkgMzAuODY4IDEyLjM2MzUgMzMuNjM5MyAxMy43MjM0IDM1Ljc0MjdaIiBmaWxsPSIjM0E0MkU5Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "HTTP Request",
+        "typeVersion": 4,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 47,
+        "icon": "file:webhook.svg",
+        "name": "n8n-nodes-base.webhook",
+        "codex": {
+          "data": {
+            "alias": [
+              "HTTP",
+              "API",
+              "Build",
+              "WH"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "\ud83d\udcbb",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-automatically-give-kudos-to-contributors-with-github-slack-and-n8n/",
+                  "icon": "\ud83d\udc4f",
+                  "label": "How to automatically give kudos to contributors with GitHub, Slack, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-custom-incident-response-workflows-with-n8n/",
+                  "label": "How to automate every step of an incident response workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Webhook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTM1IDM3Yy0yLjIgMC00LTEuOC00LTRzMS44LTQgNC00IDQgMS44IDQgNC0xLjggNC00IDQiLz48cGF0aCBmaWxsPSIjMzc0NzRmIiBkPSJNMzUgNDNjLTMgMC01LjktMS40LTcuOC0zLjdsMy4xLTIuNWMxLjEgMS40IDIuOSAyLjMgNC43IDIuMyAzLjMgMCA2LTIuNyA2LTZzLTIuNy02LTYtNmMtMSAwLTIgLjMtMi45LjdsLTEuNyAxTDIzLjMgMTZsMy41LTEuOSA1LjMgOS40YzEtLjMgMi0uNSAzLS41IDUuNSAwIDEwIDQuNSAxMCAxMFM0MC41IDQzIDM1IDQzIi8+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTE0IDQzQzguNSA0MyA0IDM4LjUgNCAzM2MwLTQuNiAzLjEtOC41IDcuNS05LjdsMSAzLjlDOS45IDI3LjkgOCAzMC4zIDggMzNjMCAzLjMgMi43IDYgNiA2czYtMi43IDYtNnYtMmgxNXY0SDIzLjhjLS45IDQuNi01IDgtOS44IDgiLz48cGF0aCBmaWxsPSIjZTkxZTYzIiBkPSJNMTQgMzdjLTIuMiAwLTQtMS44LTQtNHMxLjgtNCA0LTQgNCAxLjggNCA0LTEuOCA0LTQgNCIvPjxwYXRoIGZpbGw9IiMzNzQ3NGYiIGQ9Ik0yNSAxOWMtMi4yIDAtNC0xLjgtNC00czEuOC00IDQtNCA0IDEuOCA0IDQtMS44IDQtNCA0Ii8+PHBhdGggZmlsbD0iI2U5MWU2MyIgZD0ibTE1LjcgMzQtMy40LTIgNS45LTkuN2MtMi0xLjktMy4yLTQuNS0zLjItNy4zIDAtNS41IDQuNS0xMCAxMC0xMHMxMCA0LjUgMTAgMTBjMCAuOS0uMSAxLjctLjMgMi41bC0zLjktMWMuMS0uNS4yLTEgLjItMS41IDAtMy4zLTIuNy02LTYtNnMtNiAyLjctNiA2YzAgMi4xIDEuMSA0IDIuOSA1LjFsMS43IDF6Ii8+PC9zdmc+"
+        },
+        "displayName": "Webhook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 514,
+        "icon": "fa:pause-circle",
+        "name": "n8n-nodes-base.wait",
+        "codex": {
+          "data": {
+            "alias": [
+              "pause",
+              "sleep",
+              "delay",
+              "timeout"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.wait/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Wait",
+          "color": "#804050"
+        },
+        "iconData": {
+          "icon": "pause-circle",
+          "type": "icon"
+        },
+        "displayName": "Wait",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 535,
+        "icon": "file:webhook.svg",
+        "name": "n8n-nodes-base.respondToWebhook",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.respondtowebhook/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes",
+              "Utility"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Respond to Webhook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTM1IDM3Yy0yLjIgMC00LTEuOC00LTRzMS44LTQgNC00IDQgMS44IDQgNC0xLjggNC00IDQiLz48cGF0aCBmaWxsPSIjMzc0NzRmIiBkPSJNMzUgNDNjLTMgMC01LjktMS40LTcuOC0zLjdsMy4xLTIuNWMxLjEgMS40IDIuOSAyLjMgNC43IDIuMyAzLjMgMCA2LTIuNyA2LTZzLTIuNy02LTYtNmMtMSAwLTIgLjMtMi45LjdsLTEuNyAxTDIzLjMgMTZsMy41LTEuOSA1LjMgOS40YzEtLjMgMi0uNSAzLS41IDUuNSAwIDEwIDQuNSAxMCAxMFM0MC41IDQzIDM1IDQzIi8+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTE0IDQzQzguNSA0MyA0IDM4LjUgNCAzM2MwLTQuNiAzLjEtOC41IDcuNS05LjdsMSAzLjlDOS45IDI3LjkgOCAzMC4zIDggMzNjMCAzLjMgMi43IDYgNiA2czYtMi43IDYtNnYtMmgxNXY0SDIzLjhjLS45IDQuNi01IDgtOS44IDgiLz48cGF0aCBmaWxsPSIjZTkxZTYzIiBkPSJNMTQgMzdjLTIuMiAwLTQtMS44LTQtNHMxLjgtNCA0LTQgNCAxLjggNCA0LTEuOCA0LTQgNCIvPjxwYXRoIGZpbGw9IiMzNzQ3NGYiIGQ9Ik0yNSAxOWMtMi4yIDAtNC0xLjgtNC00czEuOC00IDQtNCA0IDEuOCA0IDQtMS44IDQtNCA0Ii8+PHBhdGggZmlsbD0iI2U5MWU2MyIgZD0ibTE1LjcgMzQtMy40LTIgNS45LTkuN2MtMi0xLjktMy4yLTQuNS0zLjItNy4zIDAtNS41IDQuNS0xMCAxMC0xMHMxMCA0LjUgMTAgMTBjMCAuOS0uMSAxLjctLjMgMi41bC0zLjktMWMuMS0uNS4yLTEgLjItMS41IDAtMy4zLTIuNy02LTYtNnMtNiAyLjctNiA2YzAgMi4xIDEuMSA0IDIuOSA1LjFsMS43IDF6Ii8+PC9zdmc+"
+        },
+        "displayName": "Respond to Webhook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 7,
+            "name": "Utility"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 844,
+        "icon": "fa:filter",
+        "name": "n8n-nodes-base.filter",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The Filter node can be used to filter items based on a condition. If the condition is met, the item will be passed on to the next node. If the condition is not met, the item will be omitted. Conditions can be combined together by AND(meet all conditions), or OR(meet at least one condition).",
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.filter/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Filter",
+          "color": "#229eff"
+        },
+        "iconData": {
+          "icon": "filter",
+          "type": "icon"
+        },
+        "displayName": "Filter",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1119,
+        "icon": "fa:robot",
+        "name": "@n8n/n8n-nodes-langchain.agent",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain",
+              "Chat",
+              "Conversational",
+              "Plan and Execute",
+              "ReAct",
+              "Tools"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Agents",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "AI Agent",
+          "color": "#404040"
+        },
+        "iconData": {
+          "icon": "robot",
+          "type": "icon"
+        },
+        "displayName": "AI Agent",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1153,
+        "icon": "file:openAiLight.svg",
+        "name": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmchatopenai/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Language Models",
+                "Root Nodes"
+              ],
+              "Language Models": [
+                "Chat Models (Recommended)"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "OpenAI Chat Model"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTM2Ljg2NzEgMTYuMzcxOEMzNy43NzQ2IDEzLjY0OCAzNy40NjIxIDEwLjY2NDIgMzYuMDEwOCA4LjE4NjYxQzMzLjgyODIgNC4zODY1MyAyOS40NDA3IDIuNDMxNDkgMjUuMTU1NiAzLjM1MTUxQzIzLjI0OTMgMS4yMDM5NiAyMC41MTA1IC0wLjAxNzMxNDggMTcuNjM5MiAwLjAwMDE4NTUzM0MxMy4yNTkxIC0wLjAwOTgxNDY4IDkuMzcyNzMgMi44MTAyNSA4LjAyNTIgNi45Nzc4M0M1LjIxMTM5IDcuNTU0MSAyLjc4MjU4IDkuMzE1MzggMS4zNjEzIDExLjgxMTdDLTAuODM3NDkzIDE1LjYwMTggLTAuMzM2MjMyIDIwLjM3OTQgMi42MDEzMyAyMy42Mjk0QzEuNjkzODEgMjYuMzUzMiAyLjAwNjMyIDI5LjMzNzEgMy40NTc2IDMxLjgxNDZDNS42NDAxNSAzNS42MTQ3IDEwLjAyNzcgMzcuNTY5NyAxNC4zMTI4IDM2LjY0OTdDMTYuMjE3OSAzOC43OTczIDE4Ljk1NzkgNDAuMDE4NSAyMS44MjkyIDM5Ljk5OThDMjYuMjExOCA0MC4wMTEgMzAuMDk5NCAzNy4xODg1IDMxLjQ0NjkgMzMuMDE3MUMzNC4yNjA4IDMyLjQ0MDkgMzYuNjg5NiAzMC42Nzk2IDM4LjExMDggMjguMTgzM0M0MC4zMDcxIDI0LjM5MzIgMzkuODA0NiAxOS42MTk0IDM2Ljg2ODMgMTYuMzY5M0wzNi44NjcxIDE2LjM3MThaTTIxLjgzMTcgMzcuMzg2QzIwLjA3OCAzNy4zODg1IDE4LjM3OTIgMzYuNzc0NyAxNy4wMzI5IDM1LjY1MDlDMTcuMDk0MSAzNS42MTg0IDE3LjIwMDQgMzUuNTU5NyAxNy4yNjkxIDM1LjUxNzJMMjUuMjM0MyAzMC45MTcxQzI1LjY0MTggMzAuNjg1OCAyNS44OTE4IDMwLjI1MjEgMjUuODg5MyAyOS43ODMzVjE4LjU1NDNMMjkuMjU1NyAyMC40OTgxQzI5LjI5MTkgMjAuNTE1NiAyOS4zMTU3IDIwLjU1MDYgMjkuMzIwNyAyMC41OTA2VjI5Ljg4OTZDMjkuMzE1NyAzNC4wMjQ3IDI1Ljk2NjggMzcuMzc3MiAyMS44MzE3IDM3LjM4NlpNNS43MjY0IDMwLjUwNzFDNC44NDc2MyAyOC45ODk2IDQuNTMxMzcgMjcuMjEwOCA0LjgzMjYzIDI1LjQ4NDVDNC44OTEzOCAyNS41MTk1IDQuOTk1MTMgMjUuNTgzMiA1LjA2ODg4IDI1LjYyNTdMMTMuMDM0MSAzMC4yMjU4QzEzLjQzNzggMzAuNDYyMSAxMy45Mzc4IDMwLjQ2MjEgMTQuMzQyOCAzMC4yMjU4TDI0LjA2NjggMjQuNjEwN1YyOC40OTgzQzI0LjA2OTMgMjguNTM4MyAyNC4wNTA1IDI4LjU3NyAyNC4wMTkzIDI4LjYwMkwxNS45Njc5IDMzLjI1MDlDMTIuMzgxNSAzNS4zMTU5IDcuODAxNDQgMzQuMDg4NCA1LjcyNzY1IDMwLjUwNzFINS43MjY0Wk0zLjYzMDEgMTMuMTIwNUM0LjUwNTEyIDExLjYwMDQgNS44ODY0IDEwLjQzNzkgNy41MzE0NCA5LjgzNDE1QzcuNTMxNDQgOS45MDI5IDcuNTI3NjkgMTAuMDI0MiA3LjUyNzY5IDEwLjEwOTJWMTkuMzEwNkM3LjUyNTE5IDE5Ljc3ODEgNy43NzUxOSAyMC4yMTE5IDguMTgxNDUgMjAuNDQzMUwxNy45MDU0IDI2LjA1N0wxNC41MzkxIDI4LjAwMDhDMTQuNTA1MyAyOC4wMjMzIDE0LjQ2MjggMjguMDI3IDE0LjQyNTMgMjguMDEwOEw2LjM3MjY2IDIzLjM1ODJDMi43OTM4MyAyMS4yODU2IDEuNTY2MzEgMTYuNzA2OCAzLjYyODg1IDEzLjEyMTdMMy42MzAxIDEzLjEyMDVaTTMxLjI4ODIgMTkuNTU2OUwyMS41NjQyIDEzLjk0MTdMMjQuOTMwNiAxMS45OTkyQzI0Ljk2NDMgMTEuOTc2NyAyNS4wMDY4IDExLjk3MjkgMjUuMDQ0MyAxMS45ODkyTDMzLjA5NyAxNi42MzhDMzYuNjgyMSAxOC43MDkzIDM3LjkxMDggMjMuMjk1NyAzNS44Mzk1IDI2Ljg4MDhDMzQuOTYzMyAyOC4zOTgzIDMzLjU4MzIgMjkuNTYwOCAzMS45Mzk1IDMwLjE2NThWMjAuNjg5NEMzMS45NDMyIDIwLjIyMTkgMzEuNjk0NSAxOS43ODk0IDMxLjI4OTQgMTkuNTU2OUgzMS4yODgyWk0zNC42MzgzIDE0LjUxNDJDMzQuNTc5NSAxNC40NzggMzQuNDc1OCAxNC40MTU1IDM0LjQwMiAxNC4zNzNMMjYuNDM2OCA5Ljc3Mjg5QzI2LjAzMzEgOS41MzY2NCAyNS41MzMxIDkuNTM2NjQgMjUuMTI4MSA5Ljc3Mjg5TDE1LjQwNDEgMTUuMzg4VjExLjUwMDRDMTUuNDAxNiAxMS40NjA0IDE1LjQyMDQgMTEuNDIxNyAxNS40NTE2IDExLjM5NjdMMjMuNTAzIDYuNzUxNThDMjcuMDg5NCA0LjY4Mjc5IDMxLjY3NDUgNS45MTQwNiAzMy43NDIgOS41MDE2NEMzNC42MTU4IDExLjAxNjcgMzQuOTMyIDEyLjc5MDUgMzQuNjM1OCAxNC41MTQySDM0LjYzODNaTTEzLjU3NDEgMjEuNDQzMUwxMC4yMDY1IDE5LjQ5OTRDMTAuMTcwMiAxOS40ODE5IDEwLjE0NjUgMTkuNDQ2OCAxMC4xNDE1IDE5LjQwNjhWMTAuMTA3OUMxMC4xNDQgNS45Njc4MSAxMy41MDI4IDIuNjEyNzQgMTcuNjQyOSAyLjYxNTI0QzE5LjM5NDIgMi42MTUyNCAyMS4wODkyIDMuMjMwMjUgMjIuNDM1NSA0LjM1MDI4QzIyLjM3NDMgNC4zODI3OCAyMi4yNjkzIDQuNDQxNTMgMjIuMTk5MiA0LjQ4NDAzTDE0LjIzNDEgOS4wODQxM0MxMy44MjY2IDkuMzE1MzggMTMuNTc2NiA5Ljc0Nzg5IDEzLjU3OTEgMTAuMjE2N0wxMy41NzQxIDIxLjQ0MDZWMjEuNDQzMVpNMTUuNDAyOSAxNy41MDA2TDE5LjczNDIgMTQuOTk5M0wyNC4wNjU1IDE3LjQ5OTNWMjIuNTAwN0wxOS43MzQyIDI1LjAwMDdMMTUuNDAyOSAyMi41MDA3VjE3LjUwMDZaIiBmaWxsPSIjN0Q3RDg3Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "OpenAI Chat Model",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 38,
+        "name": "Lead Nurturing"
+      },
+      {
+        "id": 47,
+        "name": "AI Chatbot"
+      }
+    ],
+    "image": []
+  }
+}

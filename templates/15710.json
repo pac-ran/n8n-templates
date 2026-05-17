@@ -1,0 +1,1524 @@
+{
+  "workflow": {
+    "id": 15710,
+    "name": "Generate YouTube SEO descriptions, chapters, and tags with WayinVideo and GPT-4o-mini",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-14T10:23:58.531Z",
+    "description": "### Description\n\nSubmit any YouTube video URL along with your video title, channel name, niche, focus keyword, and a section query for timestamps and the workflow runs two AI processes simultaneously. WayinVideo's Summarization API and Find Moments API both start at the same time \u2014 one generating a structured video summary and the other finding chapter transition moments \u2014 each with its own independent polling loop. Once both complete, a merge step combines everything and GPT-4o-mini writes a complete YouTube SEO package in one call: an 800\u20131000 character description with chapters embedded, a standalone chapter list, 15 keyword tags, 6 hashtags, the above-the-fold hook, and SEO notes. Everything is saved to Google Sheets as one row \u2014 Status set to Ready \u2014 ready to paste directly into YouTube Studio. Built for YouTube creators, video agencies, and content managers who publish regularly and want a complete SEO package generated automatically without writing descriptions manually after every upload.\n\n---\n\n## What This Workflow Does\n\n- **Runs Summarization and Find Moments APIs simultaneously** \u2014 Both [WayinVideo](https://wayin.ai/api/) APIs start at the same time from the form submission \u2014 not sequentially \u2014 so the total processing time is the same as running one\n- **Uses two independent polling loops** \u2014 Each API has its own 90-second initial wait and 30-second retry loop \u2014 neither blocks the other if one takes longer to complete\n- **Sorts chapters chronologically and prepends 0:00 Introduction** \u2014 All found moments are sorted by start time and a 0:00 Introduction line is added automatically if the first moment does not start at the beginning\n- **Generates a full YouTube description with chapters embedded** \u2014 The description follows YouTube best practices: focus keyword in the first 100 characters, hook above the fold, bullet points of what viewers will learn, chapters embedded in the body\n- **Produces exactly 15 keyword tags and 6 hashtags** \u2014 The tag list mixes exact keyword, broad niche, long-tail, and channel-related terms; hashtags include the focus keyword, niche, and discovery hashtags\n- **Saves the above-the-fold hook separately** \u2014 The first two lines of the description are extracted and saved in their own column so you can check the preview without opening the full description\n- **Tracks description character count and tag count** \u2014 Both are logged in the sheet so you can verify against YouTube's limits before publishing\n\n---\n\n## Setup Requirements\n\n### Tools Needed\n- n8n instance (self-hosted or cloud)\n- WayinVideo account with API access\n- OpenAI account with GPT-4o-mini API access\n- Google Sheets (one sheet with a tab named **YouTube SEO**)\n\n### Credentials Required\n- WayinVideo API key (pasted into **2a. WayinVideo \u2014 Submit Summarization**, **2b. WayinVideo \u2014 Submit Find Moments**, **4a. WayinVideo \u2014 Get Summary Results**, and **4b. WayinVideo \u2014 Get Moments Results**)\n- OpenAI API key\n- Google Sheets OAuth2\n\n&gt; \u26a0\ufe0f **WayinVideo API key appears in 4 steps** \u2014 replace `YOUR_WAYINVIDEO_API_KEY` in all four: **2a. WayinVideo \u2014 Submit Summarization**, **2b. WayinVideo \u2014 Submit Find Moments**, **4a. WayinVideo \u2014 Get Summary Results**, and **4b. WayinVideo \u2014 Get Moments Results**. Missing any one will cause that branch to fail.\n\n**Estimated Setup Time: 20\u201325 minutes**\n\n---\n\n## Step-by-Step Setup\n\n1. **Import the workflow** \u2014 Open n8n \u2192 Workflows \u2192 Import from JSON \u2192 paste the workflow JSON \u2192 click Import\n\n2. **Get your WayinVideo API key** \u2014 Log in to your WayinVideo account \u2192 go to Account Settings \u2192 copy your API key\n\n3. **Add your WayinVideo API key to node 2a** \u2014 Open node **2a. WayinVideo \u2014 Submit Summarization** \u2192 find the `Authorization` header value `Bearer YOUR_WAYINVIDEO_API_KEY` \u2192 replace the placeholder with your actual key\n\n4. **Add your WayinVideo API key to node 2b** \u2014 Open node **2b. WayinVideo \u2014 Submit Find Moments** \u2192 find the same `Authorization` header \u2192 replace the placeholder with the same key\n\n5. **Add your WayinVideo API key to node 4a** \u2014 Open node **4a. WayinVideo \u2014 Get Summary Results** \u2192 find the `Authorization` header \u2192 replace the placeholder with your key\n\n6. **Add your WayinVideo API key to node 4b** \u2014 Open node **4b. WayinVideo \u2014 Get Moments Results** \u2192 find the same `Authorization` header \u2192 replace the placeholder with your key\n\n7. **Connect OpenAI** \u2014 Open node **8. OpenAI \u2014 GPT-4o-mini Model** \u2192 click the credential dropdown \u2192 add your OpenAI API key \u2192 test the connection\n\n8. **Create your Google Sheet tab** \u2014 Open your Google Sheet \u2192 add a tab named exactly **YouTube SEO** \u2192 add these 16 column headers in row 1: `Video URL`, `Video Title`, `Channel`, `Niche`, `Focus Keyword`, `Description Hook`, `YouTube Description`, `Description Char Count`, `Chapter Timestamps`, `Total Chapters`, `YouTube Tags`, `Tag Count`, `Hashtags`, `SEO Notes`, `Generated On`, `Status`\n\n9. **Get your Google Sheet ID** \u2014 Open your Google Sheet in a browser \u2192 copy the string between `/d/` and `/edit` in the URL\n\n10. **Connect Google Sheets** \u2014 Open node **10. Google Sheets \u2014 Save YouTube SEO Package** \u2192 click the document field \u2192 replace `YOUR_GOOGLE_SHEET_ID` by selecting your spreadsheet or entering the Sheet ID manually \u2192 click the credential dropdown \u2192 add Google Sheets OAuth2 \u2192 authorize access\n\n11. **Activate the workflow** \u2014 Toggle the workflow to Active \u2192 copy the Form URL from node **1. Form \u2014 Video URL + SEO Details** \u2192 open it in a browser to submit your first video\n\n---\n\n## How It Works (Step by Step)\n\n**Step 1 \u2014 Form: Video URL + SEO Details**\nYou open the form URL and fill in seven fields: the YouTube video URL, the video title, the channel name, the content niche, the focus keyword (e.g. \"SEO tutorial for beginners\"), the section query for timestamps (4\u20136 descriptive words like \"step by step tutorial section transition\"), and an optional channel or website link. Submitting the form triggers both API submissions simultaneously.\n\n**Steps 2a and 2b \u2014 HTTP: WayinVideo Parallel Submissions**\nThe form submission triggers two separate API calls at the same time. **2a. WayinVideo \u2014 Submit Summarization** sends the video URL to WayinVideo's Summarization API and receives a task ID. **2b. WayinVideo \u2014 Submit Find Moments** sends the same URL along with your section query to WayinVideo's Find Moments API with a limit of 12 moments, and receives a separate task ID. Both run independently from this point forward.\n\n**Steps 3a and 3b \u2014 Wait: 90 Seconds (Independent)**\nEach branch pauses for 90 seconds independently. **3a. Wait \u2014 90 Seconds (Summary)** waits for the summarization branch. **3b. Wait \u2014 90 Seconds (Moments)** waits for the moments branch. Neither branch waits for the other.\n\n**Steps 4a and 4b \u2014 HTTP: WayinVideo Results Polling**\n**4a. WayinVideo \u2014 Get Summary Results** checks the summarization results endpoint using the task ID from step 2a. **4b. WayinVideo \u2014 Get Moments Results** checks the find-moments results endpoint using the task ID from step 2b. Each returns its own status and data independently.\n\n**Steps 5a and 5b \u2014 IF: Status Checks**\nEach branch has its own polling gate. **5a. IF \u2014 Summary Complete?** checks whether the summarization status equals `SUCCEEDED`. If YES, the summary branch passes its data to the merge step. If NO, it routes to **5c. Wait \u2014 30 Seconds Retry (Summary)** which pauses 30 seconds then loops back to step 4a. **5b. IF \u2014 Moments Complete?** works identically for the moments branch \u2014 YES passes to merge, NO routes to **5d. Wait \u2014 30 Seconds Retry (Moments)** which loops back to step 4b. Both loops run independently \u2014 if one API finishes before the other, that branch waits at the merge step until the other arrives.\n\n**Steps 5c and 5d \u2014 Wait: 30 Seconds Retry (Independent)**\n**5c. Wait \u2014 30 Seconds Retry (Summary)** is the summary branch retry. **5d. Wait \u2014 30 Seconds Retry (Moments)** is the moments branch retry. Each loops back only to its own polling step.\n\n**Step 6 \u2014 Code: Merge + Format API Results**\nThis step reads from both completed branches \u2014 the summarization data from step 4a and the moments clips array from step 4b \u2014 and combines them. The moments clips are sorted chronologically by start time. If the first moment does not start at 0:00, a `0:00 Introduction` line is prepended. All form inputs are also packaged. The combined output is one clean object ready for GPT: the video summary, numbered highlights, WayinVideo tags, formatted chapter list with total count, and all form metadata.\n\n**Step 7 \u2014 AI Agent: Write YouTube SEO Package**\nGPT-4o-mini receives the summary, highlights, chapter timestamps, and WayinVideo tags as the main input, and the full video context in the system prompt. It generates six labeled sections: YOUTUBE_DESCRIPTION (800\u20131000 characters with chapters embedded and hashtags at the end, focus keyword in the first 100 characters), CHAPTERS_STANDALONE (clean chapter list for copy-paste), YOUTUBE_TAGS (exactly 15 comma-separated lowercase tags), HASHTAGS (exactly 6 hashtags), DESCRIPTION_HOOK (just the first two lines), and SEO_NOTES (2\u20133 specific tips for this video's niche).\n\n**Step 8 \u2014 OpenAI: GPT-4o-mini Model**\nThis is the language model powering the SEO package generation.\n\n**Step 9 \u2014 Code: Parse SEO Output**\nAll six labeled sections are extracted from the GPT output using regex. The tag count is calculated by splitting the tags string on commas. The description character count is measured. If the YouTube description or tags are missing, the step throws a clear error. All metadata from the merge step is also packaged for the sheet row.\n\n**Step 10 \u2014 Google Sheets: Save YouTube SEO Package**\nOne row is appended to your YouTube SEO tab with all 16 columns: video URL, video title, channel, niche, focus keyword, description hook, full YouTube description, character count, chapter timestamps, total chapters, YouTube tags, tag count, hashtags, SEO notes, generation timestamp, and Status set to Ready.\n\n---\n\n## Key Features\n\n\u2705 **Two WayinVideo APIs run simultaneously** \u2014 Summarization and Find Moments both start from the form submission at the same time \u2014 saving time compared to running them sequentially\n\u2705 **Two fully independent polling loops** \u2014 Each API has its own retry loop so if one takes longer than the other, they never block each other\n\u2705 **0:00 Introduction auto-prepended** \u2014 The merge step checks whether the first found moment is at the very start \u2014 if not, a 0:00 Introduction line is added automatically\n\u2705 **YouTube description character count tracked** \u2014 The sheet logs the exact character length of the description so you can verify it falls within YouTube's recommended range before publishing\n\u2705 **Above-the-fold hook saved separately** \u2014 The first two lines of the description are extracted into their own column so you can quickly check what viewers see before clicking \"more\"\n\u2705 **Exactly 15 tags and 6 hashtags enforced** \u2014 GPT is instructed to generate exactly these counts per YouTube SEO best practice \u2014 not a variable number\n\u2705 **SEO notes specific to the niche** \u2014 The SEO_NOTES section gives 2\u20133 actionable tips tailored to the video's specific topic and niche \u2014 not generic YouTube advice\n\n---\n\n## Customisation Options\n\n**Increase the number of chapter moments returned** \u2014 In node **2b. WayinVideo \u2014 Submit Find Moments**, change `\"limit\": 12` to a higher number such as `15` to find more chapter transitions \u2014 useful for longer videos with many distinct sections.\n\n**Add a retry limit to stop infinite loops on either branch** \u2014 Before nodes **5c. Wait \u2014 30 Seconds Retry (Summary)** and **5d. Wait \u2014 30 Seconds Retry (Moments)**, add Set steps that increment separate poll counters, then add second IF checks on each to stop after 15 polls and send a Gmail error notification rather than looping indefinitely.\n\n**Send the SEO package to Gmail for review** \u2014 After node **10. Google Sheets \u2014 Save YouTube SEO Package**, add a Gmail step that sends the video title, description hook, all 15 tags, and a link to the YouTube SEO sheet so you can review the package in your inbox without opening the sheet.\n\n**Add a Slack notification when the package is ready** \u2014 After node **10. Google Sheets \u2014 Save YouTube SEO Package**, add a Slack step that posts the video title, focus keyword, total chapters, and a sheet link to a `#youtube-content` channel so your team knows a new package is ready.\n\n**Change the chapter query for different video styles** \u2014 The Section Query for Timestamps field in the form directly drives what moments WayinVideo finds \u2014 try \"main topic introduction and explanation\" for educational videos or \"demonstration and example section\" for tutorial-style content.\n\n---\n\n## Troubleshooting\n\n**Form submission not starting the workflow:**\n- Confirm the workflow is Active \u2014 inactive workflows do not receive form submissions\n- Copy the Form URL fresh from node **1. Form \u2014 Video URL + SEO Details** after activating\n- Make sure all six required fields are filled in \u2014 the Channel / Website Link field is optional\n\n**WayinVideo API key errors on either branch:**\n- Confirm `YOUR_WAYINVIDEO_API_KEY` is replaced in all four steps: **2a. WayinVideo \u2014 Submit Summarization**, **2b. WayinVideo \u2014 Submit Find Moments**, **4a. WayinVideo \u2014 Get Summary Results**, and **4b. WayinVideo \u2014 Get Moments Results** \u2014 each branch has two steps and missing either one on that branch causes it to fail independently\n- Check the execution log of whichever step failed \u2014 a 401 means wrong key, a 422 means invalid URL or request format\n- Confirm your WayinVideo account is active and the key has not expired\n\n**Either polling loop stuck and not completing:**\n- Check that the YouTube video URL is publicly accessible \u2014 private videos, unlisted videos requiring login, or unavailable videos will cause WayinVideo to fail on that branch\n- Open the execution log of the failing step (**4a** or **4b**) and check the raw response \u2014 WayinVideo may have returned FAILED with a specific reason\n- The two branches are independent \u2014 if only one gets stuck, the other will complete and wait at the merge step; identify which branch failed and fix it specifically\n\n**GPT not generating all six sections:**\n- Confirm the API key is connected in node **8. OpenAI \u2014 GPT-4o-mini Model** and your account has available credits\n- Check the execution log of node **7. AI Agent \u2014 Write YouTube SEO Package** for the raw output \u2014 if the YOUTUBE_DESCRIPTION or YOUTUBE_TAGS sections are missing, node **9. Code \u2014 Parse SEO Output** throws a clear error\n- If the video summary is very short or the moments list is empty, GPT may produce a thinner output \u2014 confirm that both APIs returned data in step 6's execution log\n\n**Google Sheets not saving the row:**\n- Confirm `YOUR_GOOGLE_SHEET_ID` in node **10. Google Sheets \u2014 Save YouTube SEO Package** is replaced with your actual Sheet ID\n- Confirm the tab is named **YouTube SEO** exactly and all 16 column headers in row 1 match exactly\n- Check that the Google Sheets OAuth2 credential is connected and not expired \u2014 re-authorize if needed\n\n---\n\n## Support\n\nNeed help setting this up or want a custom version built for your team or agency?\n\n\ud83d\udce7 Email: [info@isawow.com](info@isawow.com)\n\ud83c\udf10 Website: [https://isawow.com](https://isawow.com)",
+    "workflow": {
+      "meta": {
+        "instanceId": "bc8ca75c203589705ae2e446cad7181d6f2a7cc1766f958ef9f34810e53b8cb2",
+        "templateCredsSetupCompleted": true
+      },
+      "nodes": [
+        {
+          "id": "8204c264-2fbd-45ba-a6c3-8d0c576ddfe6",
+          "name": "Overview",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -1408,
+            -96
+          ],
+          "parameters": {
+            "color": 4,
+            "width": 524,
+            "height": 1156,
+            "content": "## YouTube Video to SEO Description + Tags + Chapters Generator \u2014 WayinVideo Summarization + Find Moments + GPT-4o-mini + Sheets\n\nFor YouTube creators, video agencies, and content managers who publish regularly and want to automatically generate a fully SEO-optimized video description with timestamps, tags, and hashtags \u2014 without writing it manually after each upload. Submit any YouTube video URL via the form. Two WayinVideo APIs run in parallel \u2014 the Summarization API generates a structured summary with highlights and tags, and the Find Moments API finds all key section transitions. Both APIs have independent 90-second waits and 30-second retry loops. GPT-4o-mini reads both outputs and generates six labeled sections: a full 800\u20131000 character YouTube description with chapters embedded, a standalone chapter list, 15 keyword tags, 6 hashtags, the above-the-fold description hook, and SEO notes. Everything is saved to Google Sheets as one row with 16 columns \u2014 ready to paste into YouTube Studio.\n\n## How it works\n- **1. Form \u2014 Video URL + SEO Details** collects the video URL, title, channel, niche, focus keyword, section query, and channel link\n- **2a. WayinVideo \u2014 Submit Summarization** and **2b. WayinVideo \u2014 Submit Find Moments** both submit simultaneously from the Form node \u2014 the workflow runs two API jobs in parallel\n- **3a/3b. Wait \u2014 90 Seconds** gives each API initial processing time independently\n- **4a/4b. WayinVideo \u2014 Get Results** polls each API on its own branch\n- **5a. IF \u2014 Summary Complete?** and **5b. IF \u2014 Moments Complete?** check each status independently \u2014 FALSE branches loop back via 30-second retry waits (5c above, 5d below)\n- **6. Code \u2014 Merge + Format API Results** reads from both 4a and 4b, sorts chapters chronologically, prepends 0:00 Introduction if missing, and assembles the combined prompt for GPT\n- **7. AI Agent \u2014 Write YouTube SEO Package** uses GPT-4o-mini to write all 6 labeled output sections\n- **8. OpenAI \u2014 GPT-4o-mini Model** language model attached to the AI Agent\n- **9. Code \u2014 Parse SEO Output** extracts all 6 sections via regex and counts tags and description characters\n- **10. Google Sheets \u2014 Save YouTube SEO Package** appends one row with 16 fields and Status set to Ready\n\n## Set up steps\n1. In **2a**, **2b**, **4a**, **4b** \u2014 replace `YOUR_WAYINVIDEO_API_KEY`\n2. In **8. OpenAI \u2014 GPT-4o-mini Model** \u2014 connect your OpenAI credential\n3. In **10. Google Sheets \u2014 Save YouTube SEO Package** \u2014 connect your Google Sheets OAuth2 credential and replace `YOUR_GOOGLE_SHEET_ID`\n4. Create a Google Sheet tab named YouTube SEO with columns: Video URL, Video Title, Channel, Niche, Focus Keyword, Description Hook, YouTube Description, Description Char Count, Chapter Timestamps, Total Chapters, YouTube Tags, Tag Count, Hashtags, SEO Notes, Generated On, Status"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "a03d2b45-7670-4ea5-9927-02c4e89c5d20",
+          "name": "Section \u2014 Form Input",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -800,
+            112
+          ],
+          "parameters": {
+            "color": 5,
+            "width": 280,
+            "height": 452,
+            "content": "## Form Input\nCreator submits video URL, title, channel name, niche, focus keyword, section query for timestamps, and optional channel link. The section query drives the Find Moments API \u2014 use 4\u20136 descriptive words matching your video style."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "93e370e1-a209-4df6-b60b-08ef3f8bbd4b",
+          "name": "Section \u2014 Parallel API Submission",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -496,
+            -32
+          ],
+          "parameters": {
+            "color": 6,
+            "width": 292,
+            "height": 724,
+            "content": "## Parallel API Submission\nBoth WayinVideo APIs are submitted simultaneously from the Form node. Branch A submits to the Summarization API. Branch B submits to the Find Moments API. Each returns a task ID for independent polling."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "96b32843-d826-47f6-ad05-04b41abd0202",
+          "name": "Section \u2014 Independent Wait, Poll, and Retry Loops",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -128,
+            -128
+          ],
+          "parameters": {
+            "color": 6,
+            "width": 740,
+            "height": 964,
+            "content": "## Independent Wait, Poll, and Retry Loops\nBoth branches wait 90 seconds independently. Each polls its own results endpoint. IF SUCCEEDED \u2014 proceeds to merge. IF not ready \u2014 30-second retry loops back. Branch A retry (5c) sits above the main row. Branch B retry (5d) sits below."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "d4ef53a3-7a75-451c-80a2-d7da17928751",
+          "name": "Section \u2014 Merge, Format, and AI SEO Writing",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            656,
+            192
+          ],
+          "parameters": {
+            "color": 6,
+            "width": 612,
+            "height": 468,
+            "content": "## Merge, Format, and AI SEO Writing\nCode node reads from both 4a and 4b, sorts chapters chronologically, prepends 0:00 Introduction if missing. GPT-4o-mini writes all 6 labeled SEO sections in one call."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "1eca8a5a-6f2f-46cd-bd05-e9064bebf899",
+          "name": "Section \u2014 SEO Parse and Google Sheets Save",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1312,
+            192
+          ],
+          "parameters": {
+            "color": 4,
+            "width": 484,
+            "height": 356,
+            "content": "## SEO Parse and Google Sheets Save\nRegex extracts all 6 labeled sections. Counts tags and description characters. Appends one row to Google Sheets with 16 fields and Status set to Ready."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "b187aa07-64a5-4104-a2d9-454a5f2cb4a1",
+          "name": "1. Form \u2014 Video URL + SEO Details",
+          "type": "n8n-nodes-base.formTrigger",
+          "position": [
+            -720,
+            320
+          ],
+          "webhookId": "4374002d-9fc2-4a19-bd73-dcb56504e3ca",
+          "parameters": {
+            "options": {},
+            "formTitle": "YouTube SEO Description Generator",
+            "formFields": {
+              "values": [
+                {
+                  "fieldLabel": "YouTube Video URL",
+                  "placeholder": "https://www.youtube.com/watch?v=xxxxxxx",
+                  "requiredField": true
+                },
+                {
+                  "fieldLabel": "Video Title",
+                  "placeholder": "e.g. Complete SEO Tutorial for Beginners 2025 \u2014 Step by Step",
+                  "requiredField": true
+                },
+                {
+                  "fieldLabel": "Channel Name",
+                  "placeholder": "e.g. Incrementors, Ali Abdaal, TechWithTim",
+                  "requiredField": true
+                },
+                {
+                  "fieldLabel": "Content Niche",
+                  "placeholder": "e.g. SEO, Python Programming, Personal Finance, Fitness",
+                  "requiredField": true
+                },
+                {
+                  "fieldLabel": "Focus Keyword",
+                  "placeholder": "e.g. SEO tutorial for beginners, Python functions explained",
+                  "requiredField": true
+                },
+                {
+                  "fieldLabel": "Section Query for Timestamps",
+                  "placeholder": "e.g. step by step tutorial section transition",
+                  "requiredField": true
+                },
+                {
+                  "fieldLabel": "Channel / Website Link",
+                  "placeholder": "e.g. https://yourwebsite.com"
+                }
+              ]
+            },
+            "formDescription": "Paste your YouTube video URL. AI will generate a complete SEO-optimized description with chapter timestamps, keyword tags, and hashtags \u2014 ready to paste into YouTube Studio."
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "0a92cad4-4780-4c5f-8104-0f1daeb86fbf",
+          "name": "2a. WayinVideo \u2014 Submit Summarization",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            -400,
+            176
+          ],
+          "parameters": {
+            "url": "https://wayinvideo-api.wayin.ai/api/v2/summaries",
+            "method": "POST",
+            "options": {},
+            "jsonBody": "={\n  \"video_url\": \"{{ $json['YouTube Video URL'] }}\",\n  \"target_lang\": \"en\"\n}",
+            "sendBody": true,
+            "sendHeaders": true,
+            "specifyBody": "json",
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer YOUR_TOKEN_HERE"
+                },
+                {
+                  "name": "x-wayinvideo-api-version",
+                  "value": "v2"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "f075bba5-d282-4f14-9e13-02c6e8a6d983",
+          "name": "2b. WayinVideo \u2014 Submit Find Moments",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            -400,
+            448
+          ],
+          "parameters": {
+            "url": "https://wayinvideo-api.wayin.ai/api/v2/clips/find-moments",
+            "method": "POST",
+            "options": {},
+            "jsonBody": "={\n  \"video_url\": \"{{ $('1. Form \u2014 Video URL + SEO Details').item.json['YouTube Video URL'] }}\",\n  \"query\": \"{{ $('1. Form \u2014 Video URL + SEO Details').item.json['Section Query for Timestamps'] }}\",\n  \"project_name\": \"Chapters \u2014 {{ $('1. Form \u2014 Video URL + SEO Details').item.json['Video Title'] }}\",\n  \"limit\": 12,\n  \"enable_export\": false,\n  \"target_lang\": \"en\"\n}",
+            "sendBody": true,
+            "sendHeaders": true,
+            "specifyBody": "json",
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer YOUR_TOKEN_HERE"
+                },
+                {
+                  "name": "x-wayinvideo-api-version",
+                  "value": "v2"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "f0653386-1970-4a18-91c8-d9543e7960b8",
+          "name": "3a. Wait \u2014 90 Seconds (Summary)",
+          "type": "n8n-nodes-base.wait",
+          "position": [
+            -64,
+            176
+          ],
+          "webhookId": "wait-ytseo-summary-90s",
+          "parameters": {
+            "amount": 90
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "e625ad76-2e57-4842-b15a-9519dfe420c0",
+          "name": "3b. Wait \u2014 90 Seconds (Moments)",
+          "type": "n8n-nodes-base.wait",
+          "position": [
+            -64,
+            448
+          ],
+          "webhookId": "wait-ytseo-moments-90s",
+          "parameters": {
+            "amount": 90
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "80643e4b-aa20-45de-8d45-c72ecb9c7bce",
+          "name": "4a. WayinVideo \u2014 Get Summary Results",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            192,
+            176
+          ],
+          "parameters": {
+            "url": "=https://wayinvideo-api.wayin.ai/api/v2/summaries/results/{{ $('2a. WayinVideo \u2014 Submit Summarization').item.json.data.id }}",
+            "options": {},
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer YOUR_TOKEN_HERE"
+                },
+                {
+                  "name": "x-wayinvideo-api-version",
+                  "value": "v2"
+                }
+              ]
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "5d41e73c-9a05-43bf-9bc6-542ce7531eb1",
+          "name": "4b. WayinVideo \u2014 Get Moments Results",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            192,
+            448
+          ],
+          "parameters": {
+            "url": "=https://wayinvideo-api.wayin.ai/api/v2/clips/find-moments/results/{{ $('2b. WayinVideo \u2014 Submit Find Moments').item.json.data.id }}",
+            "options": {},
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer YOUR_TOKEN_HERE"
+                },
+                {
+                  "name": "x-wayinvideo-api-version",
+                  "value": "v2"
+                }
+              ]
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "97963e56-e569-4bed-b3b7-6c72512e4fa3",
+          "name": "5a. IF \u2014 Summary Complete?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            432,
+            176
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "loose"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "s-status",
+                  "operator": {
+                    "type": "string",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $json.data.status }}",
+                  "rightValue": "SUCCEEDED"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "069738e1-7fc3-4814-b1c1-ca65496a32f3",
+          "name": "5b. IF \u2014 Moments Complete?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            432,
+            448
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "loose"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "m-status",
+                  "operator": {
+                    "type": "string",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $json.data.status }}",
+                  "rightValue": "SUCCEEDED"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "8eaa9cef-0794-42bf-ba1c-f5b98ad6222c",
+          "name": "5c. Wait \u2014 30 Seconds Retry (Summary)",
+          "type": "n8n-nodes-base.wait",
+          "position": [
+            432,
+            16
+          ],
+          "webhookId": "wait-ytseo-retry-a",
+          "parameters": {
+            "amount": 30
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "26c2c59d-a08c-4d9e-afd5-d354b7eb0a10",
+          "name": "5d. Wait \u2014 30 Seconds Retry (Moments)",
+          "type": "n8n-nodes-base.wait",
+          "position": [
+            432,
+            608
+          ],
+          "webhookId": "wait-ytseo-retry-b",
+          "parameters": {
+            "amount": 30
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "d882c46b-9a18-49b1-8469-d0fc73a747e1",
+          "name": "6. Code \u2014 Merge + Format API Results",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            704,
+            320
+          ],
+          "parameters": {
+            "jsCode": "// Extract and format both API results for GPT\n\n// --- SUMMARY DATA ---\nconst summaryData = $('4a. WayinVideo \u2014 Get Summary Results').item.json.data;\nconst summary = summaryData.summary || '';\nconst highlights = Array.isArray(summaryData.highlights)\n  ? summaryData.highlights.map((h, i) => `${i + 1}. ${h.desc}`).join('\\n')\n  : '';\nconst apiTags = Array.isArray(summaryData.tags) ? summaryData.tags : [];\n\n// --- MOMENTS / CHAPTERS DATA ---\nconst clips = $('4b. WayinVideo \u2014 Get Moments Results').item.json.data?.clips || [];\n\n// Sort chapters chronologically by start time\nconst sortedClips = clips.sort((a, b) => (a.begin_ms || 0) - (b.begin_ms || 0));\n\n// Build formatted chapters list\nconst chapters = sortedClips.map((clip, index) => {\n  const startMs = clip.begin_ms || 0;\n  const mm = Math.floor(startMs / 60000);\n  const ss = String(Math.floor((startMs % 60000) / 1000)).padStart(2, '0');\n  const timestamp = `${mm}:${ss}`;\n  return `${timestamp} ${clip.title || `Section ${index + 1}`}`;\n});\n\n// Make sure 0:00 Introduction is first\nif (chapters.length > 0 && !chapters[0].startsWith('0:00')) {\n  chapters.unshift('0:00 Introduction');\n}\n\nconst chaptersText = chapters.join('\\n');\nconst totalChapters = chapters.length;\n\n// --- FORM DATA ---\nconst videoTitle = $('1. Form \u2014 Video URL + SEO Details').item.json['Video Title'];\nconst channelName = $('1. Form \u2014 Video URL + SEO Details').item.json['Channel Name'];\nconst niche = $('1. Form \u2014 Video URL + SEO Details').item.json['Content Niche'];\nconst focusKeyword = $('1. Form \u2014 Video URL + SEO Details').item.json['Focus Keyword'];\nconst channelLink = $('1. Form \u2014 Video URL + SEO Details').item.json['Channel / Website Link'] || '';\nconst videoUrl = $('1. Form \u2014 Video URL + SEO Details').item.json['YouTube Video URL'];\n\nreturn [{\n  json: {\n    summary,\n    highlights,\n    apiTags,\n    apiTagsText: apiTags.join(', '),\n    chaptersText,\n    totalChapters,\n    videoTitle,\n    channelName,\n    niche,\n    focusKeyword,\n    channelLink,\n    videoUrl\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "df15ca04-7242-48f7-ac70-bab06628b866",
+          "name": "7. AI Agent \u2014 Write YouTube SEO Package",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "position": [
+            944,
+            320
+          ],
+          "parameters": {
+            "text": "=Video Summary:\n{{ $json.summary }}\n\nKey Highlights:\n{{ $json.highlights }}\n\nChapter Timestamps (already sorted chronologically):\n{{ $json.chaptersText }}\n\nAPI Tags from WayinVideo:\n{{ $json.apiTagsText }}",
+            "options": {
+              "systemMessage": "=You are an expert YouTube SEO strategist who writes high-performing video descriptions that rank well in YouTube search and drive clicks.\n\nRead the video summary, highlights, and chapter timestamps provided and write a complete YouTube SEO package.\n\n---\n\n## VIDEO DETAILS\n- Video Title: {{ $json.videoTitle }}\n- Channel: {{ $json.channelName }}\n- Niche: {{ $json.niche }}\n- Focus Keyword: {{ $json.focusKeyword }}\n- Channel Link: {{ $json.channelLink }}\n- Video URL: {{ $json.videoUrl }}\n- Total Chapters: {{ $json.totalChapters }}\n\n---\n\n## YOUTUBE DESCRIPTION RULES\n1. Total description length: 800-1000 characters (YouTube shows ~157 chars above the fold)\n2. First 2 lines must be the strongest hook \u2014 include the focus keyword naturally\n3. Structure: Hook (2 lines) \u2192 What you will learn (3-4 bullet points) \u2192 Chapter timestamps \u2192 Channel/links section \u2192 Hashtags\n4. Use the exact chapter timestamps provided \u2014 do NOT change MM:SS values\n5. Include focus keyword in first 100 characters\n6. Write naturally \u2014 not keyword stuffed\n7. End with 5-7 hashtags on the last line\n\n## YOUTUBE TAGS RULES\n- Generate exactly 15 tags\n- Mix of: exact focus keyword, broad niche keywords, long-tail variations, channel-related tags\n- All lowercase\n- No hashtags \u2014 plain text tags only\n- 2-5 words per tag maximum\n\n## HASHTAGS RULES\n- Generate exactly 6 hashtags\n- Include focus keyword hashtag, niche hashtag, 4 discovery hashtags\n- Lowercase, no spaces\n\n---\n\n## OUTPUT FORMAT\nReturn in this exact structure:\n\nYOUTUBE_DESCRIPTION:\n[Full YouTube description \u2014 800-1000 characters \u2014 with chapters embedded \u2014 hashtags at end]\n\nCHAPTERS_STANDALONE:\n[Clean chapter list for copy-paste \u2014 one per line \u2014 MM:SS Title format]\n\nYOUTUBE_TAGS:\n[15 tags \u2014 comma separated \u2014 lowercase \u2014 no hashtags]\n\nHASHTAGS:\n[6 hashtags \u2014 space separated]\n\nDESCRIPTION_HOOK:\n[First 2 lines of the description \u2014 the above-the-fold preview]\n\nSEO_NOTES:\n[2-3 bullet points of SEO tips specific to this video's topic and niche]\n\n---\n\nNow write the complete YouTube SEO package:"
+            },
+            "promptType": "define"
+          },
+          "typeVersion": 3.1
+        },
+        {
+          "id": "39b23edb-2dd1-4836-a44a-d1c725b8d3fc",
+          "name": "8. OpenAI \u2014 GPT-4o-mini Model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "position": [
+            944,
+            512
+          ],
+          "parameters": {
+            "model": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gpt-4o-mini"
+            },
+            "options": {},
+            "builtInTools": {}
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "51a62971-9a83-494d-b1db-93aab484f5f5",
+          "name": "9. Code \u2014 Parse SEO Output",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1376,
+            320
+          ],
+          "parameters": {
+            "jsCode": "// Parse AI YouTube SEO output\nconst output = $input.first().json.output || '';\n\n// Extract each section\nconst descMatch = output.match(/YOUTUBE_DESCRIPTION:\\s*([\\s\\S]*?)(?=\\nCHAPTERS_STANDALONE:|$)/);\nconst chaptersMatch = output.match(/CHAPTERS_STANDALONE:\\s*([\\s\\S]*?)(?=\\nYOUTUBE_TAGS:|$)/);\nconst tagsMatch = output.match(/YOUTUBE_TAGS:\\s*([\\s\\S]*?)(?=\\nHASHTAGS:|$)/);\nconst hashtagsMatch = output.match(/HASHTAGS:\\s*([\\s\\S]*?)(?=\\nDESCRIPTION_HOOK:|$)/);\nconst hookMatch = output.match(/DESCRIPTION_HOOK:\\s*([\\s\\S]*?)(?=\\nSEO_NOTES:|$)/);\nconst seoNotesMatch = output.match(/SEO_NOTES:\\s*([\\s\\S]*)$/);\n\nconst youtubeDescription = descMatch ? descMatch[1].trim() : '';\nconst chaptersStandalone = chaptersMatch ? chaptersMatch[1].trim() : '';\nconst youtubeTags = tagsMatch ? tagsMatch[1].trim() : '';\nconst hashtags = hashtagsMatch ? hashtagsMatch[1].trim() : '';\nconst descriptionHook = hookMatch ? hookMatch[1].trim() : '';\nconst seoNotes = seoNotesMatch ? seoNotesMatch[1].trim() : '';\n\nif (!youtubeDescription || !youtubeTags) {\n  throw new Error('Could not parse YouTube SEO output. Check AI prompt format.');\n}\n\n// Count tags\nconst tagCount = youtubeTags.split(',').map(t => t.trim()).filter(Boolean).length;\nconst descCharCount = youtubeDescription.length;\n\n// Get metadata\nconst metaData = $('6. Code \u2014 Merge + Format API Results').item.json;\n\nreturn [{\n  json: {\n    youtubeDescription,\n    chaptersStandalone,\n    youtubeTags,\n    hashtags,\n    descriptionHook,\n    seoNotes,\n    tagCount,\n    descCharCount,\n    focusKeyword: metaData.focusKeyword,\n    videoTitle: metaData.videoTitle,\n    channelName: metaData.channelName,\n    niche: metaData.niche,\n    videoUrl: metaData.videoUrl,\n    totalChapters: metaData.totalChapters\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "213d53a1-0e37-4135-b85f-b2af0d8fbf4d",
+          "name": "10. Google Sheets \u2014 Save YouTube SEO Package",
+          "type": "n8n-nodes-base.googleSheets",
+          "position": [
+            1616,
+            320
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "Niche": "={{ $json.niche }}",
+                "Status": "Ready",
+                "Channel": "={{ $json.channelName }}",
+                "Hashtags": "={{ $json.hashtags }}",
+                "SEO Notes": "={{ $json.seoNotes }}",
+                "Tag Count": "={{ $json.tagCount }}",
+                "Video URL": "={{ $json.videoUrl }}",
+                "Video Title": "={{ $json.videoTitle }}",
+                "Generated On": "={{ $now.toFormat('dd MMMM yyyy HH:mm') }}",
+                "YouTube Tags": "={{ $json.youtubeTags }}",
+                "Focus Keyword": "={{ $json.focusKeyword }}",
+                "Total Chapters": "={{ $json.totalChapters }}",
+                "Description Hook": "={{ $json.descriptionHook }}",
+                "Chapter Timestamps": "={{ $json.chaptersStandalone }}",
+                "YouTube Description": "={{ $json.youtubeDescription }}",
+                "Description Char Count": "={{ $json.descCharCount }}"
+              },
+              "schema": [],
+              "mappingMode": "defineBelow",
+              "matchingColumns": []
+            },
+            "options": {},
+            "operation": "append",
+            "sheetName": {
+              "__rl": true,
+              "mode": "name",
+              "value": "YouTube SEO"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "YOUR_GOOGLE_SHEET_ID"
+            }
+          },
+          "typeVersion": 4.5
+        }
+      ],
+      "pinData": {},
+      "connections": {
+        "5a. IF \u2014 Summary Complete?": {
+          "main": [
+            [
+              {
+                "node": "6. Code \u2014 Merge + Format API Results",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "5c. Wait \u2014 30 Seconds Retry (Summary)",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "5b. IF \u2014 Moments Complete?": {
+          "main": [
+            [
+              {
+                "node": "6. Code \u2014 Merge + Format API Results",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "5d. Wait \u2014 30 Seconds Retry (Moments)",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "9. Code \u2014 Parse SEO Output": {
+          "main": [
+            [
+              {
+                "node": "10. Google Sheets \u2014 Save YouTube SEO Package",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "8. OpenAI \u2014 GPT-4o-mini Model": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "7. AI Agent \u2014 Write YouTube SEO Package",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "3a. Wait \u2014 90 Seconds (Summary)": {
+          "main": [
+            [
+              {
+                "node": "4a. WayinVideo \u2014 Get Summary Results",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "3b. Wait \u2014 90 Seconds (Moments)": {
+          "main": [
+            [
+              {
+                "node": "4b. WayinVideo \u2014 Get Moments Results",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "1. Form \u2014 Video URL + SEO Details": {
+          "main": [
+            [
+              {
+                "node": "2a. WayinVideo \u2014 Submit Summarization",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "2b. WayinVideo \u2014 Submit Find Moments",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "2b. WayinVideo \u2014 Submit Find Moments": {
+          "main": [
+            [
+              {
+                "node": "3b. Wait \u2014 90 Seconds (Moments)",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "4a. WayinVideo \u2014 Get Summary Results": {
+          "main": [
+            [
+              {
+                "node": "5a. IF \u2014 Summary Complete?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "4b. WayinVideo \u2014 Get Moments Results": {
+          "main": [
+            [
+              {
+                "node": "5b. IF \u2014 Moments Complete?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "6. Code \u2014 Merge + Format API Results": {
+          "main": [
+            [
+              {
+                "node": "7. AI Agent \u2014 Write YouTube SEO Package",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "2a. WayinVideo \u2014 Submit Summarization": {
+          "main": [
+            [
+              {
+                "node": "3a. Wait \u2014 90 Seconds (Summary)",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "5c. Wait \u2014 30 Seconds Retry (Summary)": {
+          "main": [
+            [
+              {
+                "node": "4a. WayinVideo \u2014 Get Summary Results",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "5d. Wait \u2014 30 Seconds Retry (Moments)": {
+          "main": [
+            [
+              {
+                "node": "4b. WayinVideo \u2014 Get Moments Results",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "7. AI Agent \u2014 Write YouTube SEO Package": {
+          "main": [
+            [
+              {
+                "node": "9. Code \u2014 Parse SEO Output",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 22,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 2
+        },
+        "n8n-nodes-base.code": {
+          "count": 2
+        },
+        "n8n-nodes-base.wait": {
+          "count": 4
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 6
+        },
+        "n8n-nodes-base.formTrigger": {
+          "count": 1
+        },
+        "n8n-nodes-base.httpRequest": {
+          "count": 4
+        },
+        "n8n-nodes-base.googleSheets": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.agent": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.lmChatOpenAi": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "isaWOW",
+      "username": "isawow",
+      "bio": "",
+      "verified": true,
+      "links": [
+        ""
+      ],
+      "avatar": "https://gravatar.com/avatar/8e8c1f17a2be80c0d1b0248585660dff3062cefeda523bbafeafcdb813f52ffa?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 18,
+        "icon": "file:googleSheets.svg",
+        "name": "n8n-nodes-base.googleSheets",
+        "codex": {
+          "data": {
+            "alias": [
+              "CSV",
+              "Sheet",
+              "Spreadsheet",
+              "GS"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/love-at-first-sight-ricardos-n8n-journey/",
+                  "icon": "\u2764\ufe0f",
+                  "label": "Love at first sight: Ricardo\u2019s n8n journey"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-triggers-for-n8n-workflows-using-polling/",
+                  "icon": "\u23f2",
+                  "label": "Creating triggers for n8n workflows using polling"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/migrating-community-metrics-to-orbit-using-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Migrating Community Metrics to Orbit using n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-honest-burgers-use-automation-to-save-100k-per-year/",
+                  "icon": "\ud83c\udf54",
+                  "label": "How Honest Burgers Use Automation to Save $100k per year"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "\ud83d\udcbb",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googlesheets/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage",
+              "Productivity"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\",\"output\"]",
+        "defaults": {
+          "name": "Google Sheets"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNS42OSAxIDUyIDE3LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0OC4yOTMgNjBIMTIuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDkgNTYuMzEyVjQuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTIuNzA3IDF6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM1LjY5IDEgNTIgMTcuMjI1SDM5LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzkuMjExIDE3LjIyNSA1MiAyMi40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTIwLjEyIDMxLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMS42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzEuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNC42OSAwIDUxIDE2LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0Ny4yOTMgNTlIMTEuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDggNTUuMzEyVjMuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTEuNzA3IDB6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM0LjY5IDAgNTEgMTYuMjI1SDM4LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzguMjExIDE2LjIyNSA1MSAyMS40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTE5LjEyIDMwLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMC42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzAuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjwvZz48L3N2Zz4="
+        },
+        "displayName": "Google Sheets",
+        "typeVersion": 5,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          },
+          {
+            "id": 4,
+            "name": "Productivity"
+          }
+        ]
+      },
+      {
+        "id": 19,
+        "icon": "file:httprequest.svg",
+        "name": "n8n-nodes-base.httpRequest",
+        "codex": {
+          "data": {
+            "alias": [
+              "API",
+              "Request",
+              "URL",
+              "Build",
+              "cURL"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-designs-with-bannerbear-and-n8n/",
+                  "icon": "\ud83c\udfa8",
+                  "label": "Automate Designs with Bannerbear and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-use-the-http-request-node-the-swiss-army-knife-for-workflow-automation/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "How to use the HTTP Request Node - The Swiss Army Knife for Workflow Automation"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HTTP Request",
+          "color": "#0004F5"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MCAyMEM0MCA4Ljk1MzE0IDMxLjA0NjkgMCAyMCAwQzguOTUzMTQgMCAwIDguOTUzMTQgMCAyMEMwIDMxLjA0NjkgOC45NTMxNCA0MCAyMCA0MEMzMS4wNDY5IDQwIDQwIDMxLjA0NjkgNDAgMjBaTTIwIDM2Ljk0NThDMTguODg1MiAzNi45NDU4IDE3LjEzNzggMzUuOTY3IDE1LjQ5OTggMzIuNjk4NUMxNC43OTY0IDMxLjI5MTggMTQuMTk2MSAyOS41NDMxIDEzLjc1MjYgMjcuNjg0N0gyNi4xODk4QzI1LjgwNDUgMjkuNTQwMyAyNS4yMDQ0IDMxLjI5MDEgMjQuNTAwMiAzMi42OTg1QzIyLjg2MjIgMzUuOTY3IDIxLjExNDggMzYuOTQ1OCAyMCAzNi45NDU4Wk0xMi45MDY0IDIwQzEyLjkwNjQgMjEuNjA5NyAxMy4wMDg3IDIzLjE2NCAxMy4yMDAzIDI0LjYzMDVIMjYuNzk5N0MyNi45OTEzIDIzLjE2NCAyNy4wOTM2IDIxLjYwOTcgMjcuMDkzNiAyMEMyNy4wOTM2IDE4LjM5MDMgMjYuOTkxMyAxNi44MzYgMjYuNzk5NyAxNS4zNjk1SDEzLjIwMDNDMTMuMDA4NyAxNi44MzYgMTIuOTA2NCAxOC4zOTAzIDEyLjkwNjQgMjBaTTIwIDMuMDU0MTlDMjEuMTE0OSAzLjA1NDE5IDIyLjg2MjIgNC4wMzA3OCAyNC41MDAxIDcuMzAwMzlDMjUuMjA2NiA4LjcxNDA4IDI1LjgwNzIgMTAuNDA2NyAyNi4xOTIgMTIuMzE1M0gxMy43NTAxQzE0LjE5MzMgMTAuNDA0NyAxNC43OTQyIDguNzEyNTQgMTUuNDk5OCA3LjMwMDY0QzE3LjEzNzcgNC4wMzA4MyAxOC44ODUxIDMuMDU0MTkgMjAgMy4wNTQxOVpNMzAuMTQ3OCAyMEMzMC4xNDc4IDE4LjQwOTkgMzAuMDU0MyAxNi44NjE3IDI5LjgyMjcgMTUuMzY5NUgzNi4zMDQyQzM2LjcyNTIgMTYuODQyIDM2Ljk0NTggMTguMzk2NCAzNi45NDU4IDIwQzM2Ljk0NTggMjEuNjAzNiAzNi43MjUyIDIzLjE1OCAzNi4zMDQyIDI0LjYzMDVIMjkuODIyN0MzMC4wNTQzIDIzLjEzODMgMzAuMTQ3OCAyMS41OTAxIDMwLjE0NzggMjBaTTI2LjI3NjcgNC4yNTUxMkMyNy42MzY1IDYuMzYwMTkgMjguNzExIDkuMTMyIDI5LjM3NzQgMTIuMzE1M0gzNS4xMDQ2QzMzLjI1MTEgOC42NjggMzAuMTA3IDUuNzgzNDYgMjYuMjc2NyA0LjI1NTEyWk0xMC42MjI2IDEyLjMxNTNINC44OTI5M0M2Ljc1MTQ3IDguNjY3ODQgOS44OTM1MSA1Ljc4MzQxIDEzLjcyMzIgNC4yNTUxM0MxMi4zNjM1IDYuMzYwMjEgMTEuMjg5IDkuMTMyMDEgMTAuNjIyNiAxMi4zMTUzWk0zLjA1NDE5IDIwQzMuMDU0MTkgMjEuNjAzIDMuMjc3NDMgMjMuMTU3NSAzLjY5NDg0IDI0LjYzMDVIMTAuMTIxN0M5Ljk0NjE5IDIzLjE0MiA5Ljg1MjIyIDIxLjU5NDMgOS44NTIyMiAyMEM5Ljg1MjIyIDE4LjQwNTcgOS45NDYxOSAxNi44NTggMTAuMTIxNyAxNS4zNjk1SDMuNjk0ODRDMy4yNzc0MyAxNi44NDI1IDMuMDU0MTkgMTguMzk3IDMuMDU0MTkgMjBaTTI2LjI3NjYgMzUuNzQyN0MyNy42MzY1IDMzLjYzOTMgMjguNzExIDMwLjg2OCAyOS4zNzc0IDI3LjY4NDdIMzUuMTA0NkMzMy4yNTEgMzEuMzMyMiAzMC4xMDY4IDM0LjIxNzkgMjYuMjc2NiAzNS43NDI3Wk0xMy43MjM0IDM1Ljc0MjdDOS44OTM2OSAzNC4yMTc5IDYuNzUxNTUgMzEuMzMyNCA0Ljg5MjkzIDI3LjY4NDdIMTAuNjIyNkMxMS4yODkgMzAuODY4IDEyLjM2MzUgMzMuNjM5MyAxMy43MjM0IDM1Ljc0MjdaIiBmaWxsPSIjM0E0MkU5Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "HTTP Request",
+        "typeVersion": 4,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 514,
+        "icon": "fa:pause-circle",
+        "name": "n8n-nodes-base.wait",
+        "codex": {
+          "data": {
+            "alias": [
+              "pause",
+              "sleep",
+              "delay",
+              "timeout"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.wait/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Wait",
+          "color": "#804050"
+        },
+        "iconData": {
+          "icon": "pause-circle",
+          "type": "icon"
+        },
+        "displayName": "Wait",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1119,
+        "icon": "fa:robot",
+        "name": "@n8n/n8n-nodes-langchain.agent",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain",
+              "Chat",
+              "Conversational",
+              "Plan and Execute",
+              "ReAct",
+              "Tools"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Agents",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "AI Agent",
+          "color": "#404040"
+        },
+        "iconData": {
+          "icon": "robot",
+          "type": "icon"
+        },
+        "displayName": "AI Agent",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1153,
+        "icon": "file:openAiLight.svg",
+        "name": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmchatopenai/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Language Models",
+                "Root Nodes"
+              ],
+              "Language Models": [
+                "Chat Models (Recommended)"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "OpenAI Chat Model"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTM2Ljg2NzEgMTYuMzcxOEMzNy43NzQ2IDEzLjY0OCAzNy40NjIxIDEwLjY2NDIgMzYuMDEwOCA4LjE4NjYxQzMzLjgyODIgNC4zODY1MyAyOS40NDA3IDIuNDMxNDkgMjUuMTU1NiAzLjM1MTUxQzIzLjI0OTMgMS4yMDM5NiAyMC41MTA1IC0wLjAxNzMxNDggMTcuNjM5MiAwLjAwMDE4NTUzM0MxMy4yNTkxIC0wLjAwOTgxNDY4IDkuMzcyNzMgMi44MTAyNSA4LjAyNTIgNi45Nzc4M0M1LjIxMTM5IDcuNTU0MSAyLjc4MjU4IDkuMzE1MzggMS4zNjEzIDExLjgxMTdDLTAuODM3NDkzIDE1LjYwMTggLTAuMzM2MjMyIDIwLjM3OTQgMi42MDEzMyAyMy42Mjk0QzEuNjkzODEgMjYuMzUzMiAyLjAwNjMyIDI5LjMzNzEgMy40NTc2IDMxLjgxNDZDNS42NDAxNSAzNS42MTQ3IDEwLjAyNzcgMzcuNTY5NyAxNC4zMTI4IDM2LjY0OTdDMTYuMjE3OSAzOC43OTczIDE4Ljk1NzkgNDAuMDE4NSAyMS44MjkyIDM5Ljk5OThDMjYuMjExOCA0MC4wMTEgMzAuMDk5NCAzNy4xODg1IDMxLjQ0NjkgMzMuMDE3MUMzNC4yNjA4IDMyLjQ0MDkgMzYuNjg5NiAzMC42Nzk2IDM4LjExMDggMjguMTgzM0M0MC4zMDcxIDI0LjM5MzIgMzkuODA0NiAxOS42MTk0IDM2Ljg2ODMgMTYuMzY5M0wzNi44NjcxIDE2LjM3MThaTTIxLjgzMTcgMzcuMzg2QzIwLjA3OCAzNy4zODg1IDE4LjM3OTIgMzYuNzc0NyAxNy4wMzI5IDM1LjY1MDlDMTcuMDk0MSAzNS42MTg0IDE3LjIwMDQgMzUuNTU5NyAxNy4yNjkxIDM1LjUxNzJMMjUuMjM0MyAzMC45MTcxQzI1LjY0MTggMzAuNjg1OCAyNS44OTE4IDMwLjI1MjEgMjUuODg5MyAyOS43ODMzVjE4LjU1NDNMMjkuMjU1NyAyMC40OTgxQzI5LjI5MTkgMjAuNTE1NiAyOS4zMTU3IDIwLjU1MDYgMjkuMzIwNyAyMC41OTA2VjI5Ljg4OTZDMjkuMzE1NyAzNC4wMjQ3IDI1Ljk2NjggMzcuMzc3MiAyMS44MzE3IDM3LjM4NlpNNS43MjY0IDMwLjUwNzFDNC44NDc2MyAyOC45ODk2IDQuNTMxMzcgMjcuMjEwOCA0LjgzMjYzIDI1LjQ4NDVDNC44OTEzOCAyNS41MTk1IDQuOTk1MTMgMjUuNTgzMiA1LjA2ODg4IDI1LjYyNTdMMTMuMDM0MSAzMC4yMjU4QzEzLjQzNzggMzAuNDYyMSAxMy45Mzc4IDMwLjQ2MjEgMTQuMzQyOCAzMC4yMjU4TDI0LjA2NjggMjQuNjEwN1YyOC40OTgzQzI0LjA2OTMgMjguNTM4MyAyNC4wNTA1IDI4LjU3NyAyNC4wMTkzIDI4LjYwMkwxNS45Njc5IDMzLjI1MDlDMTIuMzgxNSAzNS4zMTU5IDcuODAxNDQgMzQuMDg4NCA1LjcyNzY1IDMwLjUwNzFINS43MjY0Wk0zLjYzMDEgMTMuMTIwNUM0LjUwNTEyIDExLjYwMDQgNS44ODY0IDEwLjQzNzkgNy41MzE0NCA5LjgzNDE1QzcuNTMxNDQgOS45MDI5IDcuNTI3NjkgMTAuMDI0MiA3LjUyNzY5IDEwLjEwOTJWMTkuMzEwNkM3LjUyNTE5IDE5Ljc3ODEgNy43NzUxOSAyMC4yMTE5IDguMTgxNDUgMjAuNDQzMUwxNy45MDU0IDI2LjA1N0wxNC41MzkxIDI4LjAwMDhDMTQuNTA1MyAyOC4wMjMzIDE0LjQ2MjggMjguMDI3IDE0LjQyNTMgMjguMDEwOEw2LjM3MjY2IDIzLjM1ODJDMi43OTM4MyAyMS4yODU2IDEuNTY2MzEgMTYuNzA2OCAzLjYyODg1IDEzLjEyMTdMMy42MzAxIDEzLjEyMDVaTTMxLjI4ODIgMTkuNTU2OUwyMS41NjQyIDEzLjk0MTdMMjQuOTMwNiAxMS45OTkyQzI0Ljk2NDMgMTEuOTc2NyAyNS4wMDY4IDExLjk3MjkgMjUuMDQ0MyAxMS45ODkyTDMzLjA5NyAxNi42MzhDMzYuNjgyMSAxOC43MDkzIDM3LjkxMDggMjMuMjk1NyAzNS44Mzk1IDI2Ljg4MDhDMzQuOTYzMyAyOC4zOTgzIDMzLjU4MzIgMjkuNTYwOCAzMS45Mzk1IDMwLjE2NThWMjAuNjg5NEMzMS45NDMyIDIwLjIyMTkgMzEuNjk0NSAxOS43ODk0IDMxLjI4OTQgMTkuNTU2OUgzMS4yODgyWk0zNC42MzgzIDE0LjUxNDJDMzQuNTc5NSAxNC40NzggMzQuNDc1OCAxNC40MTU1IDM0LjQwMiAxNC4zNzNMMjYuNDM2OCA5Ljc3Mjg5QzI2LjAzMzEgOS41MzY2NCAyNS41MzMxIDkuNTM2NjQgMjUuMTI4MSA5Ljc3Mjg5TDE1LjQwNDEgMTUuMzg4VjExLjUwMDRDMTUuNDAxNiAxMS40NjA0IDE1LjQyMDQgMTEuNDIxNyAxNS40NTE2IDExLjM5NjdMMjMuNTAzIDYuNzUxNThDMjcuMDg5NCA0LjY4Mjc5IDMxLjY3NDUgNS45MTQwNiAzMy43NDIgOS41MDE2NEMzNC42MTU4IDExLjAxNjcgMzQuOTMyIDEyLjc5MDUgMzQuNjM1OCAxNC41MTQySDM0LjYzODNaTTEzLjU3NDEgMjEuNDQzMUwxMC4yMDY1IDE5LjQ5OTRDMTAuMTcwMiAxOS40ODE5IDEwLjE0NjUgMTkuNDQ2OCAxMC4xNDE1IDE5LjQwNjhWMTAuMTA3OUMxMC4xNDQgNS45Njc4MSAxMy41MDI4IDIuNjEyNzQgMTcuNjQyOSAyLjYxNTI0QzE5LjM5NDIgMi42MTUyNCAyMS4wODkyIDMuMjMwMjUgMjIuNDM1NSA0LjM1MDI4QzIyLjM3NDMgNC4zODI3OCAyMi4yNjkzIDQuNDQxNTMgMjIuMTk5MiA0LjQ4NDAzTDE0LjIzNDEgOS4wODQxM0MxMy44MjY2IDkuMzE1MzggMTMuNTc2NiA5Ljc0Nzg5IDEzLjU3OTEgMTAuMjE2N0wxMy41NzQxIDIxLjQ0MDZWMjEuNDQzMVpNMTUuNDAyOSAxNy41MDA2TDE5LjczNDIgMTQuOTk5M0wyNC4wNjU1IDE3LjQ5OTNWMjIuNTAwN0wxOS43MzQyIDI1LjAwMDdMMTUuNDAyOSAyMi41MDA3VjE3LjUwMDZaIiBmaWxsPSIjN0Q3RDg3Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "OpenAI Chat Model",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1225,
+        "icon": "file:form.svg",
+        "name": "n8n-nodes-base.formTrigger",
+        "codex": {
+          "data": {
+            "alias": [
+              "table",
+              "submit",
+              "post"
+            ],
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.formtrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Other Trigger Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "On form submission"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NiIgaGVpZ2h0PSI0MCIgZmlsbD0ibm9uZSI+PHBhdGggZmlsbD0iIzAwQjdCQyIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzQuOTc4IDM3LjczMmExLjU2IDEuNTYgMCAwIDEtMS41NjIgMS41NjNINi4yNmExLjU2IDEuNTYgMCAwIDEtMS41NjMtMS41NjNWOS42MDdjMC0uNDA1LjE1Ny0uNzk0LjQzOC0xLjA4Nmw2LjMwNC02LjUzMXY1LjM0NEg4LjIxM2ExLjE3MiAxLjE3MiAwIDEgMCAwIDIuMzQzaDQuNDNhMS4xNyAxLjE3IDAgMCAwIDEuMTcxLTEuMTcxVi4yMzJoMTkuNjAyYTEuNTYgMS41NiAwIDAgMSAxLjU2MiAxLjU2M3YxMC4zMjdsLTIuODYgMi44Ni04LjI1MiA4LjI3NmE0MTMuMDA2IDQxMy4wMDYgMCAwIDEtMS42NTQgMS42NjJsLS4zMzcuMzM3YTIgMiAwIDAgMC0uNTU3IDEuMDhMMjAuMyAzMS45MjJjLS4xMDguNjM4LS4yMTUgMS4wNzkuMjExIDEuNDE4LjQwMy4zMi45LjE3NCAxLjU0LjA2Nmw1LjQwOC0uOTI4YTIgMiAwIDAgMCAxLjA4LS41NTZsNi40NC02LjQyOXptLTI0LjAzLTIxLjI2NWExLjE4IDEuMTggMCAwIDAgMS4xNzEgMS4xNzJoMTMuMTYzYTEuMTcyIDEuMTcyIDAgMSAwIDAtMi4zNDRIMTIuMTE5YTEuMTcgMS4xNyAwIDAgMC0xLjE3MiAxLjE3Mm03LjI5NCAxNC43NjZhMS4xNyAxLjE3IDAgMCAwLTEuMTcyLTEuMTcySDEyLjEyYTEuMTcyIDEuMTcyIDAgMSAwIDAgMi4zNDNoNC45NTFhMS4xNyAxLjE3IDAgMCAwIDEuMTcyLTEuMTcybS44Ni03LjM5MWExLjE3IDEuMTcgMCAwIDAtMS4xNzItMS4xNzJoLTUuODExYTEuMTcyIDEuMTcyIDAgMSAwIDAgMi4zNDNoNS44MWExLjE2NCAxLjE2NCAwIDAgMCAxLjE3My0xLjE3MSIgY2xpcC1ydWxlPSJldmVub2RkIi8+PHBhdGggZmlsbD0iIzAwQjdCQyIgZD0ibTMzLjUzMiAxNi4zOTcgNC4yODktNC4yODkgMy43NTggMy43MSAxLjYxNy0xLjYxNiAyLjI1OCAyLjI1N2MuMjE4LjIxOC4zNC41MTMuMzQzLjgyLS4wMDIuMzExLS4xMjUuNjA4LS4zNDQuODNsLTYuODA0IDYuNzk2YTEuMTMgMS4xMyAwIDAgMS0uODI4LjM0MyAxLjE1IDEuMTUgMCAwIDEtLjgyOC0uMzQzIDEuMTggMS4xOCAwIDAgMSAwLTEuNjU3bDUuOTc2LTUuOTY4LTEuMzEyLTEuMzEzLTEuMzgzIDEuNDE0LTEzLjE0OSAxMy4xMjUtNC42MTcuNzgyLjc4Mi00LjYxNy4zMzYtLjMzNyAyLjU2MiAyLjU1NWExLjEgMS4xIDAgMCAwIC44MjguMzQ0Yy4zMTIuMDA1LjYxMi0uMTIuODI4LS4zNDRhMS4xOCAxLjE4IDAgMCAwIDAtMS42NTZsLTIuNTYyLTIuNTYyek00NC43MzYgMTIuMjRjMCAuNDE0LS4xNjMuODEtLjQ1NCAxLjEwMmwtLjkyMi45MTQtMy44NTItMy44MjguOTMtLjkzYTEuNTYzIDEuNTYzIDAgMCAxIDIuMjAzIDBsMS42NCAxLjY0MWMuMjkxLjI5My40NTUuNjkuNDU1IDEuMTAyIi8+PC9zdmc+"
+        },
+        "displayName": "n8n Form Trigger",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 31,
+        "name": "Content Creation"
+      },
+      {
+        "id": 51,
+        "name": "Multimodal AI"
+      }
+    ],
+    "image": []
+  }
+}

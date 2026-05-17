@@ -1,0 +1,1424 @@
+{
+  "workflow": {
+    "id": 15555,
+    "name": "Send a daily GitHub Trending digest to Telegram using Google Gemini",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-08T13:01:19.202Z",
+    "description": "## **Daily GitHub Trending AI Digest to Telegram**\n\nThis workflow generates a daily AI-powered GitHub Trending digest and sends it to Telegram using GitHub Trending, GitHub README data, and Google Gemini.\n\nIt fetches trending repositories from GitHub, extracts the top repository links, retrieves each repository README through the GitHub API, builds a structured AI payload, asks Gemini to summarize the repositories, and delivers the result as a clean Telegram digest.\n\nIt is useful for developers, builders, researchers, and tech enthusiasts who want to discover interesting open-source projects without manually browsing GitHub Trending every day.\n\n## **Common use cases:**\n\n- Send a daily GitHub Trending digest to your Telegram\n- Discover useful open-source repositories automatically\n- Monitor new developer tools, AI projects, frameworks, and libraries\n- Build a personal open-source discovery assistant\n- Learn how to combine web extraction, GitHub API data, LLM summarization, and Telegram in n8n\n\n## **How it works**\n\n- Starts from a Schedule Trigger, which you can customize\n- Sets the number of repositories to include in the digest\n- Fetches the GitHub Trending page\n- Extracts trending repository links from the page\n- Splits the repository links into individual items\n- Builds GitHub repository URLs and GitHub README API URLs\n- Limits the workflow to the configured number of repositories\n- Fetches each repository README using the GitHub API\n- Decodes README content from base64\n- Builds one structured AI payload containing all selected repositories\n- Sends the payload to Google Gemini\n- Parses Gemini\u2019s response into structured JSON\n- Formats the result into a Telegram message\n- Sends the AI-generated digest to Telegram\n\n## **Setup steps**\n\n- Set the number of repositories in the **Set Digest Config** node\n- Connect your Google Gemini credentials\n- Connect your Telegram credentials\n- Set your Telegram chat ID in the Telegram node\n- Adjust the Schedule Trigger if you want a different run time\n- Test the workflow manually\n- Activate the workflow\n\n## **Notes**\n\nThis workflow uses GitHub Trending page data and GitHub public README API data.\nGitHub does not provide an official Trending API endpoint, so the workflow extracts repository links from the GitHub Trending page.\n\nThe AI summaries are generated only from the provided repository URLs and README excerpts. If a README is missing or unclear, the summary quality may be limited.\n\n## **Need Help?**\n\nHave questions or want to connect? Reach me on [LinkedIn](https://www.linkedin.com/in/athaahsan/).",
+    "workflow": {
+      "id": "BkuOlADl395O2Ekj",
+      "meta": {
+        "instanceId": "295d4a7d333d7aa95a78f37492548561d9c7f9ef47d3e764b3734cc6a62abfc7",
+        "templateCredsSetupCompleted": true
+      },
+      "name": "Daily GitHub Trending AI Digest to Telegram",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "eb3367ea-896d-4e98-9841-886b219045a4",
+          "name": "Schedule Trigger",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "position": [
+            -400,
+            320
+          ],
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "triggerAtHour": 3
+                }
+              ]
+            }
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "3e2d5edb-eecd-43ed-b8fa-7c928ba4efd5",
+          "name": "Split Repository Links",
+          "type": "n8n-nodes-base.splitOut",
+          "position": [
+            496,
+            320
+          ],
+          "parameters": {
+            "options": {},
+            "fieldToSplitOut": "repositoryPaths"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "aa918b49-8dfa-48a8-a26e-95580b12a853",
+          "name": "Structured Output Parser",
+          "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+          "position": [
+            1760,
+            560
+          ],
+          "parameters": {
+            "schemaType": "manual",
+            "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"repositories\": {\n      \"type\": \"array\",\n      \"description\": \"Summaries for all repositories provided in the input.\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"url\": {\n            \"type\": \"string\",\n            \"description\": \"The exact GitHub repository URL provided in the input. Do not modify or shorten it.\"\n          },\n          \"summary\": {\n            \"type\": \"string\",\n            \"description\": \"One concise sentence explaining what the repository does.\"\n          },\n          \"why_it_matters\": {\n            \"type\": \"string\",\n            \"description\": \"Brief explanation of why developers might care about this repository.\"\n          },\n          \"best_for\": {\n            \"type\": \"string\",\n            \"description\": \"Who this repository is most useful for.\"\n          },\n          \"keywords\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"string\"\n            },\n            \"description\": \"Three to five short technical keywords or tags.\"\n          }\n        },\n        \"required\": [\"url\", \"summary\", \"why_it_matters\", \"best_for\", \"keywords\"]\n      }\n    }\n  },\n  \"required\": [\"repositories\"]\n}"
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "4be797fa-b440-4986-879a-09fe9c9e731a",
+          "name": "Google Gemini Chat Model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+          "position": [
+            1616,
+            528
+          ],
+          "parameters": {
+            "options": {},
+            "modelName": "models/gemini-3-flash-preview"
+          },
+          "credentials": {
+            "googlePalmApi": {
+              "id": "Gc7P2Tc9s4PRe4PU",
+              "name": "Google Gemini(PaLM) Api account"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "8a7f4228-2a36-40ea-9f22-ca3297a75f72",
+          "name": "Send a text message",
+          "type": "n8n-nodes-base.telegram",
+          "position": [
+            2192,
+            320
+          ],
+          "webhookId": "d6668556-8fd4-45cd-a9e0-dc6c98c610c0",
+          "parameters": {
+            "text": "={{ $json.telegramMessage }}",
+            "additionalFields": {
+              "parse_mode": "Markdown",
+              "appendAttribution": false
+            }
+          },
+          "credentials": {
+            "telegramApi": {
+              "id": "JJXmd7p4TrJxbx4H",
+              "name": "Telegram account 2"
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "0c179f0b-2b09-4476-b363-d7fef3321e64",
+          "name": "Set Digest Config",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            -176,
+            320
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "f82d94e0-c567-4898-9382-478cc09774f8",
+                  "name": "n_repos",
+                  "type": "number",
+                  "value": 5
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "69e8fac0-12b1-4160-a26e-efa63350e0de",
+          "name": "Fetch GitHub Trending Page",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            48,
+            320
+          ],
+          "parameters": {
+            "url": "https://github.com/trending",
+            "options": {}
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "74667bd5-98ff-4905-9f36-6b9226406fcc",
+          "name": "Extract Trending Repository Links",
+          "type": "n8n-nodes-base.html",
+          "position": [
+            272,
+            320
+          ],
+          "parameters": {
+            "options": {
+              "trimValues": true,
+              "cleanUpText": true
+            },
+            "operation": "extractHtmlContent",
+            "extractionValues": {
+              "values": [
+                {
+                  "key": "repositoryPaths",
+                  "attribute": "href",
+                  "cssSelector": "article.Box-row h2 a",
+                  "returnArray": true,
+                  "returnValue": "attribute"
+                }
+              ]
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "6da3dd18-70c9-4de1-9b16-eb560333a9c7",
+          "name": "Build Repository URLs",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            720,
+            320
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "baff9a9f-020a-4968-bb80-a4a91a94144a",
+                  "name": "url",
+                  "type": "string",
+                  "value": "=https://github.com{{ $json.repositoryPaths }}"
+                },
+                {
+                  "id": "1436eefe-68a5-4024-9311-4b05fead5e54",
+                  "name": "readme",
+                  "type": "string",
+                  "value": "=https://api.github.com/repos{{ $json.repositoryPaths }}/readme"
+                }
+              ]
+            },
+            "includeOtherFields": "="
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "c7620056-87c9-4b69-ab7d-826e89e9c792",
+          "name": "Limit Repositories",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            944,
+            320
+          ],
+          "parameters": {
+            "jsCode": "const nRepos = $('Set Digest Config').first().json.n_repos ?? 5;\n\nreturn $input\n  .all()\n  .slice(0, nRepos);"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "5cf8bc01-abd7-43f7-84b2-55760417f49b",
+          "name": "Fetch Repository README",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            1168,
+            320
+          ],
+          "parameters": {
+            "url": "={{ $json.readme }}",
+            "options": {}
+          },
+          "typeVersion": 4.4
+        },
+        {
+          "id": "abc8e9de-8fdf-411c-b375-61012204baf9",
+          "name": "Build AI Digest Payload",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1392,
+            320
+          ],
+          "parameters": {
+            "jsCode": "const readmeItems = $input.all();\nconst originalItems = $('Limit Repositories').all();\n\nconst repositories = readmeItems.map((item, index) => {\n  const original = originalItems[index]?.json ?? {};\n  const readmeResponse = item.json;\n\n  let readmeText = \"README not available.\";\n\n  if (readmeResponse.content) {\n    readmeText = Buffer\n      .from(readmeResponse.content.replace(/\\n/g, \"\"), \"base64\")\n      .toString(\"utf8\");\n  }\n\n  return {\n    url: original.url,\n    readmeText: readmeText.slice(0, 8000)\n  };\n});\n\nreturn [\n  {\n    json: {\n      repositories\n    }\n  }\n];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "1c3c49b6-acf2-4b84-aeff-dee68b25d427",
+          "name": "Generate AI Repository Digest",
+          "type": "@n8n/n8n-nodes-langchain.chainLlm",
+          "position": [
+            1616,
+            320
+          ],
+          "parameters": {
+            "text": "=You are creating a concise daily GitHub Trending digest for developers.\n\nUse ONLY the provided repository URLs and README excerpts.\nDo not invent features, metrics, pricing, licensing, or tech stack details that are not clearly supported by the README.\nIf a README is unclear, say so briefly.\n\nReturn one structured JSON object with a \"repositories\" array containing one summary object for each repository.\n\nRepositories:\n{{ JSON.stringify($json.repositories, null, 2) }}",
+            "batching": {},
+            "messages": {
+              "messageValues": [
+                {
+                  "message": "You are a technical content curator. Your job is to summarize GitHub repositories accurately for a developer audience. Be concise, useful, and grounded only in the provided README."
+                }
+              ]
+            },
+            "promptType": "define",
+            "hasOutputParser": true
+          },
+          "typeVersion": 1.9
+        },
+        {
+          "id": "881bdaf3-638d-4978-9b47-a788ce6d083f",
+          "name": "Format Telegram Message",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1968,
+            320
+          ],
+          "parameters": {
+            "jsCode": "const repos = $json.output.repositories;\n\nfunction repoNameFromUrl(url) {\n  return url.replace(\"https://github.com/\", \"\");\n}\n\nfunction pickEmoji(keywords = []) {\n  const text = keywords.join(\" \").toLowerCase();\n\n  if (text.includes(\"ai\") || text.includes(\"llm\") || text.includes(\"agent\")) return \"\ud83e\udd16\";\n  if (text.includes(\"finance\") || text.includes(\"trading\")) return \"\ud83d\udcb8\";\n  if (text.includes(\"developer\") || text.includes(\"coding\") || text.includes(\"software\")) return \"\ud83e\uddd1\u200d\ud83d\udcbb\";\n  if (text.includes(\"terminal\") || text.includes(\"cli\") || text.includes(\"tui\")) return \"\u2328\ufe0f\";\n  if (text.includes(\"performance\") || text.includes(\"optimization\") || text.includes(\"inference\")) return \"\u26a1\";\n  if (text.includes(\"security\")) return \"\ud83d\udee1\ufe0f\";\n\n  return \"\ud83d\ude80\";\n}\n\nconst today = new Date().toISOString().slice(0, 10);\n\nconst blocks = repos.map((repo, index) => {\n  const name = repoNameFromUrl(repo.url);\n  const keywords = repo.keywords.map(k => `#${k.replace(/\\s+/g, \"\")}`).join(\" \");\n  const emoji = pickEmoji(repo.keywords);\n\n  return [\n    `${emoji} *${index + 1}. [${name}](${repo.url})*`,\n    `\ud83e\udde9 *What it is:* ${repo.summary}`,\n    `\u2728 *Why it matters:* ${repo.why_it_matters}`,\n    `\ud83c\udfaf *Best for:* ${repo.best_for}`,\n    `\ud83c\udff7\ufe0f ${keywords}`\n  ].join(\"\\n\");\n});\n\nconst message = [\n  \"\ud83d\udd25 *Daily GitHub Trending AI Digest*\",\n  `\ud83d\udcc5 ${today}`,\n  \"Fresh repos worth a quick look today:\",\n  \"\",\n  blocks.join(\"\\n\\n\"),\n  \"\",\n  \"\u2014\",\n  \"_Generated from GitHub Trending READMEs using AI._\"\n].join(\"\\n\");\n\nreturn [\n  {\n    json: {\n      telegramMessage: message\n    }\n  }\n];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "9fa859d0-52c6-4992-8de3-f042bc1ad8ee",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -1360,
+            -304
+          ],
+          "parameters": {
+            "width": 880,
+            "height": 1136,
+            "content": "## **Daily GitHub Trending AI Digest to Telegram**\n\nThis workflow generates a daily AI-powered GitHub Trending digest and sends it to Telegram using GitHub Trending, GitHub README data, and Google Gemini.\n\nIt fetches trending repositories from GitHub, extracts the top repository links, retrieves each repository README through the GitHub API, builds a structured AI payload, asks Gemini to summarize the repositories, and delivers the result as a clean Telegram digest.\n\nIt is useful for developers, builders, researchers, and tech enthusiasts who want to discover interesting open-source projects without manually browsing GitHub Trending every day.\n\n## **Common use cases:**\n\n- Send a daily GitHub Trending digest to your Telegram\n- Discover useful open-source repositories automatically\n- Monitor new developer tools, AI projects, frameworks, and libraries\n- Build a personal open-source discovery assistant\n- Learn how to combine web extraction, GitHub API data, LLM summarization, and Telegram in n8n\n\n## **How it works**\n\n- Starts from a Schedule Trigger, which you can customize\n- Sets the number of repositories to include in the digest\n- Fetches the GitHub Trending page\n- Extracts trending repository links from the page\n- Splits the repository links into individual items\n- Builds GitHub repository URLs and GitHub README API URLs\n- Limits the workflow to the configured number of repositories\n- Fetches each repository README using the GitHub API\n- Decodes README content from base64\n- Builds one structured AI payload containing all selected repositories\n- Sends the payload to Google Gemini\n- Parses Gemini\u2019s response into structured JSON\n- Formats the result into a Telegram message\n- Sends the AI-generated digest to Telegram\n\n## **Setup steps**\n\n- Set the number of repositories in the **Set Digest Config** node\n- Connect your Google Gemini credentials\n- Connect your Telegram credentials\n- Set your Telegram chat ID in the Telegram node\n- Adjust the Schedule Trigger if you want a different run time\n- Test the workflow manually\n- Activate the workflow\n\n## **Notes**\n\nThis workflow uses GitHub Trending page data and GitHub public README API data.\nGitHub does not provide an official Trending API endpoint, so the workflow extracts repository links from the GitHub Trending page.\n\nThe AI summaries are generated only from the provided repository URLs and README excerpts. If a README is missing or unclear, the summary quality may be limited.\n\n## **Need Help?**\n\nHave questions or want to connect? Reach me on [LinkedIn](https://www.linkedin.com/in/athaahsan/)."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "1c78c805-c93b-4687-bbee-5b70c02491ee",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -448,
+            64
+          ],
+          "parameters": {
+            "width": 416,
+            "height": 464,
+            "content": "## 1. Configure before running\n\n- Adjust the Schedule Trigger to choose when the digest should run.\n- Set `n_repos` in **Set Digest Config** to control how many trending repositories are included.\n- Recommended value: `5`.\n\nThis workflow sends one AI-generated GitHub Trending digest to Telegram."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "8c67b749-c01a-4608-8153-d264dc73355d",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            0,
+            48
+          ],
+          "parameters": {
+            "width": 1088,
+            "height": 480,
+            "content": "## 2. Fetch GitHub Trending repositories\n\nThis section fetches the GitHub Trending page and extracts repository links.\n\nIt then:\n- Splits repository links into individual items\n- Builds each GitHub repository URL\n- Builds each GitHub README API URL\n- Limits the workflow to the configured number of repositories\n\nGitHub does not provide an official Trending API endpoint, so this workflow extracts links from the public Trending page."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "0a2b7660-31e4-427c-8576-8e7fbc79d8c1",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1120,
+            -16
+          ],
+          "parameters": {
+            "width": 416,
+            "height": 544,
+            "content": "## 3. Fetch and prepare README content\n\nThis section fetches README data for each selected repository using the GitHub API.\n\nThe Code node:\n- Decodes README content from base64\n- Trims each README to a safe excerpt size\n- Builds one structured payload containing all selected repositories\n\nThe AI model uses these README excerpts as the source material for the digest."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "bfdd09b4-bce9-4288-9b81-84527d56bfce",
+          "name": "Sticky Note4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1568,
+            -48
+          ],
+          "parameters": {
+            "width": 320,
+            "height": 784,
+            "content": "## 4. Generate AI repository digest\n\nGemini receives one structured payload containing all selected repositories.\n\nIt generates:\n- Repository URL\n- Concise summary\n- Why it matters\n- Best-fit audience\n- Technical keywords\n\nThe Structured Output Parser ensures the response is returned as clean JSON for formatting."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "e23fe4bf-0c7a-42c0-85fa-fd0ef7923567",
+          "name": "Sticky Note5",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1920,
+            0
+          ],
+          "parameters": {
+            "width": 400,
+            "height": 544,
+            "content": "## 5. Format and send to Telegram\n\nThis section formats Gemini\u2019s structured JSON output into a readable Telegram digest.\n\nThe message includes:\n- Repository links\n- Short summaries\n- Why each repo matters\n- Best-fit audience\n- Keyword tags\n\nConnect your Telegram credentials and set your chat ID before activating the workflow."
+          },
+          "typeVersion": 1
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "dce071e3-eb73-41d9-9108-a88dc61d607c",
+      "connections": {
+        "Schedule Trigger": {
+          "main": [
+            [
+              {
+                "node": "Set Digest Config",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Set Digest Config": {
+          "main": [
+            [
+              {
+                "node": "Fetch GitHub Trending Page",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Limit Repositories": {
+          "main": [
+            [
+              {
+                "node": "Fetch Repository README",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Repository URLs": {
+          "main": [
+            [
+              {
+                "node": "Limit Repositories",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Split Repository Links": {
+          "main": [
+            [
+              {
+                "node": "Build Repository URLs",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build AI Digest Payload": {
+          "main": [
+            [
+              {
+                "node": "Generate AI Repository Digest",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch Repository README": {
+          "main": [
+            [
+              {
+                "node": "Build AI Digest Payload",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Format Telegram Message": {
+          "main": [
+            [
+              {
+                "node": "Send a text message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Google Gemini Chat Model": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "Generate AI Repository Digest",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Structured Output Parser": {
+          "ai_outputParser": [
+            [
+              {
+                "node": "Generate AI Repository Digest",
+                "type": "ai_outputParser",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch GitHub Trending Page": {
+          "main": [
+            [
+              {
+                "node": "Extract Trending Repository Links",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Generate AI Repository Digest": {
+          "main": [
+            [
+              {
+                "node": "Format Telegram Message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Extract Trending Repository Links": {
+          "main": [
+            [
+              {
+                "node": "Split Repository Links",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 20,
+      "nodeTypes": {
+        "n8n-nodes-base.set": {
+          "count": 2
+        },
+        "n8n-nodes-base.code": {
+          "count": 3
+        },
+        "n8n-nodes-base.html": {
+          "count": 1
+        },
+        "n8n-nodes-base.splitOut": {
+          "count": 1
+        },
+        "n8n-nodes-base.telegram": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 6
+        },
+        "n8n-nodes-base.httpRequest": {
+          "count": 2
+        },
+        "n8n-nodes-base.scheduleTrigger": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.chainLlm": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.lmChatGoogleGemini": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.outputParserStructured": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Atha Ahsan Xavier Haris",
+      "username": "athaahsan",
+      "bio": "Interdisciplinary AI, Data & Automation Developer",
+      "verified": true,
+      "links": [
+        "https://athaahsan.com/"
+      ],
+      "avatar": "https://gravatar.com/avatar/8347c766e2155f85480770e1eb37c87b70e097745c29c959b55e8c0b881659b5?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 19,
+        "icon": "file:httprequest.svg",
+        "name": "n8n-nodes-base.httpRequest",
+        "codex": {
+          "data": {
+            "alias": [
+              "API",
+              "Request",
+              "URL",
+              "Build",
+              "cURL"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-designs-with-bannerbear-and-n8n/",
+                  "icon": "\ud83c\udfa8",
+                  "label": "Automate Designs with Bannerbear and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-use-the-http-request-node-the-swiss-army-knife-for-workflow-automation/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "How to use the HTTP Request Node - The Swiss Army Knife for Workflow Automation"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HTTP Request",
+          "color": "#0004F5"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MCAyMEM0MCA4Ljk1MzE0IDMxLjA0NjkgMCAyMCAwQzguOTUzMTQgMCAwIDguOTUzMTQgMCAyMEMwIDMxLjA0NjkgOC45NTMxNCA0MCAyMCA0MEMzMS4wNDY5IDQwIDQwIDMxLjA0NjkgNDAgMjBaTTIwIDM2Ljk0NThDMTguODg1MiAzNi45NDU4IDE3LjEzNzggMzUuOTY3IDE1LjQ5OTggMzIuNjk4NUMxNC43OTY0IDMxLjI5MTggMTQuMTk2MSAyOS41NDMxIDEzLjc1MjYgMjcuNjg0N0gyNi4xODk4QzI1LjgwNDUgMjkuNTQwMyAyNS4yMDQ0IDMxLjI5MDEgMjQuNTAwMiAzMi42OTg1QzIyLjg2MjIgMzUuOTY3IDIxLjExNDggMzYuOTQ1OCAyMCAzNi45NDU4Wk0xMi45MDY0IDIwQzEyLjkwNjQgMjEuNjA5NyAxMy4wMDg3IDIzLjE2NCAxMy4yMDAzIDI0LjYzMDVIMjYuNzk5N0MyNi45OTEzIDIzLjE2NCAyNy4wOTM2IDIxLjYwOTcgMjcuMDkzNiAyMEMyNy4wOTM2IDE4LjM5MDMgMjYuOTkxMyAxNi44MzYgMjYuNzk5NyAxNS4zNjk1SDEzLjIwMDNDMTMuMDA4NyAxNi44MzYgMTIuOTA2NCAxOC4zOTAzIDEyLjkwNjQgMjBaTTIwIDMuMDU0MTlDMjEuMTE0OSAzLjA1NDE5IDIyLjg2MjIgNC4wMzA3OCAyNC41MDAxIDcuMzAwMzlDMjUuMjA2NiA4LjcxNDA4IDI1LjgwNzIgMTAuNDA2NyAyNi4xOTIgMTIuMzE1M0gxMy43NTAxQzE0LjE5MzMgMTAuNDA0NyAxNC43OTQyIDguNzEyNTQgMTUuNDk5OCA3LjMwMDY0QzE3LjEzNzcgNC4wMzA4MyAxOC44ODUxIDMuMDU0MTkgMjAgMy4wNTQxOVpNMzAuMTQ3OCAyMEMzMC4xNDc4IDE4LjQwOTkgMzAuMDU0MyAxNi44NjE3IDI5LjgyMjcgMTUuMzY5NUgzNi4zMDQyQzM2LjcyNTIgMTYuODQyIDM2Ljk0NTggMTguMzk2NCAzNi45NDU4IDIwQzM2Ljk0NTggMjEuNjAzNiAzNi43MjUyIDIzLjE1OCAzNi4zMDQyIDI0LjYzMDVIMjkuODIyN0MzMC4wNTQzIDIzLjEzODMgMzAuMTQ3OCAyMS41OTAxIDMwLjE0NzggMjBaTTI2LjI3NjcgNC4yNTUxMkMyNy42MzY1IDYuMzYwMTkgMjguNzExIDkuMTMyIDI5LjM3NzQgMTIuMzE1M0gzNS4xMDQ2QzMzLjI1MTEgOC42NjggMzAuMTA3IDUuNzgzNDYgMjYuMjc2NyA0LjI1NTEyWk0xMC42MjI2IDEyLjMxNTNINC44OTI5M0M2Ljc1MTQ3IDguNjY3ODQgOS44OTM1MSA1Ljc4MzQxIDEzLjcyMzIgNC4yNTUxM0MxMi4zNjM1IDYuMzYwMjEgMTEuMjg5IDkuMTMyMDEgMTAuNjIyNiAxMi4zMTUzWk0zLjA1NDE5IDIwQzMuMDU0MTkgMjEuNjAzIDMuMjc3NDMgMjMuMTU3NSAzLjY5NDg0IDI0LjYzMDVIMTAuMTIxN0M5Ljk0NjE5IDIzLjE0MiA5Ljg1MjIyIDIxLjU5NDMgOS44NTIyMiAyMEM5Ljg1MjIyIDE4LjQwNTcgOS45NDYxOSAxNi44NTggMTAuMTIxNyAxNS4zNjk1SDMuNjk0ODRDMy4yNzc0MyAxNi44NDI1IDMuMDU0MTkgMTguMzk3IDMuMDU0MTkgMjBaTTI2LjI3NjYgMzUuNzQyN0MyNy42MzY1IDMzLjYzOTMgMjguNzExIDMwLjg2OCAyOS4zNzc0IDI3LjY4NDdIMzUuMTA0NkMzMy4yNTEgMzEuMzMyMiAzMC4xMDY4IDM0LjIxNzkgMjYuMjc2NiAzNS43NDI3Wk0xMy43MjM0IDM1Ljc0MjdDOS44OTM2OSAzNC4yMTc5IDYuNzUxNTUgMzEuMzMyNCA0Ljg5MjkzIDI3LjY4NDdIMTAuNjIyNkMxMS4yODkgMzAuODY4IDEyLjM2MzUgMzMuNjM5MyAxMy43MjM0IDM1Ljc0MjdaIiBmaWxsPSIjM0E0MkU5Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "HTTP Request",
+        "typeVersion": 4,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 49,
+        "icon": "file:telegram.svg",
+        "name": "n8n-nodes-base.telegram",
+        "codex": {
+          "data": {
+            "alias": [
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/using-automation-to-boost-productivity-in-the-workplace/",
+                  "icon": "\ud83d\udcaa",
+                  "label": "Using Automation to Boost Productivity in the Workplace"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-telegram-bots-with-n8n-a-no-code-platform/",
+                  "icon": "\ud83d\udcac",
+                  "label": "Creating Telegram Bots with n8n, a No-Code Platform"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.telegram/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/telegram/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "Telegram"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgNjYgNjYiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48ZyBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSI+PHBhdGggZmlsbD0iIzM3YWVlMiIgZD0iTTAgMzJjMCAxNy42NzMgMTQuMzI3IDMyIDMyIDMyczMyLTE0LjMyNyAzMi0zMlM0OS42NzMgMCAzMiAwIDAgMTQuMzI3IDAgMzIiLz48cGF0aCBmaWxsPSIjYzhkYWVhIiBkPSJtMjEuNjYxIDM0LjMzOCAzLjc5NyAxMC41MDhzLjQ3NS45ODMuOTgzLjk4MyA4LjA2OC03Ljg2NCA4LjA2OC03Ljg2NGw4LjQwNy0xNi4yMzctMjEuMTE5IDkuODk4eiIvPjxwYXRoIGZpbGw9IiNhOWM2ZDgiIGQ9Im0yNi42OTUgMzcuMDM0LS43MjkgNy43NDZzLS4zMDUgMi4zNzMgMi4wNjggMGw0LjY0NC00LjIwMyIvPjxwYXRoIGQ9Im0yMS43MyAzNC43MTItNy44MDktMi41NDVzLS45MzItLjM3OC0uNjMzLTEuMjM3Yy4wNjItLjE3Ny4xODYtLjMyOC41NTktLjU4OCAxLjczMS0xLjIwNiAzMi4wMjgtMTIuMDk2IDMyLjAyOC0xMi4wOTZzLjg1Ni0uMjg4IDEuMzYxLS4wOTdjLjIzMS4wODguMzc4LjE4Ny41MDMuNTQ4LjA0NS4xMzIuMDcxLjQxMS4wNjguNjg5LS4wMDMuMjAxLS4wMjcuMzg2LS4wNDUuNjc4LS4xODQgMi45NzgtNS43MDYgMjUuMTk4LTUuNzA2IDI1LjE5OHMtLjMzIDEuMy0xLjUxNCAxLjM0NWMtLjQzMi4wMTYtLjk1Ni0uMDcxLTEuNTgyLS42MS0yLjMyMy0xLjk5OC0xMC4zNTItNy4zOTQtMTIuMTI2LTguNThhLjM0LjM0IDAgMCAxLS4xNDYtLjIzOWMtLjAyNS0uMTI1LjEwOC0uMjguMTA4LS4yOHMxMy45OC0xMi40MjcgMTQuMzUyLTEzLjczMWMuMDI5LS4xMDEtLjA3OS0uMTUxLS4yMjYtLjEwNy0uOTI5LjM0Mi0xNy4wMjUgMTAuNTA2LTE4LjgwMSAxMS42MjktLjEwNC4wNjYtLjM5NS4wMjMtLjM5NS4wMjMiLz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Telegram",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 839,
+        "icon": "fa:clock",
+        "name": "n8n-nodes-base.scheduleTrigger",
+        "codex": {
+          "data": {
+            "alias": [
+              "Time",
+              "Scheduler",
+              "Polling",
+              "Cron",
+              "Interval"
+            ],
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\",\"schedule\"]",
+        "defaults": {
+          "name": "Schedule Trigger",
+          "color": "#31C49F"
+        },
+        "iconData": {
+          "icon": "clock",
+          "type": "icon"
+        },
+        "displayName": "Schedule Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 842,
+        "icon": "file:html.svg",
+        "name": "n8n-nodes-base.html",
+        "codex": {
+          "data": {
+            "alias": [
+              "extract",
+              "template",
+              "table"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.html/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "HTML"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTguNjQwNjIgMEgxMC40Mzc1VjEuNzgxMjVIMTIuMDkzN1YwSDEzLjg5MDZWNS4zOTA2MkgxMi4wOTM3VjMuNTkzNzVIMTAuNDUzMVY1LjM5MDYySDguNjQwNjJNMTYuMjY1NiAxLjc5Njg3SDE0LjY3OTdWMEgxOS42NTYyVjEuNzk2ODdIMTguMDYyNVY1LjM5MDYySDE2LjI2NTZNMjAuNDQ1MyAwSDIyLjMyODFMMjMuNDg0NCAxLjg5ODQ0TDI0LjY0MDYgMEgyNi41MjM0VjUuMzkwNjJIMjQuNzI2NlYyLjcxODc1TDIzLjQ2ODcgNC42NTYyNUwyMi4yMTA5IDIuNzE4NzVWNS4zOTA2MkgyMC40NDUzTTI3LjQxNDEgMEgyOS4yMTA5VjMuNjA5MzdIMzEuNzU3OFY1LjM5MDYySDI3LjQxNDEiIGZpbGw9ImJsYWNrIi8+CjxwYXRoIGQ9Ik04LjU3ODEyIDM2Ljc5NjlMNiA3Ljg1OTM4SDM0LjM0MzdMMzEuNzY1NiAzNi43ODEyTDIwLjE0ODQgNDAiIGZpbGw9IiNFNDREMjYiLz4KPHBhdGggZD0iTTIwLjE3MTkgMzcuNTM5MVYxMC4yMzQ0SDMxLjc1NzhMMjkuNTQ2OSAzNC45MjE5IiBmaWxsPSIjRjE2NTI5Ii8+CjxwYXRoIGQ9Ik0xMS4yNjU2IDEzLjc3MzRIMjAuMTcxOVYxNy4zMjAzSDE1LjE1NjJMMTUuNDg0NCAyMC45NTMxSDIwLjE3MTlWMjQuNDkyMkgxMi4yMzQ0TTEyLjM5MDYgMjYuMjczNEgxNS45NTMxTDE2LjIwMzEgMjkuMTA5NEwyMC4xNzE5IDMwLjE3MTlWMzMuODc1TDEyLjg5MDYgMzEuODQzNyIgZmlsbD0iI0VCRUJFQiIvPgo8cGF0aCBkPSJNMjkuMDQ2OSAxMy43NzM0SDIwLjE1NjJWMTcuMzIwM0gyOC43MTg3TTI4LjM5ODQgMjAuOTUzMUgyMC4xNTYyVjI0LjVIMjQuNTMxMkwyNC4xMTcyIDI5LjEwOTRMMjAuMTU2MiAzMC4xNzE5VjMzLjg1OTRMMjcuNDIxOSAzMS44NDM3IiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K"
+        },
+        "displayName": "HTML",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1123,
+        "icon": "fa:link",
+        "name": "@n8n/n8n-nodes-langchain.chainLlm",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.chainllm/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Chains",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Basic LLM Chain",
+          "color": "#909298"
+        },
+        "iconData": {
+          "icon": "link",
+          "type": "icon"
+        },
+        "displayName": "Basic LLM Chain",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1179,
+        "icon": "fa:code",
+        "name": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "codex": {
+          "data": {
+            "alias": [
+              "json",
+              "zod"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.outputparserstructured/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Output Parsers"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Structured Output Parser"
+        },
+        "iconData": {
+          "icon": "code",
+          "type": "icon"
+        },
+        "displayName": "Structured Output Parser",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1239,
+        "icon": "file:splitOut.svg",
+        "name": "n8n-nodes-base.splitOut",
+        "codex": {
+          "data": {
+            "alias": [
+              "Split",
+              "Nested",
+              "Transform",
+              "Array",
+              "List",
+              "Item"
+            ],
+            "details": "",
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.splitout/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Split Out"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJub25lIj48ZyBmaWxsPSIjOUI2REQ1IiBjbGlwLXBhdGg9InVybCgjYSkiPjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTQ4MCAxNDhjMC02LjYyNy01LjM3My0xMi0xMi0xMkgzMjJjLTYuNjI3IDAtMTIgNS4zNzMtMTIgMTJ2MjRjMCA2LjYyNyA1LjM3MyAxMiAxMiAxMmgxNDZjNi42MjcgMCAxMi01LjM3MyAxMi0xMnptMCA5NmMwLTYuNjI3LTUuMzczLTEyLTEyLTEySDMyMmMtNi42MjcgMC0xMiA1LjM3My0xMiAxMnYyNGMwIDYuNjI3IDUuMzczIDEyIDEyIDEyaDE0NmM2LjYyNyAwIDEyLTUuMzczIDEyLTEyem0wIDk2YzAtNi42MjctNS4zNzMtMTItMTItMTJIMzIyYy02LjYyNyAwLTEyIDUuMzczLTEyIDEydjI0YzAgNi42MjcgNS4zNzMgMTIgMTIgMTJoMTQ2YzYuNjI3IDAgMTItNS4zNzMgMTItMTJ6IiBjbGlwLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNNDM4IDc2YzAgNi42MjctNS4zNzMgMTItMTIgMTJIMzA5Ljc4M2MtMTcuNjczIDAtMzIgMTQuMzI3LTMyIDMydjU2YzAgMjYuOTc4LTEwLjI3MiA1MS41NTctMjcuMTE5IDcwLjAzOS01LjA1NSA1LjU0NS01LjA1NSAxNC4zNzcgMCAxOS45MjIgMTYuODQ3IDE4LjQ4MiAyNy4xMTkgNDMuMDYxIDI3LjExOSA3MC4wMzl2NTZjMCAxNy42NzMgMTQuMzI3IDMyIDMyIDMySDQyNmM2LjYyNyAwIDEyIDUuMzczIDEyIDEydjI0YzAgNi42MjctNS4zNzMgMTItMTIgMTJIMzA5Ljc4M2MtNDQuMTgzIDAtODAtMzUuODE3LTgwLTgwdi01NmMwLTMwLjkyOC0yNS4wNzItNTYtNTYtNTZhNS43ODMgNS43ODMgMCAwIDEtNS43ODMtNS43ODN2LTM2LjQzNGE1Ljc4MyA1Ljc4MyAwIDAgMSA1Ljc4My01Ljc4M2MzMC45MjggMCA1Ni0yNS4wNzIgNTYtNTZ2LTU2YzAtNDQuMTgzIDM1LjgxNy04MCA4MC04MEg0MjZjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnoiLz48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMzYgMjQ0YzAtNi42MjctNS4zNzMtMTItMTItMTJIMTJjLTYuNjI3IDAtMTIgNS4zNzMtMTIgMTJ2MjRjMCA2LjYyNyA1LjM3MyAxMiAxMiAxMmgxMTJjNi42MjcgMCAxMi01LjM3MyAxMi0xMnoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvZz48ZGVmcz48Y2xpcFBhdGggaWQ9ImEiPjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik01MTIgMEgwdjUxMmg1MTJ6Ii8+PC9jbGlwUGF0aD48L2RlZnM+PC9zdmc+"
+        },
+        "displayName": "Split Out",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1262,
+        "icon": "file:google.svg",
+        "name": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmchatgooglegemini/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Language Models",
+                "Root Nodes"
+              ],
+              "Language Models": [
+                "Chat Models (Recommended)"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Google Gemini Chat Model"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2aWV3Qm94PSIwIDAgNDggNDgiPjxkZWZzPjxwYXRoIGlkPSJhIiBkPSJNNDQuNSAyMEgyNHY4LjVoMTEuOEMzNC43IDMzLjkgMzAuMSAzNyAyNCAzN2MtNy4yIDAtMTMtNS44LTEzLTEzczUuOC0xMyAxMy0xM2MzLjEgMCA1LjkgMS4xIDguMSAyLjlsNi40LTYuNEMzNC42IDQuMSAyOS42IDIgMjQgMiAxMS44IDIgMiAxMS44IDIgMjRzOS44IDIyIDIyIDIyYzExIDAgMjEtOCAyMS0yMiAwLTEuMy0uMi0yLjctLjUtNCIvPjwvZGVmcz48Y2xpcFBhdGggaWQ9ImIiPjx1c2UgeGxpbms6aHJlZj0iI2EiIG92ZXJmbG93PSJ2aXNpYmxlIi8+PC9jbGlwUGF0aD48cGF0aCBmaWxsPSIjRkJCQzA1IiBkPSJNMCAzN1YxMWwxNyAxM3oiIGNsaXAtcGF0aD0idXJsKCNiKSIvPjxwYXRoIGZpbGw9IiNFQTQzMzUiIGQ9Im0wIDExIDE3IDEzIDctNi4xTDQ4IDE0VjBIMHoiIGNsaXAtcGF0aD0idXJsKCNiKSIvPjxwYXRoIGZpbGw9IiMzNEE4NTMiIGQ9Im0wIDM3IDMwLTIzIDcuOSAxTDQ4IDB2NDhIMHoiIGNsaXAtcGF0aD0idXJsKCNiKSIvPjxwYXRoIGZpbGw9IiM0Mjg1RjQiIGQ9Ik00OCA0OCAxNyAyNGwtNC0zIDM1LTEweiIgY2xpcC1wYXRoPSJ1cmwoI2IpIi8+PC9zdmc+"
+        },
+        "displayName": "Google Gemini Chat Model",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 32,
+        "name": "Market Research"
+      },
+      {
+        "id": 49,
+        "name": "AI Summarization"
+      }
+    ],
+    "image": []
+  }
+}

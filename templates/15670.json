@@ -1,0 +1,1844 @@
+{
+  "workflow": {
+    "id": 15670,
+    "name": "Analyze your stock portfolio daily using Google Sheets, RSS, Groq LLM and Gmail",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-12T14:48:28.031Z",
+    "description": "# AI Portfolio Analysis & Reporting using Google Sheets, RSS, Groq LLM & Gmail\n\nThis n8n workflow automatically analyzes your stock portfolio every day at 4 PM. It fetches portfolio data from Google Sheets, enriches it with latest market news via RSS, generates AI-powered stock insights using LLM models and sends a professional portfolio report directly to your email.\n\n### Quick Implementation Steps\n\n1. [Import the workflow into your n8n account](https://n8n.partnerlinks.io/om1efg2qgvwi)\n2. Connect Google Sheets account and map your portfolio sheet  \n3. Add a valid RSS feed URL in the news node  \n4. Configure Groq API credentials for AI nodes  \n5. Set your recipient email in Gmail node  \n6. Activate the workflow  \n\n\n## What It Does\n\nThis workflow provides a fully automated system for analyzing your stock portfolio using both quantitative data and qualitative insights. It starts by reading your portfolio data from Google Sheets, including stock symbols, quantities and pricing details. It then calculates key performance metrics such as invested value, current value, profit/loss and return percentage for each stock.\n\nEach stock is processed individually. The workflow fetches recent news articles from an RSS feed, filters the most relevant updates and combines them with stock performance data. Using an AI model, it generates professional-grade insights that evaluate performance, interpret news sentiment and assess the stock\u2019s impact on your portfolio.\n\nAfter analyzing all stocks, the workflow aggregates the insights and generates a high-level portfolio summary. This includes overall performance, key drivers, risks and strategic outlook. Finally, everything is formatted into a clean report and delivered via email automatically.\n\n\n## Who It's For\n\n- Retail investors tracking their personal portfolios  \n- Financial analysts looking for automated insights  \n- Portfolio managers needing quick daily summaries  \n- Traders who want news-driven analysis  \n- Anyone interested in combining AI with investment tracking  \n\n\n## Requirements to Use This Workflow\n\n- [n8n login (self-hosted or cloud)](https://n8n.partnerlinks.io/om1efg2qgvwi)\n- Google Sheets account with portfolio data  \n- Groq API credentials (for LLM access)  \n- Gmail account (for sending reports)  \n- RSS feed URL for stock/market news  \n\n\n## How It Works & Setup Guide\n\n### Step 1: Schedule Trigger\n\n- The workflow runs automatically every day at **4 PM**\n- No manual intervention required once activated  \n\n### Step 2: Configure Google Sheets\n\n- Connect your Google Sheets account  \n- Use the following structure:\n\n| Column Name     | Description                         |\n|----------------|-------------------------------------|\n| Symbol         | Stock ticker (e.g., INFY, TCS)      |\n| Quantity       | Number of shares held               |\n| Avg Price      | Average purchase price              |\n| Current Price  | Latest market price                 |\n\n### Step 3: Portfolio Metrics Calculation\n\n- Automatically calculates:\n  - Invested Value  \n  - Current Value  \n  - Profit/Loss (PnL)  \n  - Return Percentage  \n\n### Step 4: Stock Iteration\n\n- Each stock is processed individually using batch iteration  \n\n### Step 5: Configure RSS Feed\n\n- Add a valid RSS feed URL in **\u201cFetch Stock News (RSS)\u201d** node  \n- This is required to fetch latest market news  \n\n### Step 6: AI Stock-Level Analysis\n\n- Connect Groq credentials  \n- AI evaluates:\n  - Performance strength  \n  - News sentiment  \n  - Portfolio impact  \n  - Actionable stance  \n\n### Step 7: Rate Limiting\n\n- A wait node ensures API rate limits are respected  \n\n### Step 8: Aggregate Insights\n\n- Combines all stock-level AI outputs into structured data  \n\n### Step 9: Portfolio-Level AI Analysis\n\n- Generates:\n  - Overall portfolio view  \n  - Key drivers  \n  - Risks  \n  - Strategy  \n\n### Step 10: Report Formatting\n\n- Converts structured data into a readable text report  \n\n### Step 11: Email Delivery\n\n- Configure recipient email in **Gmail node**\n- Sends final report automatically  \n\n\n## How To Customize Nodes\n\n- **Google Sheets Node**  \n\nModify sheet ID or add more columns as needed  \n\n- **RSS Node**  \n\nReplace with any preferred financial news feed  \n\n- **AI Prompts**  \n\nAdjust prompts to match your analysis style in:\n  - \u201cGenerate Stock Insight\u201d\n  - \u201cGenerate Portfolio Insight\u201d\n\n- **Wait Node**  \n\nAdjust delay if hitting API limits  \n\n- **Email Node**  \n\nChange subject, format or switch to Slack/Telegram  \n\n\n## Add-ons (Extend Functionality)\n\n- Add Slack or Microsoft Teams notifications  \n- Store historical reports in a database  \n- Add stock price API for real-time updates  \n- Include charts or visual dashboards  \n- Integrate risk scoring or alerts  \n\n\n## Use Case Examples\n\n1. Daily automated portfolio performance tracking  \n2. News-driven investment monitoring  \n3. AI-assisted portfolio review for decision support  \n4. Risk identification in multi-stock portfolios  \n5. Generating investor-ready summary reports  \n\nThere can be many more use cases depending on how you customize the workflow.\n\n\n## Troubleshooting Guide\n\n| Issue | Possible Cause | Solution |\n|------|--------------|---------|\n| No data from Google Sheets | Incorrect sheet ID or permissions | Reconnect account and verify sheet access |\n| No news fetched | RSS URL not configured | Add a valid RSS feed URL |\n| AI node not working | Missing/invalid Groq credentials | Reconfigure API credentials |\n| Empty email output | Parsing issue or no data | Check Code nodes and AI output format |\n| Workflow not running | Schedule not active | Activate workflow in n8n |\n| Email not sent | Gmail not configured | Reconnect Gmail OAuth |\n\n\n## Need Help?\n\nIf you need assistance setting up this workflow, customizing AI prompts or building advanced automation solutions, our [n8n automation developers](https://www.weblineindia.com/hire-n8n-developers/) at WeblineIndia are here to help.\n\nWhether you want to extend this workflow with dashboards, alerts or deeper analytics, feel free to [reach out and get expert support](https://www.weblineindia.com/contact-us.html).\n",
+    "workflow": {
+      "id": "GJFkNrN20sj0s5Y4",
+      "meta": {
+        "instanceId": "68f1684478438da5ac3a597bbe860632e40e35e6226f01f7998cb96e3400584a",
+        "templateCredsSetupCompleted": true
+      },
+      "name": "AI Portfolio Analysis & Reporting",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "d68fe1dd-3f16-4a04-8a47-84558b3b14c3",
+          "name": "Fetch Portfolio (Google Sheets)",
+          "type": "n8n-nodes-base.googleSheets",
+          "position": [
+            -16,
+            -800
+          ],
+          "parameters": {
+            "options": {},
+            "sheetName": {
+              "__rl": true,
+              "mode": "list",
+              "value": 2038550601,
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1b5Th5axHDdj0L1xX8QUDmNeeV7jdapWGPeXxJcoXOPk/edit#gid=2038550601",
+              "cachedResultName": "Portfolio"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "1b5Th5axHDdj0L1xX8QUDmNeeV7jdapWGPeXxJcoXOPk",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1b5Th5axHDdj0L1xX8QUDmNeeV7jdapWGPeXxJcoXOPk/edit?usp=drivesdk",
+              "cachedResultName": "sample_portfolio"
+            }
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "credential-id",
+              "name": "Google Sheets account"
+            }
+          },
+          "typeVersion": 4.7
+        },
+        {
+          "id": "646c2c19-0343-4490-9809-357ed80ad65c",
+          "name": "Iterate Stocks",
+          "type": "n8n-nodes-base.splitInBatches",
+          "position": [
+            432,
+            -624
+          ],
+          "parameters": {
+            "options": {}
+          },
+          "typeVersion": 3
+        },
+        {
+          "id": "22ef2a13-f3d5-4106-a325-19075347d535",
+          "name": "Fetch Stock News (RSS)",
+          "type": "n8n-nodes-base.rssFeedRead",
+          "position": [
+            688,
+            -608
+          ],
+          "parameters": {
+            "url": "=https://news.google.com/rss/search?q={{ $json.symbol }}%20stock",
+            "options": {}
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "494a20d1-90b7-49e3-9a49-e7645079dd40",
+          "name": "Sort News by Date",
+          "type": "n8n-nodes-base.sort",
+          "position": [
+            912,
+            -608
+          ],
+          "parameters": {
+            "options": {},
+            "sortFieldsUi": {
+              "sortField": [
+                {
+                  "order": "descending",
+                  "fieldName": "isoDate"
+                }
+              ]
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "202b2f85-2916-47fc-b5f6-4e386e28532f",
+          "name": "Limit News (Top 5)",
+          "type": "n8n-nodes-base.limit",
+          "position": [
+            1168,
+            -608
+          ],
+          "parameters": {
+            "maxItems": 5
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "7d51d54c-6886-47db-945d-820e232846be",
+          "name": "Merge Stock Data + News",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1424,
+            -608
+          ],
+          "parameters": {
+            "jsCode": "const symbol = $('Iterate Stocks').first().json.symbol;\nconst quantity = $('Iterate Stocks').first().json.quantity;\nconst avg_price = $('Iterate Stocks').first().json.avg_price;\nconst current_price = $('Iterate Stocks').first().json.current_price;\nconst invested = $('Iterate Stocks').first().json.invested;\nconst value = $('Iterate Stocks').first().json.value;\nconst pnl = $('Iterate Stocks').first().json.pnl;\nconst return_pct = $('Iterate Stocks').first().json.return_pct;\n\nconst portfolio = {\n  quantity,\n  avg_price,\n  current_price,\n  invested,\n  value,\n  pnl,\n  return_pct\n}\n\nlet news = [];\n\nitems.forEach(element=>{\n  news.push(\n    {\n      title: element.json.title,\n      link: element.json.link\n    }\n  );\n});\n\nreturn [{\n  json: {\n    symbol,\n    portfolio,\n    news\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "ed8ff42b-0f9e-40a0-98e5-1bfad11d54a2",
+          "name": "Generate Stock Insight",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "position": [
+            1696,
+            -608
+          ],
+          "parameters": {
+            "text": "=You are an experienced Portfolio Manager managing equity portfolios in the Indian stock market.\n\nAnalyze the following SINGLE STOCK strictly based on:\n1. Its performance metrics\n2. Recent news headlines\n3. Portfolio impact\n\nINPUT:\n- Stock: {{ $json.symbol }}\n- Performance Data: {{ JSON.stringify($json) }}\n\nINSTRUCTIONS:\n\n1. PERFORMANCE ANALYSIS:\n- Evaluate return %, pnl and position size\n- Classify performance as Strong / Moderate / Weak\n\n2. NEWS INTERPRETATION:\n- Identify overall sentiment (Positive / Negative / Neutral)\n- Extract key themes (e.g., earnings, market fall, sector pressure)\n\n3. INSIGHT GENERATION:\n- Explain WHY the stock is moving (connect data + news)\n- Mention if news supports or contradicts performance\n\n4. PORTFOLIO IMPACT:\n- Assess if this stock is helping or hurting the portfolio\n- Highlight risk if negative trend continues\n\n5. ACTIONABLE VIEW:\n- Give a professional stance: Hold / Monitor / Caution / Positive Bias\n- Do NOT give direct buy/sell advice\n\nRULES:\n- Be concise (80\u2013120 words)\n- No generic statements\n- No repetition\n- Sound like a real fund manager note\n\nOUTPUT FORMAT (STRICT JSON ONLY):\n{\n  \"symbol\": \"{{ $json.symbol }}\",\n  \"performance_label\": \"\",\n  \"sentiment\": \"\",\n  \"insight\": \"\",\n  \"portfolio_impact\": \"\",\n  \"action\": \"\"\n}",
+            "options": {},
+            "promptType": "define"
+          },
+          "typeVersion": 3.1
+        },
+        {
+          "id": "7d6f0e09-c41a-4573-8105-ebef9c0a5152",
+          "name": "LLM (Stock Analysis)",
+          "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+          "position": [
+            1760,
+            -368
+          ],
+          "parameters": {
+            "model": "openai/gpt-oss-120b",
+            "options": {}
+          },
+          "credentials": {
+            "groqApi": {
+              "id": "credential-id",
+              "name": "Groq account"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "4f4078f3-0e8a-4cf5-85cb-5c6c0d5b2a32",
+          "name": "Rate Limit (Wait)",
+          "type": "n8n-nodes-base.wait",
+          "position": [
+            2096,
+            -608
+          ],
+          "webhookId": "9b04d4e5-2c76-4a7c-99bb-786ddcc574d3",
+          "parameters": {
+            "amount": 10
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "87add841-89ad-412a-85de-04feda51018d",
+          "name": "Aggregate Stock Insights",
+          "type": "n8n-nodes-base.aggregate",
+          "position": [
+            656,
+            -1184
+          ],
+          "parameters": {
+            "options": {},
+            "fieldsToAggregate": {
+              "fieldToAggregate": [
+                {
+                  "fieldToAggregate": "output"
+                }
+              ]
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "64993235-88c2-4fe0-bc86-d9c3286073e8",
+          "name": "Parse Stock AI Output",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            880,
+            -1184
+          ],
+          "parameters": {
+            "jsCode": "const rawOutputs = $json.output;\n\n// Convert string \u2192 JSON\nconst parsed = rawOutputs.map(str => JSON.parse(str));\n\nreturn [{\n  json: {\n    stocks: parsed\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "400e3f83-e865-4093-97ce-9ce08f7e1adf",
+          "name": "Generate Portfolio Insight",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "position": [
+            1088,
+            -1184
+          ],
+          "parameters": {
+            "text": "=You are a senior portfolio manager.\n\nYou are given structured stock-level insights.\n\nINPUT:\n{{ JSON.stringify($json.stocks) }}\n\nTASK:\n\n1. Classify overall portfolio performance (Positive / Mixed / Negative)\n2. Identify:\n   - Top contributors\n   - Key laggards\n3. Extract common themes (sector trends, risks, sentiment shifts)\n4. Highlight risks (negative sentiment, weak stocks)\n5. Provide a professional strategy view\n\nRULES:\n- 120 words max\n- No repetition\n- No listing each stock\n- Think like a hedge fund PM\n\nOUTPUT STRICT JSON:\n{\n  \"portfolio_view\": \"\",\n  \"drivers\": \"\",\n  \"risks\": \"\",\n  \"strategy\": \"\"\n}",
+            "options": {},
+            "promptType": "define"
+          },
+          "typeVersion": 3.1
+        },
+        {
+          "id": "96e514cf-0a6a-46f7-8087-64af7a04d50d",
+          "name": "LLM (Portfolio Analysis)",
+          "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+          "position": [
+            976,
+            -976
+          ],
+          "parameters": {
+            "model": "openai/gpt-oss-20b",
+            "options": {}
+          },
+          "credentials": {
+            "groqApi": {
+              "id": "credential-id",
+              "name": "Groq account"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "2de431f0-5e67-4397-b7f7-1900d7623cd2",
+          "name": "Parse Portfolio AI Output",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1392,
+            -1184
+          ],
+          "parameters": {
+            "jsCode": "const aiRaw = $json.output;\n\n// Remove markdown formatting\nconst clean = aiRaw\n  .replace(/```json/g, '')\n  .replace(/```/g, '')\n  .trim();\n\nconst ai = JSON.parse(clean);\n\nreturn [{\n  json: {\n    portfolio_ai: ai\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "6a8163a8-7b04-4244-ab62-8db131160bd6",
+          "name": "Merge Stocks + Portfolio Insight",
+          "type": "n8n-nodes-base.merge",
+          "position": [
+            1712,
+            -1024
+          ],
+          "parameters": {},
+          "typeVersion": 3.2
+        },
+        {
+          "id": "7a428ce5-e672-4f3b-beac-c32d614fcbc4",
+          "name": "Format Email Report",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1952,
+            -1024
+          ],
+          "parameters": {
+            "jsCode": "const items = $input.all();\n\n// Extract portfolio AI (first item)\nconst ai = items[0].json.portfolio_ai || {};\n\n// Extract stocks (second item)\nconst stocks = items[1].json.stocks || [];\n\nlet report = `Portfolio Report\\n\\n`;\n\n// Portfolio Section\nreport += `Portfolio Insights\\n`;\nreport += `\u2022 View: ${ai.portfolio_view || 'N/A'}\\n`;\nreport += `\u2022 Drivers: ${ai.drivers || 'N/A'}\\n`;\nreport += `\u2022 Risks: ${ai.risks || 'N/A'}\\n`;\nreport += `\u2022 Strategy: ${ai.strategy || 'N/A'}\\n\\n`;\n\n// Stock Section\nreport += `Stock-wise Analysis\\n`;\n\nstocks.forEach(s => {\n\n  report += `\\n${s.symbol}\\n`;\n  report += `Sentiment: ${s.sentiment || 'N/A'}\\n`;\n  report += `${s.insight || 'No insight available'}\\n`;\n});\n\nreturn [{\n  json: {\n    report_text: report\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "33b6885f-6594-4f88-b008-571652545c34",
+          "name": "Send Email (Gmail)",
+          "type": "n8n-nodes-base.gmail",
+          "position": [
+            2208,
+            -1024
+          ],
+          "webhookId": "fbdffbfe-4306-4e9c-8019-864dcfc8c7a9",
+          "parameters": {
+            "sendTo": "user@example.com",
+            "message": "={{ $json.report_text }}",
+            "options": {},
+            "subject": "Portfolio Performance Update",
+            "emailType": "text"
+          },
+          "credentials": {
+            "gmailOAuth2": {
+              "id": "credential-id",
+              "name": "Gmail OAuth2 API"
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "da3e30d1-b102-4e18-8b10-67f3bcfc8ced",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -976,
+            -1664
+          ],
+          "parameters": {
+            "width": 656,
+            "height": 576,
+            "content": "## AI Portfolio Performance & Insight Workflow\n\nThis workflow analyzes a stock portfolio using Google Sheets data and enhances it with AI-driven insights and market news.\n\n### How it works:\nThe workflow runs automatically every day at 4 PM using a schedule trigger, then reads portfolio data from Google Sheets. It calculates key metrics such as invested value, current value, profit/loss and return percentage. Each stock is processed individually, where recent news is fetched via RSS, filtered and combined with stock data. An AI model then generates professional stock-level insights.\n\nAfter all stocks are processed, the results are aggregated and passed to another AI step that generates an overall portfolio-level summary including performance view, key drivers, risks and strategy.\n\nFinally, both stock-level and portfolio-level insights are merged and formatted into a structured report, which is sent via email.\n\n### Setup steps:\n1. Configure Schedule Trigger (set time to 4 PM daily)\n2. Connect your Google Sheets account and update sheet structure\n3. Configure Groq/OpenAI credentials for AI nodes\n4. Verify RSS feed access (no auth required)\n5. Set your email in the final Gmail node"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "266ec9c5-35ce-4df5-90d5-c603e4fce165",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -288,
+            -1296
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 416,
+            "height": 1040,
+            "content": "## Data Source & Trigger\nRuns automatically every day at 4 PM and fetches portfolio data (symbols, quantity, pricing) from Google Sheets."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "02c3db0c-783b-4e95-a398-859fa48ecc66",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            144,
+            -1296
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 224,
+            "height": 1040,
+            "content": "## Portfolio Metrics Calculation\nComputes invested value, current value, profit/loss and return percentage for each stock."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "d6837552-1a77-4b3e-acd1-d98643d61110",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            384,
+            -816
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1216,
+            "height": 560,
+            "content": "## Stock Enrichment Pipeline\nProcesses each stock, fetches latest news, filters relevant articles and combines it with stock performance data."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "b706522f-7183-4ed6-9fb3-bbf076f3af7c",
+          "name": "Sticky Note4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1616,
+            -1296
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 784,
+            "height": 464,
+            "content": "## Reporting & Delivery\nMerges all insights into a final report, formats it and sends it via email automatically after execution."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "dede6972-7e50-439c-91e6-7e1eba4e5464",
+          "name": "Sticky Note5",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1616,
+            -816
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 784,
+            "height": 560,
+            "content": "## Stock Enrichment Pipeline\nProcesses each stock, fetches latest news, filters relevant articles and combines it with stock performance data."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "44004e67-e6e9-420a-b53e-dd322c63fe92",
+          "name": "Sticky Note6",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            384,
+            -1296
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1216,
+            "height": 464,
+            "content": "## Aggregation & Portfolio Analysis\nCombines all stock insights and generates an overall portfolio view, key drivers, risks and strategy."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "1214021a-b82a-492d-bf7b-ac0eb3e9fa9d",
+          "name": "Calculate Portfolio Metrics",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            192,
+            -800
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "89d24755-f2c8-4619-8bf0-9b7c5cb88bbe",
+                  "name": "symbol",
+                  "type": "string",
+                  "value": "={{ $json.Symbol }}"
+                },
+                {
+                  "id": "cf279431-dc12-40cb-9af0-f866ab58d291",
+                  "name": "quantity",
+                  "type": "number",
+                  "value": "={{ $json.Quantity }}"
+                },
+                {
+                  "id": "3b7b1037-9dfa-4ec1-9792-7bd4a2b8bd9f",
+                  "name": "avg_price",
+                  "type": "number",
+                  "value": "={{ $json[\"Avg Price\"] }}"
+                },
+                {
+                  "id": "9774e298-f994-48f5-a8b1-aec27e54aa43",
+                  "name": "current_price",
+                  "type": "number",
+                  "value": "={{ $json[\"Current Price\"] }}"
+                },
+                {
+                  "id": "14bca858-c7b3-4b69-833e-81f9bdad5eed",
+                  "name": "invested",
+                  "type": "number",
+                  "value": "={{ $json.Quantity * $json[\"Avg Price\"] }}"
+                },
+                {
+                  "id": "4996082e-4bcc-4a69-a20e-683847e14d1f",
+                  "name": "value",
+                  "type": "number",
+                  "value": "={{ $json.Quantity *  $json[\"Current Price\"]}}"
+                },
+                {
+                  "id": "15e1b7c6-d0c4-41d9-ac32-d1ab56288f6f",
+                  "name": "pnl",
+                  "type": "number",
+                  "value": "={{ ($json.Quantity *  $json[\"Current Price\"]) - ($json.Quantity * $json[\"Avg Price\"]) }}"
+                },
+                {
+                  "id": "2ca8751e-8ae3-42e3-abac-52539982aa14",
+                  "name": "return_pct",
+                  "type": "number",
+                  "value": "={{ ((($json.Quantity *  $json[\"Current Price\"]) - ($json.Quantity * $json[\"Avg Price\"])) / ($json.Quantity * $json[\"Avg Price\"])) * 100 }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "b2a6d137-ce11-4f93-a7b5-ca0329498bad",
+          "name": "Executes everyday at 4 PM",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "position": [
+            -240,
+            -800
+          ],
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "triggerAtHour": 16
+                }
+              ]
+            }
+          },
+          "typeVersion": 1.3
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "9e77af2e-3f29-4334-b170-66952128179a",
+      "connections": {
+        "Iterate Stocks": {
+          "main": [
+            [
+              {
+                "node": "Aggregate Stock Insights",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Fetch Stock News (RSS)",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Rate Limit (Wait)": {
+          "main": [
+            [
+              {
+                "node": "Iterate Stocks",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Sort News by Date": {
+          "main": [
+            [
+              {
+                "node": "Limit News (Top 5)",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Limit News (Top 5)": {
+          "main": [
+            [
+              {
+                "node": "Merge Stock Data + News",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Format Email Report": {
+          "main": [
+            [
+              {
+                "node": "Send Email (Gmail)",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "LLM (Stock Analysis)": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "Generate Stock Insight",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Parse Stock AI Output": {
+          "main": [
+            [
+              {
+                "node": "Generate Portfolio Insight",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Merge Stocks + Portfolio Insight",
+                "type": "main",
+                "index": 1
+              }
+            ]
+          ]
+        },
+        "Fetch Stock News (RSS)": {
+          "main": [
+            [
+              {
+                "node": "Sort News by Date",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Generate Stock Insight": {
+          "main": [
+            [
+              {
+                "node": "Rate Limit (Wait)",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Merge Stock Data + News": {
+          "main": [
+            [
+              {
+                "node": "Generate Stock Insight",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Aggregate Stock Insights": {
+          "main": [
+            [
+              {
+                "node": "Parse Stock AI Output",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "LLM (Portfolio Analysis)": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "Generate Portfolio Insight",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Executes everyday at 4 PM": {
+          "main": [
+            [
+              {
+                "node": "Fetch Portfolio (Google Sheets)",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Parse Portfolio AI Output": {
+          "main": [
+            [
+              {
+                "node": "Merge Stocks + Portfolio Insight",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Generate Portfolio Insight": {
+          "main": [
+            [
+              {
+                "node": "Parse Portfolio AI Output",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Calculate Portfolio Metrics": {
+          "main": [
+            [
+              {
+                "node": "Iterate Stocks",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch Portfolio (Google Sheets)": {
+          "main": [
+            [
+              {
+                "node": "Calculate Portfolio Metrics",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Merge Stocks + Portfolio Insight": {
+          "main": [
+            [
+              {
+                "node": "Format Email Report",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 26,
+      "nodeTypes": {
+        "n8n-nodes-base.set": {
+          "count": 1
+        },
+        "n8n-nodes-base.code": {
+          "count": 4
+        },
+        "n8n-nodes-base.sort": {
+          "count": 1
+        },
+        "n8n-nodes-base.wait": {
+          "count": 1
+        },
+        "n8n-nodes-base.gmail": {
+          "count": 1
+        },
+        "n8n-nodes-base.limit": {
+          "count": 1
+        },
+        "n8n-nodes-base.merge": {
+          "count": 1
+        },
+        "n8n-nodes-base.aggregate": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 7
+        },
+        "n8n-nodes-base.rssFeedRead": {
+          "count": 1
+        },
+        "n8n-nodes-base.googleSheets": {
+          "count": 1
+        },
+        "n8n-nodes-base.splitInBatches": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.agent": {
+          "count": 2
+        },
+        "n8n-nodes-base.scheduleTrigger": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.lmChatGroq": {
+          "count": 2
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "WeblineIndia",
+      "username": "weblineindia",
+      "bio": "A Leading Software Engineering, Consulting & Outsourcing Services Company in USA & India serving Clients Globally since 1999.",
+      "verified": true,
+      "links": [
+        "https://www.weblineindia.com/hire-n8n-developers/"
+      ],
+      "avatar": "https://gravatar.com/avatar/a229d43aefca4588581583c58bb37b4773aebbdf4c1fef86a08bb1d38eae91fa?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 18,
+        "icon": "file:googleSheets.svg",
+        "name": "n8n-nodes-base.googleSheets",
+        "codex": {
+          "data": {
+            "alias": [
+              "CSV",
+              "Sheet",
+              "Spreadsheet",
+              "GS"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/love-at-first-sight-ricardos-n8n-journey/",
+                  "icon": "\u2764\ufe0f",
+                  "label": "Love at first sight: Ricardo\u2019s n8n journey"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-triggers-for-n8n-workflows-using-polling/",
+                  "icon": "\u23f2",
+                  "label": "Creating triggers for n8n workflows using polling"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/migrating-community-metrics-to-orbit-using-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Migrating Community Metrics to Orbit using n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-honest-burgers-use-automation-to-save-100k-per-year/",
+                  "icon": "\ud83c\udf54",
+                  "label": "How Honest Burgers Use Automation to Save $100k per year"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "\ud83d\udcbb",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googlesheets/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage",
+              "Productivity"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\",\"output\"]",
+        "defaults": {
+          "name": "Google Sheets"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNS42OSAxIDUyIDE3LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0OC4yOTMgNjBIMTIuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDkgNTYuMzEyVjQuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTIuNzA3IDF6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM1LjY5IDEgNTIgMTcuMjI1SDM5LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzkuMjExIDE3LjIyNSA1MiAyMi40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTIwLjEyIDMxLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMS42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzEuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNC42OSAwIDUxIDE2LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0Ny4yOTMgNTlIMTEuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDggNTUuMzEyVjMuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTEuNzA3IDB6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM0LjY5IDAgNTEgMTYuMjI1SDM4LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzguMjExIDE2LjIyNSA1MSAyMS40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTE5LjEyIDMwLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMC42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzAuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjwvZz48L3N2Zz4="
+        },
+        "displayName": "Google Sheets",
+        "typeVersion": 5,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          },
+          {
+            "id": 4,
+            "name": "Productivity"
+          }
+        ]
+      },
+      {
+        "id": 24,
+        "icon": "file:merge.svg",
+        "name": "n8n-nodes-base.merge",
+        "codex": {
+          "data": {
+            "alias": [
+              "Join",
+              "Concatenate",
+              "Wait"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-sync-data-between-two-systems/",
+                  "icon": "\ud83c\udfec",
+                  "label": "How to synchronize data between two systems (one-way vs. two-way sync"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/migrating-community-metrics-to-orbit-using-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Migrating Community Metrics to Orbit using n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.merge/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Merge"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTc3XzUxOCkiPgo8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTAgNDhDMCAyMS40OTAzIDIxLjQ5MDMgMCA0OCAwSDExMkMxMzguNTEgMCAxNjAgMjEuNDkwMyAxNjAgNDhWNTZIMTk2LjI1MkMyNDAuNDM1IDU2IDI3Ni4yNTIgOTEuODE3MiAyNzYuMjUyIDEzNlYxOTJDMjc2LjI1MiAyMTQuMDkxIDI5NC4xNjEgMjMyIDMxNi4yNTIgMjMySDM1MlYyMjRDMzUyIDE5Ny40OSAzNzMuNDkgMTc2IDQwMCAxNzZINDY0QzQ5MC41MSAxNzYgNTEyIDE5Ny40OSA1MTIgMjI0VjI4OEM1MTIgMzE0LjUxIDQ5MC41MSAzMzYgNDY0IDMzNkg0MDBDMzczLjQ5IDMzNiAzNTIgMzE0LjUxIDM1MiAyODhWMjgwSDMxNi4yNTJDMjk0LjE2MSAyODAgMjc2LjI1MiAyOTcuOTA5IDI3Ni4yNTIgMzIwVjM3NkMyNzYuMjUyIDQyMC4xODMgMjQwLjQzNSA0NTYgMTk2LjI1MiA0NTZIMTYwVjQ2NEMxNjAgNDkwLjUxIDEzOC41MSA1MTIgMTEyIDUxMkg0OEMyMS40OTAzIDUxMiAwIDQ5MC41MSAwIDQ2NFY0MDBDMCAzNzMuNDkgMjEuNDkwMyAzNTIgNDggMzUySDExMkMxMzguNTEgMzUyIDE2MCAzNzMuNDkgMTYwIDQwMFY0MDhIMTk2LjI1MkMyMTMuOTI1IDQwOCAyMjguMjUyIDM5My42NzMgMjI4LjI1MiAzNzZWMzIwQzIyOC4yNTIgMjk0Ljc4NCAyMzguODU5IDI3Mi4wNDQgMjU1Ljg1MyAyNTZDMjM4Ljg1OSAyMzkuOTU2IDIyOC4yNTIgMjE3LjIxNiAyMjguMjUyIDE5MlYxMzZDMjI4LjI1MiAxMTguMzI3IDIxMy45MjUgMTA0IDE5Ni4yNTIgMTA0SDE2MFYxMTJDMTYwIDEzOC41MSAxMzguNTEgMTYwIDExMiAxNjBINDhDMjEuNDkwMyAxNjAgMCAxMzguNTEgMCAxMTJWNDhaTTEwNCA0OEMxMDguNDE4IDQ4IDExMiA1MS41ODE3IDExMiA1NlYxMDRDMTEyIDEwOC40MTggMTA4LjQxOCAxMTIgMTA0IDExMkg1NkM1MS41ODE3IDExMiA0OCAxMDguNDE4IDQ4IDEwNFY1NkM0OCA1MS41ODE3IDUxLjU4MTcgNDggNTYgNDhIMTA0Wk00NTYgMjI0QzQ2MC40MTggMjI0IDQ2NCAyMjcuNTgyIDQ2NCAyMzJWMjgwQzQ2NCAyODQuNDE4IDQ2MC40MTggMjg4IDQ1NiAyODhINDA4QzQwMy41ODIgMjg4IDQwMCAyODQuNDE4IDQwMCAyODBWMjMyQzQwMCAyMjcuNTgyIDQwMy41ODIgMjI0IDQwOCAyMjRINDU2Wk0xMTIgNDA4QzExMiA0MDMuNTgyIDEwOC40MTggNDAwIDEwNCA0MDBINTZDNTEuNTgxNyA0MDAgNDggNDAzLjU4MiA0OCA0MDhWNDU2QzQ4IDQ2MC40MTggNTEuNTgxNyA0NjQgNTYgNDY0SDEwNEMxMDguNDE4IDQ2NCAxMTIgNDYwLjQxOCAxMTIgNDU2VjQwOFoiIGZpbGw9IiM1NEI4QzkiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTc3XzUxOCI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Merge",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 37,
+        "icon": "fa:rss",
+        "name": "n8n-nodes-base.rssFeedRead",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-i-chose-n8n-over-zapier-in-2020/",
+                  "icon": "\ud83d\ude0d",
+                  "label": "Why I chose n8n over Zapier in 2020"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.rssfeedread/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "RSS Read",
+          "color": "#b02020"
+        },
+        "iconData": {
+          "icon": "rss",
+          "type": "icon"
+        },
+        "displayName": "RSS Read",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 39,
+        "icon": "fa:sync",
+        "name": "n8n-nodes-base.splitInBatches",
+        "codex": {
+          "data": {
+            "alias": [
+              "Loop",
+              "Concatenate",
+              "Batch",
+              "Split",
+              "Split In Batches"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Loop Over Items",
+          "color": "#007755"
+        },
+        "iconData": {
+          "icon": "sync",
+          "type": "icon"
+        },
+        "displayName": "Loop Over Items (Split in Batches)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 356,
+        "icon": "file:gmail.svg",
+        "name": "n8n-nodes-base.gmail",
+        "codex": {
+          "data": {
+            "alias": [
+              "email",
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/using-automation-to-boost-productivity-in-the-workplace/",
+                  "icon": "\ud83d\udcaa",
+                  "label": "Using Automation to Boost Productivity in the Workplace"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.gmail/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Gmail"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMTkzIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCI+PHBhdGggZmlsbD0iIzQyODVGNCIgZD0iTTU4LjE4MiAxOTIuMDVWOTMuMTRMMjcuNTA3IDY1LjA3NyAwIDQ5LjUwNHYxMjUuMDkxYzAgOS42NTggNy44MjUgMTcuNDU1IDE3LjQ1NSAxNy40NTV6Ii8+PHBhdGggZmlsbD0iIzM0QTg1MyIgZD0iTTE5Ny44MTggMTkyLjA1aDQwLjcyN2M5LjY1OSAwIDE3LjQ1NS03LjgyNiAxNy40NTUtMTcuNDU1VjQ5LjUwNWwtMzEuMTU2IDE3LjgzNy0yNy4wMjYgMjUuNzk4eiIvPjxwYXRoIGZpbGw9IiNFQTQzMzUiIGQ9Im01OC4xODIgOTMuMTQtNC4xNzQtMzguNjQ3IDQuMTc0LTM2Ljk4OUwxMjggNjkuODY4bDY5LjgxOC01Mi4zNjQgNC42NyAzNC45OTItNC42NyA0MC42NDRMMTI4IDE0NS41MDR6Ii8+PHBhdGggZmlsbD0iI0ZCQkMwNCIgZD0iTTE5Ny44MTggMTcuNTA0VjkzLjE0TDI1NiA0OS41MDRWMjYuMjMxYzAtMjEuNTg1LTI0LjY0LTMzLjg5LTQxLjg5LTIwLjk0NXoiLz48cGF0aCBmaWxsPSIjQzUyMjFGIiBkPSJtMCA0OS41MDQgMjYuNzU5IDIwLjA3TDU4LjE4MiA5My4xNFYxNy41MDRMNDEuODkgNS4yODZDMjQuNjEtNy42NiAwIDQuNjQ2IDAgMjYuMjN6Ii8+PC9zdmc+"
+        },
+        "displayName": "Gmail",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 514,
+        "icon": "fa:pause-circle",
+        "name": "n8n-nodes-base.wait",
+        "codex": {
+          "data": {
+            "alias": [
+              "pause",
+              "sleep",
+              "delay",
+              "timeout"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.wait/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Wait",
+          "color": "#804050"
+        },
+        "iconData": {
+          "icon": "pause-circle",
+          "type": "icon"
+        },
+        "displayName": "Wait",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 839,
+        "icon": "fa:clock",
+        "name": "n8n-nodes-base.scheduleTrigger",
+        "codex": {
+          "data": {
+            "alias": [
+              "Time",
+              "Scheduler",
+              "Polling",
+              "Cron",
+              "Interval"
+            ],
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\",\"schedule\"]",
+        "defaults": {
+          "name": "Schedule Trigger",
+          "color": "#31C49F"
+        },
+        "iconData": {
+          "icon": "clock",
+          "type": "icon"
+        },
+        "displayName": "Schedule Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1119,
+        "icon": "fa:robot",
+        "name": "@n8n/n8n-nodes-langchain.agent",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain",
+              "Chat",
+              "Conversational",
+              "Plan and Execute",
+              "ReAct",
+              "Tools"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Agents",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "AI Agent",
+          "color": "#404040"
+        },
+        "iconData": {
+          "icon": "robot",
+          "type": "icon"
+        },
+        "displayName": "AI Agent",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1236,
+        "icon": "file:aggregate.svg",
+        "name": "n8n-nodes-base.aggregate",
+        "codex": {
+          "data": {
+            "alias": [
+              "Aggregate",
+              "Combine",
+              "Flatten",
+              "Transform",
+              "Array",
+              "List",
+              "Item"
+            ],
+            "details": "",
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.aggregate/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Aggregate"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJub25lIj48ZyBmaWxsPSIjRkY2RDVBIiBjbGlwLXBhdGg9InVybCgjYSkiPjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTMyIDE0OGMwLTYuNjI3IDUuMzczLTEyIDEyLTEyaDE0NmM2LjYyNyAwIDEyIDUuMzczIDEyIDEydjI0YzAgNi42MjctNS4zNzMgMTItMTIgMTJINDRjLTYuNjI3IDAtMTItNS4zNzMtMTItMTJ6bTAgOTZjMC02LjYyNyA1LjM3My0xMiAxMi0xMmgxNDZjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnYyNGMwIDYuNjI3LTUuMzczIDEyLTEyIDEySDQ0Yy02LjYyNyAwLTEyLTUuMzczLTEyLTEyem0wIDk2YzAtNi42MjcgNS4zNzMtMTIgMTItMTJoMTQ2YzYuNjI3IDAgMTIgNS4zNzMgMTIgMTJ2MjRjMCA2LjYyNy01LjM3MyAxMi0xMiAxMkg0NGMtNi42MjcgMC0xMi01LjM3My0xMi0xMnoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik03NCA3NmMwIDYuNjI3IDUuMzczIDEyIDEyIDEyaDExNi4yMTdjMTcuNjczIDAgMzIgMTQuMzI3IDMyIDMydjU2YzAgMjYuOTc4IDEwLjI3MiA1MS41NTcgMjcuMTE5IDcwLjAzOSA1LjA1NSA1LjU0NSA1LjA1NSAxNC4zNzcgMCAxOS45MjItMTYuODQ3IDE4LjQ4Mi0yNy4xMTkgNDMuMDYxLTI3LjExOSA3MC4wMzl2NTZjMCAxNy42NzMtMTQuMzI3IDMyLTMyIDMySDg2Yy02LjYyNyAwLTEyIDUuMzczLTEyIDEydjI0YzAgNi42MjcgNS4zNzMgMTIgMTIgMTJoMTE2LjIxN2M0NC4xODMgMCA4MC0zNS44MTcgODAtODB2LTU2YzAtMzAuOTI4IDI1LjA3Mi01NiA1Ni01NmE1Ljc4MyA1Ljc4MyAwIDAgMCA1Ljc4My01Ljc4M3YtMzYuNDM0YTUuNzgzIDUuNzgzIDAgMCAwLTUuNzgzLTUuNzgzYy0zMC45MjggMC01Ni0yNS4wNzItNTYtNTZ2LTU2YzAtNDQuMTgzLTM1LjgxNy04MC04MC04MEg4NmMtNi42MjcgMC0xMiA1LjM3My0xMiAxMnoiLz48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0zNzYgMjQ0YzAtNi42MjcgNS4zNzMtMTIgMTItMTJoMTEyYzYuNjI3IDAgMTIgNS4zNzMgMTIgMTJ2MjRjMCA2LjYyNy01LjM3MyAxMi0xMiAxMkgzODhjLTYuNjI3IDAtMTItNS4zNzMtMTItMTJ6IiBjbGlwLXJ1bGU9ImV2ZW5vZGQiLz48L2c+PGRlZnM+PGNsaXBQYXRoIGlkPSJhIj48cGF0aCBmaWxsPSIjZmZmIiBkPSJNMCAwaDUxMnY1MTJIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4="
+        },
+        "displayName": "Aggregate",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1237,
+        "icon": "file:limit.svg",
+        "name": "n8n-nodes-base.limit",
+        "codex": {
+          "data": {
+            "alias": [
+              "Limit",
+              "Remove",
+              "Slice",
+              "Transform",
+              "Array",
+              "List",
+              "Item"
+            ],
+            "details": "",
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.limit/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Limit"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJub25lIj48ZyBmaWxsPSIjMkZCNjdDIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcGF0aD0idXJsKCNhKSIgY2xpcC1ydWxlPSJldmVub2RkIj48cGF0aCBkPSJNNTEyIDQ1OGMwLTYuNjI3LTUuMzczLTEyLTEyLTEyaC02OGMtNi42MjcgMC0xMiA1LjM3My0xMiAxMnYyNGMwIDYuNjI3IDUuMzczIDEyIDEyIDEyaDY4YzYuNjI3IDAgMTItNS4zNzMgMTItMTJ6bS0xNDAgMGMwLTYuNjI3LTUuMzczLTEyLTEyLTEyaC02OGMtNi42MjcgMC0xMiA1LjM3My0xMiAxMnYyNGMwIDYuNjI3IDUuMzczIDEyIDEyIDEyaDY4YzYuNjI3IDAgMTItNS4zNzMgMTItMTJ6bS0xNDAgMGMwLTYuNjI3LTUuMzczLTEyLTEyLTEyaC02OGMtNi42MjcgMC0xMiA1LjM3My0xMiAxMnYyNGMwIDYuNjI3IDUuMzczIDEyIDEyIDEyaDY4YzYuNjI3IDAgMTItNS4zNzMgMTItMTJ6bS0xNDAgMGMwLTYuNjI3LTUuMzczLTEyLTEyLTEySDEyYy02LjYyNyAwLTEyIDUuMzczLTEyIDEydjI0YzAgNi42MjcgNS4zNzMgMTIgMTIgMTJoNjhjNi42MjcgMCAxMi01LjM3MyAxMi0xMnptMTUyLTIyMmMtNi42MjcgMC0xMi01LjM3My0xMi0xMlYzMGMwLTYuNjI3IDUuMzczLTEyIDEyLTEyaDI0YzYuNjI3IDAgMTIgNS4zNzMgMTIgMTJ2MTk0YzAgNi42MjctNS4zNzMgMTItMTIgMTJ6Ii8+PHBhdGggZD0iTTE0OS41NzcgMTQ2Ljk4MmM5LjM5OC05LjM0NiAyNC41OTQtOS4zMDQgMzMuOTQxLjA5NUwyNTYgMjE5Ljk2NGw3Mi40ODItNzIuODg3YzkuMzQ3LTkuMzk5IDI0LjU0My05LjQ0MSAzMy45NDEtLjA5NXM5LjQ0MSAyNC41NDMuMDk1IDMzLjk0MWwtODkuNSA5MGEyNCAyNCAwIDAgMS0zNC4wMzYgMGwtODkuNS05MGMtOS4zNDYtOS4zOTgtOS4zMDQtMjQuNTk0LjA5NS0zMy45NDFNMCAzNTBjMC02LjYyNyA1LjM3My0xMiAxMi0xMmg0ODhjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnYyNGMwIDYuNjI3LTUuMzczIDEyLTEyIDEySDEyYy02LjYyNyAwLTEyLTUuMzczLTEyLTEyeiIvPjwvZz48ZGVmcz48Y2xpcFBhdGggaWQ9ImEiPjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik0wIDBoNTEydjUxMkgweiIvPjwvY2xpcFBhdGg+PC9kZWZzPjwvc3ZnPg=="
+        },
+        "displayName": "Limit",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1240,
+        "icon": "file:sort.svg",
+        "name": "n8n-nodes-base.sort",
+        "codex": {
+          "data": {
+            "alias": [
+              "Sort",
+              "Order",
+              "Transform",
+              "Array",
+              "List",
+              "Item",
+              "Random"
+            ],
+            "details": "",
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.sort/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Sort"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJub25lIj48cGF0aCBmaWxsPSIjODI4N0VCIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMzAuNSA0MjIuNWMtNi42MjcgMC0xMi01LjM3My0xMi0xMnYtMzUxYzAtNi42MjcgNS4zNzMtMTIgMTItMTJoMjRjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnYzNTFjMCA2LjYyNy01LjM3MyAxMi0xMiAxMnoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGZpbGw9IiM4Mjg3RUIiIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTM2LjA3NyAzMzMuNDgyYzkuMzk4LTkuMzQ2IDI0LjU5NC05LjMwNCAzMy45NC4wOTVsNzIuNDgzIDcyLjg4NyA3Mi40ODItNzIuODg3YzkuMzQ3LTkuMzk5IDI0LjU0My05LjQ0MSAzMy45NDEtLjA5NXM5LjQ0MSAyNC41NDMuMDk1IDMzLjk0MWwtODkuNSA5MGEyNCAyNCAwIDAgMS0zNC4wMzYgMGwtODkuNS05MGMtOS4zNDYtOS4zOTgtOS4zMDQtMjQuNTk0LjA5NS0zMy45NDFNMzgxLjUgODkuNWM2LjYyNyAwIDEyIDUuMzczIDEyIDEydjM1MWMwIDYuNjI3LTUuMzczIDEyLTEyIDEyaC0yNGMtNi42MjcgMC0xMi01LjM3My0xMi0xMnYtMzUxYzAtNi42MjcgNS4zNzMtMTIgMTItMTJ6IiBjbGlwLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBmaWxsPSIjODI4N0VCIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00NzUuOTIzIDE3OC41MThjLTkuMzk4IDkuMzQ2LTI0LjU5NCA5LjMwNC0zMy45NDEtLjA5NUwzNjkuNSAxMDUuNTM2bC03Mi40ODIgNzIuODg3Yy05LjM0NyA5LjM5OS0yNC41NDMgOS40NDEtMzMuOTQxLjA5NXMtOS40NDEtMjQuNTQzLS4wOTUtMzMuOTQxbDg5LjUtOTBhMjQgMjQgMCAwIDEgMzQuMDM2IDBsODkuNSA5MGM5LjM0NiA5LjM5OCA5LjMwNCAyNC41OTQtLjA5NSAzMy45NDEiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg=="
+        },
+        "displayName": "Sort",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1263,
+        "icon": "file:groq.svg",
+        "name": "@n8n/n8n-nodes-langchain.lmChatGroq",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmchatgroq/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Language Models",
+                "Root Nodes"
+              ],
+              "Language Models": [
+                "Chat Models (Recommended)"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Groq Chat Model"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcKICAgaWQ9IkxheWVyXzIiCiAgIHZpZXdCb3g9IjAgMCA0OTkuOTk5OTkgNDk5Ljk5OTk5IgogICB2ZXJzaW9uPSIxLjEiCiAgIHdpZHRoPSI1MDAiCiAgIGhlaWdodD0iNTAwIgogICB4bWw6c3BhY2U9InByZXNlcnZlIgogICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCiAgIHhtbG5zOnN2Zz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxkZWZzCiAgICAgaWQ9ImRlZnM0IiAvPjxnCiAgICAgaWQ9IlBBR0VTIj48Y2lyY2xlCiAgICAgICBzdHlsZT0iZmlsbDojZjU0ZjM1O2ZpbGwtb3BhY2l0eToxO3N0cm9rZS13aWR0aDoxLjEzNjIyIgogICAgICAgaWQ9InBhdGg0IgogICAgICAgY3g9IjI1MCIKICAgICAgIGN5PSIyNTAiCiAgICAgICByPSIyNTAiIC8+PHBhdGgKICAgICAgIGQ9Ik0gMjUwLjUzNjY0LDk3LjEyMjk5NCBDIDE5Mi43MTkzMSw5Ni41ODg2MzggMTQ1LjQ4MjIyLDE0Mi45NzA3NSAxNDQuOTQ3ODYsMjAwLjc4ODA4IGMgLTAuNTM0MzQsNTcuODE3MzMgNDUuODQ3NzcsMTA1LjA1NDQyIDEwMy42NjUxLDEwNS41ODg3NyBoIDM2LjMzNjIxIHYgLTM5LjIyMTc0IGggLTM0LjQxMjUzIGMgLTM2LjEyMjQ4LDAuNDI3NSAtNjUuNzI1OCwtMjguNTM0NjIgLTY2LjE1MzI5LC02NC42NTcwOCAtMC40Mjc0OSwtMzYuMTIyNDggMjguNTM0NjMsLTY1LjcyNTgxIDY0LjY1NzA4LC02Ni4xNTMzIGggMS40OTYyMSBjIDM2LjEyMjQ4LDAgNjUuNDA1MiwyOS4yODI3MiA2NS41MTIwNyw2NS40MDUyIHYgMCA5Ni4zOTc4MyAwIGMgMCwzNS44MDE4NyAtMjkuMTc1ODUsNjQuOTc3NzMgLTY0Ljg3MDgzLDY1LjQwNTIxIC0xNy4wOTk0MSwtMC4xMDY4OCAtMzMuNDUwNzEsLTcuMDUzNTEgLTQ1LjUyNzE3LC0xOS4xMjk5NSBsIC0yNy43ODY1LDI3Ljc4NjUxIGMgMTkuMjM2ODEsMTkuMzQzNyA0NS4zMTMzOSwzMC4zNTE0MyA3Mi41NjU1NiwzMC42NzIwNSBoIDEuMzg5MzMgYyA1Ny4wNjkyNCwtMC44NTQ5NyAxMDIuOTE3LC00Ny4xMzAyMiAxMDMuMjM3NiwtMTA0LjE5OTQ1IFYgMTk5LjI5MTg5IEMgMzUzLjY2NzM5LDE0Mi40MzYzOSAzMDcuMjg1MjcsOTcuMTIyOTk0IDI1MC41MzY2NCw5Ny4xMjI5OTQgWiIKICAgICAgIHN0eWxlPSJmaWxsOiNmZmZmZmY7c3Ryb2tlLXdpZHRoOjBweCIKICAgICAgIGlkPSJwYXRoMS0zIiAvPjwvZz48L3N2Zz4K"
+        },
+        "displayName": "Groq Chat Model",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 44,
+        "name": "Crypto Trading"
+      },
+      {
+        "id": 49,
+        "name": "AI Summarization"
+      }
+    ],
+    "image": []
+  }
+}

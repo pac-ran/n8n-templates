@@ -1,0 +1,1953 @@
+{
+  "workflow": {
+    "id": 15572,
+    "name": "Coordinate robot swarms with OpenAI GPT-5 and real-time Slack alerts",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-09T10:11:26.080Z",
+    "description": "## How It Works\nThis workflow automates multi-robot swarm coordination for robotics engineers, autonomous systems researchers, and industrial automation teams managing fleets of robots in real time. It solves the problem of decentralized robot supervision, eliminating manual monitoring by continuously ingesting sensor streams, detecting critical conditions, executing mission commands, and running periodic AI-driven optimization across the entire swarm. Three parallel pipelines operate concurrently: a sensor ingestion pipeline that stores robot states and triggers Slack alerts on critical conditions; a mission command pipeline that parses and executes commands while logging outcomes; and a periodic optimization pipeline where a Swarm AI Coordinator agent, backed by OpenAI GPT, Swarm Coordination Memory, Task Allocation, Path Planning, and Formation Control tools, computes and publishes coordination updates to Slack.\n\n## Setup Steps\n1. Add OpenAI credentials to the Swarm AI Coordinator and OpenAI GPT-5 model nodes.\n2. Configure Slack credentials; set the target channel in all three Slack publish nodes.\n3. Connect a database (e.g., Postgres or Airtable) to Store Robot State and Store Mission Log nodes.\n4. Set the Periodic Swarm Optimization schedule interval to match your fleet's update frequency.\n5. Configure webhook URLs for Robot Sensor Data Stream and Mission Command API triggers.\n6. Wire Swarm Coordination Memory to your preferred memory backend (e.g., Redis or n8n memory).\n\n## Prerequisites\n- Slack workspace with bot token\n- Database for robot state and mission logs\n- Robot sensor and command API endpoints\n## Use Cases\n- Warehouse AMR fleet coordination and anomaly alerting\n- Autonomous drone swarm path and formation management\n## Customization\n- Replace Slack with Teams or Discord for coordination broadcasts\n- Swap OpenAI for a local LLM in the Coordinator agent\n- Add more tools (e.g., Collision Avoidance, Battery Management)\n- Extend mission log to Google Sheets for reporting\n## Benefits\n- Three concurrent pipelines eliminate monitoring blind spots\n- AI agent autonomously optimizes swarm without human intervention\n- Slack integration provides instant cross-team situational awareness\n",
+    "workflow": {
+      "id": "rv5qmUxJX2d0TEFN",
+      "meta": {
+        "instanceId": "b91e510ebae4127f953fd2f5f8d40d58ca1e71c746d4500c12ae86aad04c1502"
+      },
+      "name": "Robot swarm coordination with ai agent and real-time slack alerts",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "c3805d78-da66-4b82-89f6-6b388f3d4d94",
+          "name": "Parse Sensor Data",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            464,
+            496
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "1",
+                  "name": "robotId",
+                  "type": "string",
+                  "value": "={{ $json.body.robotId }}"
+                },
+                {
+                  "id": "2",
+                  "name": "robotType",
+                  "type": "string",
+                  "value": "={{ $json.body.type }}"
+                },
+                {
+                  "id": "3",
+                  "name": "timestamp",
+                  "type": "string",
+                  "value": "={{ $json.body.timestamp }}"
+                },
+                {
+                  "id": "4",
+                  "name": "position",
+                  "type": "object",
+                  "value": "={{ $json.body.position }}"
+                },
+                {
+                  "id": "5",
+                  "name": "sensors",
+                  "type": "object",
+                  "value": "={{ $json.body.sensors }}"
+                },
+                {
+                  "id": "6",
+                  "name": "status",
+                  "type": "string",
+                  "value": "={{ $json.body.status }}"
+                },
+                {
+                  "id": "7",
+                  "name": "currentTask",
+                  "type": "string",
+                  "value": "={{ $json.body.currentTask }}"
+                },
+                {
+                  "id": "8",
+                  "name": "batteryLevel",
+                  "type": "number",
+                  "value": "={{ $json.body.sensors.battery }}"
+                },
+                {
+                  "id": "9",
+                  "name": "obstacles",
+                  "type": "array",
+                  "value": "={{ $json.body.sensors.lidar?.obstacles || [] }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "cd0500bc-3da5-4fa1-8358-de26db8d1cd7",
+          "name": "Store Robot State",
+          "type": "n8n-nodes-base.dataTable",
+          "position": [
+            688,
+            304
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "status": "={{ $json.status }}",
+                "robotId": "={{ $json.robotId }}",
+                "lastSeen": "={{ $json.timestamp }}",
+                "positionX": "={{ $json.position.x }}",
+                "positionY": "={{ $json.position.y }}",
+                "positionZ": "={{ $json.position.z }}",
+                "robotType": "={{ $json.robotType }}",
+                "sensorData": "={{ JSON.stringify($json.sensors) }}",
+                "currentTask": "={{ $json.currentTask }}",
+                "batteryLevel": "={{ $json.batteryLevel }}"
+              },
+              "mappingMode": "defineBelow"
+            },
+            "filters": {
+              "conditions": [
+                {
+                  "keyName": "robotId",
+                  "keyValue": "={{ $json.robotId }}"
+                }
+              ]
+            },
+            "options": {},
+            "matchType": "allConditions",
+            "operation": "upsert",
+            "dataTableId": {
+              "__rl": true,
+              "mode": "list",
+              "value": ""
+            }
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "ddf14e08-182e-40ce-a954-4b9aa7e6d368",
+          "name": "Check Critical Conditions",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            688,
+            592
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 1,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "or",
+              "conditions": [
+                {
+                  "operator": {
+                    "type": "number",
+                    "operation": "lt"
+                  },
+                  "leftValue": "={{ $json.batteryLevel }}",
+                  "rightValue": 20
+                },
+                {
+                  "operator": {
+                    "type": "number",
+                    "operation": "gt"
+                  },
+                  "leftValue": "={{ $json.obstacles.length }}",
+                  "rightValue": 0
+                },
+                {
+                  "operator": {
+                    "type": "string",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $json.status }}",
+                  "rightValue": "error"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "4557b7ec-f9cf-4484-8146-e9cb2fc2cf55",
+          "name": "Prepare AI Context",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            1040,
+            512
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "1",
+                  "name": "alertType",
+                  "type": "string",
+                  "value": "={{ $json.batteryLevel < 20 ? \"low_battery\" : ($json.obstacles.length > 0 ? \"obstacle_detected\" : \"error_state\") }}"
+                },
+                {
+                  "id": "2",
+                  "name": "robotId",
+                  "type": "string",
+                  "value": "={{ $json.robotId }}"
+                },
+                {
+                  "id": "3",
+                  "name": "severity",
+                  "type": "string",
+                  "value": "={{ $json.status === \"error\" ? \"critical\" : \"warning\" }}"
+                },
+                {
+                  "id": "4",
+                  "name": "contextData",
+                  "type": "object",
+                  "value": "={{ $json }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "919b95d4-5875-497d-9f87-a3c16f8030ee",
+          "name": "Log Normal Operation",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            1136,
+            688
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "1",
+                  "name": "status",
+                  "type": "string",
+                  "value": "normal"
+                },
+                {
+                  "id": "2",
+                  "name": "robotId",
+                  "type": "string",
+                  "value": "={{ $json.robotId }}"
+                },
+                {
+                  "id": "3",
+                  "name": "message",
+                  "type": "string",
+                  "value": "={{ \"Robot \" + $json.robotId + \" operating normally\" }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "3ae3a3c0-f0dd-49b6-b067-9f7d691bb998",
+          "name": "Mission Command API",
+          "type": "n8n-nodes-base.webhook",
+          "position": [
+            240,
+            1008
+          ],
+          "webhookId": "fd4b9f18-08ac-46e0-a414-d16522c534ce",
+          "parameters": {
+            "path": "swarm/command",
+            "options": {},
+            "httpMethod": "POST",
+            "responseMode": "lastNode"
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "278c1202-c898-4e3f-bdf3-fac92ac2e672",
+          "name": "Parse Command Input",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            464,
+            1008
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "1",
+                  "name": "command",
+                  "type": "string",
+                  "value": "={{ $json.body.command }}"
+                },
+                {
+                  "id": "2",
+                  "name": "missionId",
+                  "type": "string",
+                  "value": "={{ $json.body.missionId }}"
+                },
+                {
+                  "id": "3",
+                  "name": "targetZone",
+                  "type": "object",
+                  "value": "={{ $json.body.targetZone }}"
+                },
+                {
+                  "id": "4",
+                  "name": "formation",
+                  "type": "string",
+                  "value": "={{ $json.body.formation }}"
+                },
+                {
+                  "id": "5",
+                  "name": "robots",
+                  "type": "array",
+                  "value": "={{ $json.body.robots }}"
+                },
+                {
+                  "id": "6",
+                  "name": "priority",
+                  "type": "string",
+                  "value": "={{ $json.body.priority }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "3b7747dd-3def-4810-bd14-66e6e07566ee",
+          "name": "Execute Mission Command",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            688,
+            1008
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "1",
+                  "name": "missionId",
+                  "type": "string",
+                  "value": "={{ $json.missionId }}"
+                },
+                {
+                  "id": "2",
+                  "name": "status",
+                  "type": "string",
+                  "value": "executing"
+                },
+                {
+                  "id": "3",
+                  "name": "assignedRobots",
+                  "type": "array",
+                  "value": "={{ $json.robots }}"
+                },
+                {
+                  "id": "4",
+                  "name": "formationType",
+                  "type": "string",
+                  "value": "={{ $json.formation }}"
+                },
+                {
+                  "id": "5",
+                  "name": "targetLocation",
+                  "type": "object",
+                  "value": "={{ $json.targetZone }}"
+                },
+                {
+                  "id": "6",
+                  "name": "timestamp",
+                  "type": "string",
+                  "value": "={{ $now.toISO() }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "292f862c-836b-434d-bc4c-f15e93b2ef5e",
+          "name": "Store Mission Log",
+          "type": "n8n-nodes-base.dataTable",
+          "position": [
+            912,
+            1104
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "status": "={{ $json.status }}",
+                "missionId": "={{ $json.missionId }}",
+                "timestamp": "={{ $json.timestamp }}",
+                "formationType": "={{ $json.formationType }}",
+                "assignedRobots": "={{ JSON.stringify($json.assignedRobots) }}",
+                "targetLocation": "={{ JSON.stringify($json.targetLocation) }}"
+              },
+              "mappingMode": "defineBelow"
+            },
+            "filters": {
+              "conditions": [
+                {
+                  "keyName": "missionId",
+                  "keyValue": "={{ $json.missionId }}"
+                }
+              ]
+            },
+            "options": {},
+            "matchType": "allConditions",
+            "operation": "upsert",
+            "dataTableId": {
+              "__rl": true,
+              "mode": "list",
+              "value": ""
+            }
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "eba2364a-4ad8-4e91-8874-5c7ad3c60ef7",
+          "name": "Periodic Swarm Optimization",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "position": [
+            240,
+            1432
+          ],
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "seconds"
+                }
+              ]
+            }
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "656f2984-d6b6-41bc-81c2-424cbfcd6134",
+          "name": "Get All Robot States",
+          "type": "n8n-nodes-base.dataTable",
+          "position": [
+            464,
+            1432
+          ],
+          "parameters": {
+            "orderBy": true,
+            "operation": "get",
+            "returnAll": true,
+            "dataTableId": {
+              "__rl": true,
+              "mode": "list",
+              "value": ""
+            },
+            "orderByColumn": "lastSeen"
+          },
+          "typeVersion": 1.1,
+          "alwaysOutputData": true
+        },
+        {
+          "id": "c8995f72-d6b6-4587-a6bb-cec349be3139",
+          "name": "Swarm AI Coordinator",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "position": [
+            872,
+            1432
+          ],
+          "parameters": {
+            "text": "={{ \"You are an advanced swarm robotics coordinator managing a fleet of autonomous robots. Current swarm state: \" + JSON.stringify($json) + \". Analyze the robot states, optimize task allocation, coordinate navigation paths, maintain formation control, and ensure mission efficiency. Consider battery levels, obstacle avoidance, robot capabilities (aerial, ground, mobile), and real-time environmental conditions. Provide actionable coordination commands.\" }}",
+            "options": {
+              "maxIterations": 15,
+              "systemMessage": "You are a distributed multi-modal embodied AI system coordinating autonomous robot swarms. Your responsibilities:\n\n1. TASK ALLOCATION: Assign tasks based on robot type, battery, position, and workload using the Task Allocation Tool\n2. PATH PLANNING: Calculate collision-free paths considering obstacles and other robots using the Path Planning Tool\n3. FORMATION CONTROL: Maintain swarm formations (grid, line, adaptive) using the Formation Control Tool\n4. RESOURCE OPTIMIZATION: Balance battery usage, minimize travel distance, maximize mission coverage\n5. FAULT RECOVERY: Detect failures, reassign tasks, coordinate rescue operations\n6. SAFETY: Ensure human safety, infrastructure protection, collision avoidance\n\nAlways use the connected tools to analyze swarm state and generate coordination commands. Respond with specific, executable instructions.",
+              "returnIntermediateSteps": true
+            },
+            "promptType": "define"
+          },
+          "typeVersion": 3.1
+        },
+        {
+          "id": "4797299f-c14f-4fd4-9f19-c9adf6851de7",
+          "name": "OpenAI GPT-5",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "position": [
+            560,
+            1664
+          ],
+          "parameters": {
+            "model": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gpt-5-mini"
+            },
+            "options": {
+              "maxTokens": 2000,
+              "temperature": 0.3
+            },
+            "builtInTools": {}
+          },
+          "credentials": {
+            "openAiApi": {
+              "id": "mv2ECvRtbAK63G2g",
+              "name": "OpenAi account"
+            }
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "a5ac6f48-0778-477b-b85c-6b2881b07baf",
+          "name": "Swarm Coordination Memory",
+          "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+          "position": [
+            768,
+            1664
+          ],
+          "parameters": {
+            "sessionKey": "swarm_coordination",
+            "sessionIdType": "customKey",
+            "contextWindowLength": 10
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "8ab5d29e-4669-42a3-857f-ed132c94d8a2",
+          "name": "Task Allocation Tool",
+          "type": "@n8n/n8n-nodes-langchain.toolCode",
+          "position": [
+            976,
+            1664
+          ],
+          "parameters": {
+            "jsCode": "\nconst robots = $input.all();\nconst query = $input.item.json.query;\n\nconst allocation = robots.map(robot => ({\n  robotId: robot.json.robotId,\n  robotType: robot.json.robotType,\n  batteryLevel: robot.json.batteryLevel,\n  status: robot.json.status,\n  recommendedTask: robot.json.batteryLevel > 30 ? 'patrol' : 'return_to_base',\n  priority: robot.json.batteryLevel < 20 ? 'critical' : 'normal'\n}));\n\nreturn JSON.stringify({ allocation, totalRobots: robots.length });\n",
+            "description": "Allocates tasks to robots based on their capabilities, position, battery level, and current workload. Returns optimal task assignments."
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "9d8c196f-ae24-4b8b-9f22-c23a1ffd4f98",
+          "name": "Path Planning Tool",
+          "type": "@n8n/n8n-nodes-langchain.toolCode",
+          "position": [
+            1136,
+            1664
+          ],
+          "parameters": {
+            "jsCode": "\nconst robots = $input.all();\nconst query = $input.item.json.query;\n\nconst paths = robots.map(robot => {\n  const obstacles = JSON.parse(robot.json.sensorData || '{}').lidar?.obstacles || [];\n  return {\n    robotId: robot.json.robotId,\n    currentPosition: { x: robot.json.positionX, y: robot.json.positionY, z: robot.json.positionZ },\n    obstacleCount: obstacles.length,\n    pathStatus: obstacles.length > 0 ? 'reroute_required' : 'clear',\n    suggestedWaypoints: obstacles.length > 0 ? [{ x: robot.json.positionX + 5, y: robot.json.positionY + 5 }] : []\n  };\n});\n\nreturn JSON.stringify({ paths, timestamp: new Date().toISOString() });\n",
+            "description": "Calculates optimal collision-free paths for robots considering obstacles, other robot positions, and mission objectives. Returns navigation waypoints."
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "d2344e5b-6832-4aa9-893a-9ae8d8108861",
+          "name": "Formation Control Tool",
+          "type": "@n8n/n8n-nodes-langchain.toolCode",
+          "position": [
+            1296,
+            1664
+          ],
+          "parameters": {
+            "jsCode": "\nconst robots = $input.all();\nconst query = $input.item.json.query;\n\nconst activeRobots = robots.filter(r => r.json.status === 'active');\nconst formationType = query.includes('grid') ? 'grid' : 'adaptive';\n\nconst formation = activeRobots.map((robot, index) => ({\n  robotId: robot.json.robotId,\n  formationPosition: index,\n  targetOffset: { x: (index % 3) * 10, y: Math.floor(index / 3) * 10 },\n  formationType: formationType\n}));\n\nreturn JSON.stringify({ formation, activeCount: activeRobots.length, pattern: formationType });\n",
+            "description": "Manages swarm formation patterns (grid, line, circle, adaptive) and maintains relative positioning between robots. Returns formation commands."
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "6e780b00-4a3c-4b21-8584-445a78331aa1",
+          "name": "Format Coordination Output",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            1584,
+            1440
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "1",
+                  "name": "coordinationResult",
+                  "type": "string",
+                  "value": "={{ $json.output }}"
+                },
+                {
+                  "id": "2",
+                  "name": "timestamp",
+                  "type": "string",
+                  "value": "={{ $now.toISO() }}"
+                },
+                {
+                  "id": "3",
+                  "name": "swarmStatus",
+                  "type": "string",
+                  "value": "optimized"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "b2760cea-76c0-4a20-b0b6-81c1e8190c64",
+          "name": "Robot Sensor Data Stream",
+          "type": "n8n-nodes-base.webhook",
+          "position": [
+            240,
+            496
+          ],
+          "webhookId": "d04a9d93-e277-40dd-9989-27780f740ffc",
+          "parameters": {
+            "path": "swarm/sensor-data",
+            "options": {},
+            "httpMethod": "POST"
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "a444a148-278e-42a3-bd17-78b3b2b4f7c0",
+          "name": "Publish Mission to Swarm",
+          "type": "n8n-nodes-base.slack",
+          "position": [
+            1136,
+            912
+          ],
+          "webhookId": "5957ab43-0e3d-4344-b098-1288f758606b",
+          "parameters": {
+            "text": "={{ \"\ud83c\udfaf New Mission Command\\nMission ID: \" + $json.missionId + \"\\nStatus: \" + $json.status + \"\\nFormation: \" + $json.formationType + \"\\nRobots: \" + JSON.stringify($json.assignedRobots) + \"\\nTarget: \" + JSON.stringify($json.targetLocation) + \"\\nTimestamp: \" + $json.timestamp }}",
+            "select": "channel",
+            "channelId": {
+              "__rl": true,
+              "mode": "list",
+              "value": ""
+            },
+            "otherOptions": {},
+            "authentication": "oAuth2"
+          },
+          "credentials": {
+            "slackOAuth2Api": {
+              "id": "d34b1ayEBbvZm2lT",
+              "name": "Slack account"
+            }
+          },
+          "typeVersion": 2.4
+        },
+        {
+          "id": "244626a6-a49f-4bd4-866d-c70e03676f54",
+          "name": "Publish Coordination Updates",
+          "type": "n8n-nodes-base.slack",
+          "position": [
+            1904,
+            1440
+          ],
+          "webhookId": "22137aa2-c101-4b4e-a2bc-1472eb723bce",
+          "parameters": {
+            "text": "={{ \"\ud83e\udde0 AI Coordination Update\\n\" + $json.coordinationResult + \"\\n\\nTimestamp: \" + $json.timestamp + \"\\nSwarm Status: \" + $json.swarmStatus }}",
+            "select": "channel",
+            "channelId": {
+              "__rl": true,
+              "mode": "list",
+              "value": ""
+            },
+            "otherOptions": {},
+            "authentication": "oAuth2"
+          },
+          "credentials": {
+            "slackOAuth2Api": {
+              "id": "d34b1ayEBbvZm2lT",
+              "name": "Slack account"
+            }
+          },
+          "typeVersion": 2.4
+        },
+        {
+          "id": "99782cf8-69c2-485b-8967-dca76ee9dac0",
+          "name": "Publish to Swarm Channel",
+          "type": "n8n-nodes-base.slack",
+          "position": [
+            1168,
+            304
+          ],
+          "webhookId": "c7f9722a-11e2-48b9-ae53-dd1c9d051051",
+          "parameters": {
+            "text": "={{ \"\ud83e\udd16 Sensor Update - Robot \" + $json.robotId + \"\\nType: \" + $json.robotType + \"\\nStatus: \" + $json.status + \"\\nBattery: \" + $json.batteryLevel + \"%\\nPosition: (\" + $json.position.x + \", \" + $json.position.y + \", \" + $json.position.z + \")\\nTask: \" + $json.currentTask }}",
+            "select": "channel",
+            "channelId": {
+              "__rl": true,
+              "mode": "list",
+              "value": ""
+            },
+            "otherOptions": {},
+            "authentication": "oAuth2"
+          },
+          "credentials": {
+            "slackOAuth2Api": {
+              "id": "d34b1ayEBbvZm2lT",
+              "name": "Slack account"
+            }
+          },
+          "typeVersion": 2.4
+        },
+        {
+          "id": "cd782889-ea7b-44d8-b9a6-a875243a308c",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            2400,
+            240
+          ],
+          "parameters": {
+            "color": 6,
+            "width": 560,
+            "height": 496,
+            "content": "## Prerequisites\n- Slack workspace with bot token\n- Database for robot state and mission logs\n- Robot sensor and command API endpoints\n## Use Cases\n- Warehouse AMR fleet coordination and anomaly alerting\n- Autonomous drone swarm path and formation management\n## Customization\n- Replace Slack with Teams or Discord for coordination broadcasts\n- Swap OpenAI for a local LLM in the Coordinator agent\n- Add more tools (e.g., Collision Avoidance, Battery Management)\n- Extend mission log to Google Sheets for reporting\n## Benefits\n- Three concurrent pipelines eliminate monitoring blind spots\n- AI agent autonomously optimizes swarm without human intervention\n- Slack integration provides instant cross-team situational awareness"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "04edb4ca-f4a6-4075-bcc7-1c72db947bb1",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1952,
+            240
+          ],
+          "parameters": {
+            "width": 432,
+            "height": 336,
+            "content": "## Setup Steps\n1. Add OpenAI credentials to the Swarm AI Coordinator and OpenAI GPT-5 model nodes.\n2. Configure Slack credentials; set the target channel in all three Slack publish nodes.\n3. Connect a database (e.g., Postgres or Airtable) to Store Robot State and Store Mission Log nodes.\n4. Set the Periodic Swarm Optimization schedule interval to match your fleet's update frequency.\n5. Configure webhook URLs for Robot Sensor Data Stream and Mission Command API triggers.\n6. Wire Swarm Coordination Memory to your preferred memory backend (e.g., Redis or n8n memory)."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "7d73b2f6-2a2a-4d24-82f7-442430ef0088",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1408,
+            240
+          ],
+          "parameters": {
+            "width": 512,
+            "height": 336,
+            "content": "## How It Works\nThis workflow automates multi-robot swarm coordination for robotics engineers, autonomous systems researchers, and industrial automation teams managing fleets of robots in real time. It solves the problem of decentralized robot supervision, eliminating manual monitoring by continuously ingesting sensor streams, detecting critical conditions, executing mission commands, and running periodic AI-driven optimization across the entire swarm. Three parallel pipelines operate concurrently: a sensor ingestion pipeline that stores robot states and triggers Slack alerts on critical conditions; a mission command pipeline that parses and executes commands while logging outcomes; and a periodic optimization pipeline where a Swarm AI Coordinator agent, backed by OpenAI GPT, Swarm Coordination Memory, Task Allocation, Path Planning, and Formation Control tools, computes and publishes coordination updates to Slack."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "430fb982-da3a-4cd3-a823-f66a34c0314d",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            112,
+            1328
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1328,
+            "height": 512,
+            "content": "## Periodic Swarm Optimization\n**What** \u2014 A scheduled trigger fetches all robot states and passes them to the Swarm AI Coordinator agent.\n**Why** \u2014 Enables autonomous, data-driven reallocation of tasks, paths, and formations."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "68c45a0c-76bb-4df3-ad6f-982a9328bab7",
+          "name": "Sticky Note4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            128,
+            864
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1232,
+            "height": 432,
+            "content": "\n## Mission Command Execution\n**What** \u2014 Mission Command API input is parsed, executed, and logged to a mission log store.\n**Why** \u2014 Maintains auditable command history and confirms execution."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "6344997b-ec6a-438e-9907-d69e4a3023cb",
+          "name": "Sticky Note5",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            112,
+            224
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1280,
+            "height": 624,
+            "content": "## Sensor Ingestion & Alerting\n**What** \u2014 Robot Sensor Data Stream feeds Parse Sensor Data, stores robot state, checks critical conditions, and publishes alerts to Slack.\n**Why** \u2014 Ensures real-time visibility and immediate escalation on anomalies."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "e2f17025-379c-4f61-b05d-3c79df07ef70",
+          "name": "Sticky Note6",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1472,
+            1328
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 768,
+            "height": 352,
+            "content": "## Coordination Output & Broadcast\n**What** \u2014 Agent output is formatted and published to Slack's swarm channel.\n**Why** \u2014 Keeps all stakeholders synchronized with the latest swarm decisions."
+          },
+          "typeVersion": 1
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "3db37883-d432-4dc0-9c97-d93e4f7806ea",
+      "connections": {
+        "OpenAI GPT-5": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "Swarm AI Coordinator",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Parse Sensor Data": {
+          "main": [
+            [
+              {
+                "node": "Store Robot State",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Check Critical Conditions",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Store Robot State": {
+          "main": [
+            [
+              {
+                "node": "Publish to Swarm Channel",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Path Planning Tool": {
+          "ai_tool": [
+            [
+              {
+                "node": "Swarm AI Coordinator",
+                "type": "ai_tool",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Mission Command API": {
+          "main": [
+            [
+              {
+                "node": "Parse Command Input",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Parse Command Input": {
+          "main": [
+            [
+              {
+                "node": "Execute Mission Command",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get All Robot States": {
+          "main": [
+            [
+              {
+                "node": "Swarm AI Coordinator",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Swarm AI Coordinator": {
+          "main": [
+            [
+              {
+                "node": "Format Coordination Output",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Task Allocation Tool": {
+          "ai_tool": [
+            [
+              {
+                "node": "Swarm AI Coordinator",
+                "type": "ai_tool",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Formation Control Tool": {
+          "ai_tool": [
+            [
+              {
+                "node": "Swarm AI Coordinator",
+                "type": "ai_tool",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Execute Mission Command": {
+          "main": [
+            [
+              {
+                "node": "Store Mission Log",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Publish Mission to Swarm",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Robot Sensor Data Stream": {
+          "main": [
+            [
+              {
+                "node": "Parse Sensor Data",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Check Critical Conditions": {
+          "main": [
+            [
+              {
+                "node": "Prepare AI Context",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Log Normal Operation",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Swarm Coordination Memory": {
+          "ai_memory": [
+            [
+              {
+                "node": "Swarm AI Coordinator",
+                "type": "ai_memory",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Format Coordination Output": {
+          "main": [
+            [
+              {
+                "node": "Publish Coordination Updates",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Periodic Swarm Optimization": {
+          "main": [
+            [
+              {
+                "node": "Get All Robot States",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 29,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 1
+        },
+        "n8n-nodes-base.set": {
+          "count": 6
+        },
+        "n8n-nodes-base.slack": {
+          "count": 3
+        },
+        "n8n-nodes-base.webhook": {
+          "count": 2
+        },
+        "n8n-nodes-base.dataTable": {
+          "count": 3
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 7
+        },
+        "@n8n/n8n-nodes-langchain.agent": {
+          "count": 1
+        },
+        "n8n-nodes-base.scheduleTrigger": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.toolCode": {
+          "count": 3
+        },
+        "@n8n/n8n-nodes-langchain.lmChatOpenAi": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.memoryBufferWindow": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Cheng Siong Chin",
+      "username": "cschin",
+      "bio": "Dr. Cheng Siong CHIN is an n8n workflow creator specializing in AI-powered automation, agent orchestration, and intelligent system integrations. He designs and builds end-to-end workflows that combine LLMs, APIs, and data pipelines to streamline complex processes and deliver production-ready automation solutions. Contact me to discuss custom AI workflows and agent architectures.\n",
+      "verified": true,
+      "links": [
+        "https://gravatar.com/mysticluminary9fa255f7f5"
+      ],
+      "avatar": "https://gravatar.com/avatar/54544f98e839bb9dd9a764ad1e6823eeddb6db5138d201e42f291a7b0a73303f?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 40,
+        "icon": "file:slack.svg",
+        "name": "n8n-nodes-base.slack",
+        "codex": {
+          "data": {
+            "alias": [
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-automatically-give-kudos-to-contributors-with-github-slack-and-n8n/",
+                  "icon": "\ud83d\udc4f",
+                  "label": "How to automatically give kudos to contributors with GitHub, Slack, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.slack/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/slack/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "Slack"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgMTUwLjg1MiAxNTAuODUyIj48dXNlIHhsaW5rOmhyZWY9IiNhIiB4PSIuOTI2IiB5PSIuOTI2Ii8+PHN5bWJvbCBpZD0iYSIgb3ZlcmZsb3c9InZpc2libGUiPjxnIHN0cm9rZS13aWR0aD0iMS44NTIiPjxwYXRoIGZpbGw9IiNlMDFlNWEiIHN0cm9rZT0iI2UwMWU1YSIgZD0iTTQwLjc0MSA5My41NWMwLTguNzM1IDYuNjA3LTE1Ljc3MiAxNC44MTUtMTUuNzcyczE0LjgxNSA3LjAzNyAxNC44MTUgMTUuNzcydjM4LjgyNGMwIDguNzM3LTYuNjA3IDE1Ljc3NC0xNC44MTUgMTUuNzc0cy0xNC44MTUtNy4wMzctMTQuODE1LTE1Ljc3MnoiLz48cGF0aCBmaWxsPSIjZWNiMjJkIiBzdHJva2U9IiNlY2IyMmQiIGQ9Ik05My41NSAxMDcuNDA4Yy04LjczNSAwLTE1Ljc3Mi02LjYwNy0xNS43NzItMTQuODE1czcuMDM3LTE0LjgxNSAxNS43NzItMTQuODE1aDM4LjgyNmM4LjczNSAwIDE1Ljc3MiA2LjYwNyAxNS43NzIgMTQuODE1cy03LjAzNyAxNC44MTUtMTUuNzcyIDE0LjgxNXoiLz48cGF0aCBmaWxsPSIjMmZiNjdjIiBzdHJva2U9IiMyZmI2N2MiIGQ9Ik03Ny43NzggMTUuNzcyQzc3Ljc3OCA3LjAzNyA4NC4zODUgMCA5Mi41OTMgMHMxNC44MTUgNy4wMzcgMTQuODE1IDE1Ljc3MnYzOC44MjZjMCA4LjczNS02LjYwNyAxNS43NzItMTQuODE1IDE1Ljc3MnMtMTQuODE1LTcuMDM3LTE0LjgxNS0xNS43NzJ6Ii8+PHBhdGggZmlsbD0iIzM2YzVmMSIgc3Ryb2tlPSIjMzZjNWYxIiBkPSJNMTUuNzcyIDcwLjM3MUM3LjAzNyA3MC4zNzEgMCA2My43NjMgMCA1NS41NTZzNy4wMzctMTQuODE1IDE1Ljc3Mi0xNC44MTVoMzguODI2YzguNzM1IDAgMTUuNzcyIDYuNjA3IDE1Ljc3MiAxNC44MTVzLTcuMDM3IDE0LjgxNS0xNS43NzIgMTQuODE1eiIvPjxnIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiPjxwYXRoIGZpbGw9IiNlY2IyMmQiIHN0cm9rZT0iI2VjYjIyZCIgZD0iTTc3Ljc3OCAxMzMuMzMzYzAgOC4yMDggNi42MDcgMTQuODE1IDE0LjgxNSAxNC44MTVzMTQuODE1LTYuNjA3IDE0LjgxNS0xNC44MTUtNi42MDctMTQuODE1LTE0LjgxNS0xNC44MTVINzcuNzc4eiIvPjxwYXRoIGZpbGw9IiMyZmI2N2MiIHN0cm9rZT0iIzJmYjY3YyIgZD0iTTEzMy4zMzQgNzAuMzcxaC0xNC44MTVWNTUuNTU2YzAtOC4yMDcgNi42MDctMTQuODE1IDE0LjgxNS0xNC44MTVzMTQuODE1IDYuNjA3IDE0LjgxNSAxNC44MTUtNi42MDcgMTQuODE1LTE0LjgxNSAxNC44MTV6Ii8+PHBhdGggZmlsbD0iI2UwMWU1YSIgc3Ryb2tlPSIjZTAxZTVhIiBkPSJNMTQuODE1IDc3Ljc3OEgyOS42M3YxNC44MTVjMCA4LjIwNy02LjYwNyAxNC44MTUtMTQuODE1IDE0LjgxNVMwIDEwMC44IDAgOTIuNTkzczYuNjA3LTE0LjgxNSAxNC44MTUtMTQuODE1eiIvPjxwYXRoIGZpbGw9IiMzNmM1ZjEiIHN0cm9rZT0iIzM2YzVmMSIgZD0iTTcwLjM3MSAxNC44MTVWMjkuNjNINTUuNTU2Yy04LjIwNyAwLTE0LjgxNS02LjYwNy0xNC44MTUtMTQuODE1UzQ3LjM0OCAwIDU1LjU1NiAwczE0LjgxNSA2LjYwNyAxNC44MTUgMTQuODE1eiIvPjwvZz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Slack",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 47,
+        "icon": "file:webhook.svg",
+        "name": "n8n-nodes-base.webhook",
+        "codex": {
+          "data": {
+            "alias": [
+              "HTTP",
+              "API",
+              "Build",
+              "WH"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "\ud83d\udcbb",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-automatically-give-kudos-to-contributors-with-github-slack-and-n8n/",
+                  "icon": "\ud83d\udc4f",
+                  "label": "How to automatically give kudos to contributors with GitHub, Slack, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-custom-incident-response-workflows-with-n8n/",
+                  "label": "How to automate every step of an incident response workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Webhook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTM1IDM3Yy0yLjIgMC00LTEuOC00LTRzMS44LTQgNC00IDQgMS44IDQgNC0xLjggNC00IDQiLz48cGF0aCBmaWxsPSIjMzc0NzRmIiBkPSJNMzUgNDNjLTMgMC01LjktMS40LTcuOC0zLjdsMy4xLTIuNWMxLjEgMS40IDIuOSAyLjMgNC43IDIuMyAzLjMgMCA2LTIuNyA2LTZzLTIuNy02LTYtNmMtMSAwLTIgLjMtMi45LjdsLTEuNyAxTDIzLjMgMTZsMy41LTEuOSA1LjMgOS40YzEtLjMgMi0uNSAzLS41IDUuNSAwIDEwIDQuNSAxMCAxMFM0MC41IDQzIDM1IDQzIi8+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTE0IDQzQzguNSA0MyA0IDM4LjUgNCAzM2MwLTQuNiAzLjEtOC41IDcuNS05LjdsMSAzLjlDOS45IDI3LjkgOCAzMC4zIDggMzNjMCAzLjMgMi43IDYgNiA2czYtMi43IDYtNnYtMmgxNXY0SDIzLjhjLS45IDQuNi01IDgtOS44IDgiLz48cGF0aCBmaWxsPSIjZTkxZTYzIiBkPSJNMTQgMzdjLTIuMiAwLTQtMS44LTQtNHMxLjgtNCA0LTQgNCAxLjggNCA0LTEuOCA0LTQgNCIvPjxwYXRoIGZpbGw9IiMzNzQ3NGYiIGQ9Ik0yNSAxOWMtMi4yIDAtNC0xLjgtNC00czEuOC00IDQtNCA0IDEuOCA0IDQtMS44IDQtNCA0Ii8+PHBhdGggZmlsbD0iI2U5MWU2MyIgZD0ibTE1LjcgMzQtMy40LTIgNS45LTkuN2MtMi0xLjktMy4yLTQuNS0zLjItNy4zIDAtNS41IDQuNS0xMCAxMC0xMHMxMCA0LjUgMTAgMTBjMCAuOS0uMSAxLjctLjMgMi41bC0zLjktMWMuMS0uNS4yLTEgLjItMS41IDAtMy4zLTIuNy02LTYtNnMtNiAyLjctNiA2YzAgMi4xIDEuMSA0IDIuOSA1LjFsMS43IDF6Ii8+PC9zdmc+"
+        },
+        "displayName": "Webhook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 839,
+        "icon": "fa:clock",
+        "name": "n8n-nodes-base.scheduleTrigger",
+        "codex": {
+          "data": {
+            "alias": [
+              "Time",
+              "Scheduler",
+              "Polling",
+              "Cron",
+              "Interval"
+            ],
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\",\"schedule\"]",
+        "defaults": {
+          "name": "Schedule Trigger",
+          "color": "#31C49F"
+        },
+        "iconData": {
+          "icon": "clock",
+          "type": "icon"
+        },
+        "displayName": "Schedule Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1119,
+        "icon": "fa:robot",
+        "name": "@n8n/n8n-nodes-langchain.agent",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain",
+              "Chat",
+              "Conversational",
+              "Plan and Execute",
+              "ReAct",
+              "Tools"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Agents",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "AI Agent",
+          "color": "#404040"
+        },
+        "iconData": {
+          "icon": "robot",
+          "type": "icon"
+        },
+        "displayName": "AI Agent",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1153,
+        "icon": "file:openAiLight.svg",
+        "name": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmchatopenai/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Language Models",
+                "Root Nodes"
+              ],
+              "Language Models": [
+                "Chat Models (Recommended)"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "OpenAI Chat Model"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTM2Ljg2NzEgMTYuMzcxOEMzNy43NzQ2IDEzLjY0OCAzNy40NjIxIDEwLjY2NDIgMzYuMDEwOCA4LjE4NjYxQzMzLjgyODIgNC4zODY1MyAyOS40NDA3IDIuNDMxNDkgMjUuMTU1NiAzLjM1MTUxQzIzLjI0OTMgMS4yMDM5NiAyMC41MTA1IC0wLjAxNzMxNDggMTcuNjM5MiAwLjAwMDE4NTUzM0MxMy4yNTkxIC0wLjAwOTgxNDY4IDkuMzcyNzMgMi44MTAyNSA4LjAyNTIgNi45Nzc4M0M1LjIxMTM5IDcuNTU0MSAyLjc4MjU4IDkuMzE1MzggMS4zNjEzIDExLjgxMTdDLTAuODM3NDkzIDE1LjYwMTggLTAuMzM2MjMyIDIwLjM3OTQgMi42MDEzMyAyMy42Mjk0QzEuNjkzODEgMjYuMzUzMiAyLjAwNjMyIDI5LjMzNzEgMy40NTc2IDMxLjgxNDZDNS42NDAxNSAzNS42MTQ3IDEwLjAyNzcgMzcuNTY5NyAxNC4zMTI4IDM2LjY0OTdDMTYuMjE3OSAzOC43OTczIDE4Ljk1NzkgNDAuMDE4NSAyMS44MjkyIDM5Ljk5OThDMjYuMjExOCA0MC4wMTEgMzAuMDk5NCAzNy4xODg1IDMxLjQ0NjkgMzMuMDE3MUMzNC4yNjA4IDMyLjQ0MDkgMzYuNjg5NiAzMC42Nzk2IDM4LjExMDggMjguMTgzM0M0MC4zMDcxIDI0LjM5MzIgMzkuODA0NiAxOS42MTk0IDM2Ljg2ODMgMTYuMzY5M0wzNi44NjcxIDE2LjM3MThaTTIxLjgzMTcgMzcuMzg2QzIwLjA3OCAzNy4zODg1IDE4LjM3OTIgMzYuNzc0NyAxNy4wMzI5IDM1LjY1MDlDMTcuMDk0MSAzNS42MTg0IDE3LjIwMDQgMzUuNTU5NyAxNy4yNjkxIDM1LjUxNzJMMjUuMjM0MyAzMC45MTcxQzI1LjY0MTggMzAuNjg1OCAyNS44OTE4IDMwLjI1MjEgMjUuODg5MyAyOS43ODMzVjE4LjU1NDNMMjkuMjU1NyAyMC40OTgxQzI5LjI5MTkgMjAuNTE1NiAyOS4zMTU3IDIwLjU1MDYgMjkuMzIwNyAyMC41OTA2VjI5Ljg4OTZDMjkuMzE1NyAzNC4wMjQ3IDI1Ljk2NjggMzcuMzc3MiAyMS44MzE3IDM3LjM4NlpNNS43MjY0IDMwLjUwNzFDNC44NDc2MyAyOC45ODk2IDQuNTMxMzcgMjcuMjEwOCA0LjgzMjYzIDI1LjQ4NDVDNC44OTEzOCAyNS41MTk1IDQuOTk1MTMgMjUuNTgzMiA1LjA2ODg4IDI1LjYyNTdMMTMuMDM0MSAzMC4yMjU4QzEzLjQzNzggMzAuNDYyMSAxMy45Mzc4IDMwLjQ2MjEgMTQuMzQyOCAzMC4yMjU4TDI0LjA2NjggMjQuNjEwN1YyOC40OTgzQzI0LjA2OTMgMjguNTM4MyAyNC4wNTA1IDI4LjU3NyAyNC4wMTkzIDI4LjYwMkwxNS45Njc5IDMzLjI1MDlDMTIuMzgxNSAzNS4zMTU5IDcuODAxNDQgMzQuMDg4NCA1LjcyNzY1IDMwLjUwNzFINS43MjY0Wk0zLjYzMDEgMTMuMTIwNUM0LjUwNTEyIDExLjYwMDQgNS44ODY0IDEwLjQzNzkgNy41MzE0NCA5LjgzNDE1QzcuNTMxNDQgOS45MDI5IDcuNTI3NjkgMTAuMDI0MiA3LjUyNzY5IDEwLjEwOTJWMTkuMzEwNkM3LjUyNTE5IDE5Ljc3ODEgNy43NzUxOSAyMC4yMTE5IDguMTgxNDUgMjAuNDQzMUwxNy45MDU0IDI2LjA1N0wxNC41MzkxIDI4LjAwMDhDMTQuNTA1MyAyOC4wMjMzIDE0LjQ2MjggMjguMDI3IDE0LjQyNTMgMjguMDEwOEw2LjM3MjY2IDIzLjM1ODJDMi43OTM4MyAyMS4yODU2IDEuNTY2MzEgMTYuNzA2OCAzLjYyODg1IDEzLjEyMTdMMy42MzAxIDEzLjEyMDVaTTMxLjI4ODIgMTkuNTU2OUwyMS41NjQyIDEzLjk0MTdMMjQuOTMwNiAxMS45OTkyQzI0Ljk2NDMgMTEuOTc2NyAyNS4wMDY4IDExLjk3MjkgMjUuMDQ0MyAxMS45ODkyTDMzLjA5NyAxNi42MzhDMzYuNjgyMSAxOC43MDkzIDM3LjkxMDggMjMuMjk1NyAzNS44Mzk1IDI2Ljg4MDhDMzQuOTYzMyAyOC4zOTgzIDMzLjU4MzIgMjkuNTYwOCAzMS45Mzk1IDMwLjE2NThWMjAuNjg5NEMzMS45NDMyIDIwLjIyMTkgMzEuNjk0NSAxOS43ODk0IDMxLjI4OTQgMTkuNTU2OUgzMS4yODgyWk0zNC42MzgzIDE0LjUxNDJDMzQuNTc5NSAxNC40NzggMzQuNDc1OCAxNC40MTU1IDM0LjQwMiAxNC4zNzNMMjYuNDM2OCA5Ljc3Mjg5QzI2LjAzMzEgOS41MzY2NCAyNS41MzMxIDkuNTM2NjQgMjUuMTI4MSA5Ljc3Mjg5TDE1LjQwNDEgMTUuMzg4VjExLjUwMDRDMTUuNDAxNiAxMS40NjA0IDE1LjQyMDQgMTEuNDIxNyAxNS40NTE2IDExLjM5NjdMMjMuNTAzIDYuNzUxNThDMjcuMDg5NCA0LjY4Mjc5IDMxLjY3NDUgNS45MTQwNiAzMy43NDIgOS41MDE2NEMzNC42MTU4IDExLjAxNjcgMzQuOTMyIDEyLjc5MDUgMzQuNjM1OCAxNC41MTQySDM0LjYzODNaTTEzLjU3NDEgMjEuNDQzMUwxMC4yMDY1IDE5LjQ5OTRDMTAuMTcwMiAxOS40ODE5IDEwLjE0NjUgMTkuNDQ2OCAxMC4xNDE1IDE5LjQwNjhWMTAuMTA3OUMxMC4xNDQgNS45Njc4MSAxMy41MDI4IDIuNjEyNzQgMTcuNjQyOSAyLjYxNTI0QzE5LjM5NDIgMi42MTUyNCAyMS4wODkyIDMuMjMwMjUgMjIuNDM1NSA0LjM1MDI4QzIyLjM3NDMgNC4zODI3OCAyMi4yNjkzIDQuNDQxNTMgMjIuMTk5MiA0LjQ4NDAzTDE0LjIzNDEgOS4wODQxM0MxMy44MjY2IDkuMzE1MzggMTMuNTc2NiA5Ljc0Nzg5IDEzLjU3OTEgMTAuMjE2N0wxMy41NzQxIDIxLjQ0MDZWMjEuNDQzMVpNMTUuNDAyOSAxNy41MDA2TDE5LjczNDIgMTQuOTk5M0wyNC4wNjU1IDE3LjQ5OTNWMjIuNTAwN0wxOS43MzQyIDI1LjAwMDdMMTUuNDAyOSAyMi41MDA3VjE3LjUwMDZaIiBmaWxsPSIjN0Q3RDg3Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "OpenAI Chat Model",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1163,
+        "icon": "fa:database",
+        "name": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.memorybufferwindow/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Memory"
+              ],
+              "Memory": [
+                "For beginners"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Simple Memory"
+        },
+        "iconData": {
+          "icon": "database",
+          "type": "icon"
+        },
+        "displayName": "Simple Memory",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1197,
+        "icon": "fa:code",
+        "name": "@n8n/n8n-nodes-langchain.toolCode",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.toolcode/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Tools"
+              ],
+              "Tools": [
+                "Recommended Tools"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code Tool"
+        },
+        "iconData": {
+          "icon": "code",
+          "type": "icon"
+        },
+        "displayName": "Code Tool",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1315,
+        "icon": "fa:table",
+        "name": "n8n-nodes-base.dataTable",
+        "codex": {
+          "data": {
+            "alias": [
+              "data",
+              "table",
+              "knowledge",
+              "data table",
+              "table",
+              "sheet",
+              "database",
+              "data base",
+              "mysql",
+              "postgres",
+              "postgresql",
+              "airtable",
+              "supabase",
+              "noco",
+              "notion"
+            ],
+            "details": "Data table",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.datatable/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes",
+              "Development"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\",\"transform\"]",
+        "defaults": {
+          "name": "Data table"
+        },
+        "iconData": {
+          "icon": "table",
+          "type": "icon"
+        },
+        "displayName": "Data table",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 5,
+        "name": "Engineering"
+      },
+      {
+        "id": 48,
+        "name": "AI RAG"
+      }
+    ],
+    "image": []
+  }
+}

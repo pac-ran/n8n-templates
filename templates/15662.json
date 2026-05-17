@@ -1,0 +1,1364 @@
+{
+  "workflow": {
+    "id": 15662,
+    "name": "Monitor TikTok competitors with Scavio AI, Google Sheets, and Gmail alerts",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-12T12:46:40.922Z",
+    "description": "## How it works\n\n1. Every 6 hours, reads competitor TikTok usernames from a Google Sheet.\n2. Resolves each username to a TikTok profile and fetches the 5 most recent posts via the Scavio API.\n3. Compares fetched posts against the last known video ID to detect new content.\n4. Logs every new post to a **Posts** tab with description, views, likes, comments, shares, and a direct TikTok link.\n5. Sends a Gmail alert summarizing what each competitor just posted.\n6. Saves `sec_user_id` and `last_video_id` back to the **Competitors** tab so the next run picks up where it left off.\n\n## Set up steps\n\n1. Install the **Scavio** community node (`n8n-nodes-scavio`) from Settings &gt; Community Nodes.\n2. Get a free Scavio API key at [dashboard.scavio.dev](https://dashboard.scavio.dev) -- 250 credits/mo on the free tier.\n3. Create a Google Sheet with two tabs:\n   - **Competitors** -- columns: `username`, `sec_user_id`, `last_video_id`. Add one TikTok username per row (without @). Leave `sec_user_id` and `last_video_id` blank; they are auto-populated.\n   - **Posts** -- columns: `username`, `description`, `views`, `likes`, `comments`, `shares`, `link`, `detected_at`.\n4. Open each Google Sheets node, attach your Google Sheets OAuth2 credential, and select your spreadsheet and tab.\n5. Open the **Alert new posts** Gmail node and set `sendTo` to your email address.\n6. Attach your Scavio API credential to the **Get Profile** and **Get Latest Posts** nodes.\n7. Activate the workflow.\n\n## Categories\n\nMarketing, Social Media, TikTok, Competitor Analysis\n\n## Cost\n\nEach competitor uses 2 Scavio API credits per run (1 profile lookup + 1 posts fetch). Running 5 competitors every 6 hours uses ~20 credits/day, fitting comfortably within the free tier of 250 credits/month.\n",
+    "workflow": {
+      "meta": {
+        "templateCredsSetupCompleted": false
+      },
+      "name": "TikTok Competitor Monitor with Scavio + Google Sheets",
+      "nodes": [
+        {
+          "id": "sticky-master",
+          "name": "How it works",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            180,
+            160
+          ],
+          "parameters": {
+            "width": 580,
+            "height": 680,
+            "content": "## TikTok Competitor Monitor with Scavio + Google Sheets\n\n### How it works\nThis workflow monitors competitor TikTok accounts for new posts. Every 6 hours it reads usernames from a Google Sheet, fetches their latest videos via Scavio, compares against the last known video ID, and logs every new post with its description, metrics, and direct link to a Posts tab. If new content is found, you get a Gmail alert.\n\nPowered by [Scavio](https://scavio.dev), a real-time search API for Google, Amazon, Walmart, YouTube, Reddit, and TikTok. Free tier: 250 credits per month.\n\n### Setup steps\n- [ ] Install the **Scavio** community node: Settings -> Community Nodes -> install `n8n-nodes-scavio`.\n- [ ] Get a free Scavio API key at https://dashboard.scavio.dev (250 credits/mo).\n- [ ] Create a Google Sheet with two tabs:\n  - **Competitors**: columns `username`, `sec_user_id` (leave blank), `last_video_id` (leave blank). Add one competitor per row.\n  - **Posts**: columns `username`, `description`, `views`, `likes`, `comments`, `shares`, `link`, `detected_at`.\n- [ ] Attach credentials: Scavio API on **Get Profile** + **Get Latest Posts**, Google Sheets OAuth2 on all sheet nodes, Gmail OAuth2 on **Alert new posts**.\n- [ ] Open sheet nodes and pick your spreadsheet/tabs.\n- [ ] Open **Alert new posts** and set `sendTo` to your email.\n- [ ] Activate the workflow.\n\n### Tips\n- The first run seeds `last_video_id` without alerting. Alerts start on the second run.\n- Each competitor costs 2 credits per run. 5 competitors every 6h fits the free tier.\n- Build charts in Google Sheets from the Posts tab to compare competitor posting frequency and engagement."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "sticky-feedback",
+          "name": "Feedback",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            180,
+            880
+          ],
+          "parameters": {
+            "color": 4,
+            "width": 580,
+            "height": 100,
+            "content": "### How can we improve this workflow?\n### [>>> Share your feedback at scavio.dev/feedback](https://scavio.dev)"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "sticky-cluster-a",
+          "name": "Cluster: Read competitors",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            840,
+            160
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 520,
+            "height": 280,
+            "content": "## 1. Read competitors\n\nFires every 6 hours and reads every row from the \"Competitors\" tab (one row = one TikTok account to monitor)."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "sticky-cluster-b",
+          "name": "Cluster: Check for new posts",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1400,
+            160
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1340,
+            "height": 280,
+            "content": "## 2. Check for new posts\n\nFor each competitor, resolves the sec_user_id via Get Profile, fetches the 5 newest posts, and compares the latest video_id against the stored last_video_id to detect new content."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "sticky-cluster-c",
+          "name": "Cluster: Alert, log & save",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            2780,
+            160
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 960,
+            "height": 500,
+            "content": "## 3. Alert, log & save\n\nIf new posts are found, sends a Gmail alert, logs each post with description, metrics, and link to the Posts tab. Always saves sec_user_id and last_video_id back to the Competitors tab."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "1",
+          "name": "Every 6 Hours",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "position": [
+            900,
+            320
+          ],
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "hours",
+                  "hoursInterval": 6
+                }
+              ]
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "2",
+          "name": "Read competitors",
+          "type": "n8n-nodes-base.googleSheets",
+          "position": [
+            1120,
+            320
+          ],
+          "parameters": {
+            "options": {},
+            "operation": "read",
+            "sheetName": {
+              "__rl": true,
+              "mode": "list",
+              "value": "Competitors"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "list",
+              "value": ""
+            }
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "",
+              "name": "Google Sheets account"
+            }
+          },
+          "typeVersion": 4.5
+        },
+        {
+          "id": "3",
+          "name": "Loop competitors",
+          "type": "n8n-nodes-base.splitInBatches",
+          "position": [
+            1460,
+            320
+          ],
+          "parameters": {
+            "options": {},
+            "batchSize": 1
+          },
+          "typeVersion": 3
+        },
+        {
+          "id": "4",
+          "name": "Throttle",
+          "type": "n8n-nodes-base.wait",
+          "position": [
+            1680,
+            320
+          ],
+          "parameters": {
+            "unit": "seconds",
+            "amount": 2
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "5",
+          "name": "Get Profile",
+          "type": "n8n-nodes-scavio.scavio",
+          "position": [
+            1900,
+            320
+          ],
+          "parameters": {
+            "resource": "tiktok",
+            "username": "={{ $json.username }}",
+            "operation": "getProfile"
+          },
+          "credentials": {
+            "scavioApi": {
+              "id": "",
+              "name": "Scavio API account"
+            }
+          },
+          "typeVersion": 1,
+          "continueOnFail": true
+        },
+        {
+          "id": "6",
+          "name": "Store sec_user_id",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            2120,
+            320
+          ],
+          "parameters": {
+            "jsCode": "const profile = $json;\nconst row = $('Read competitors').item.json;\nconst secUid = profile.data?.user?.sec_uid ?? row.sec_user_id ?? '';\n\nreturn [{\n  json: {\n    username: row.username,\n    sec_user_id: secUid,\n    last_video_id: String(row.last_video_id ?? '').trim(),\n  },\n}];",
+            "language": "javaScript"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "7",
+          "name": "Get Latest Posts",
+          "type": "n8n-nodes-scavio.scavio",
+          "position": [
+            2340,
+            320
+          ],
+          "parameters": {
+            "resource": "tiktok",
+            "operation": "getUserPosts",
+            "sec_user_id": "={{ $json.sec_user_id }}",
+            "additionalOptions": {
+              "count": 5
+            }
+          },
+          "credentials": {
+            "scavioApi": {
+              "id": "",
+              "name": "Scavio API account"
+            }
+          },
+          "typeVersion": 1,
+          "continueOnFail": true
+        },
+        {
+          "id": "8",
+          "name": "Find new posts",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            2560,
+            320
+          ],
+          "parameters": {
+            "jsCode": "const prev = $('Store sec_user_id').item.json;\nconst postsResponse = $json;\nconst posts = postsResponse.data?.aweme_list ?? [];\nconst lastVideoId = prev.last_video_id;\nconst username = prev.username;\n\nif (!Array.isArray(posts) || posts.length === 0) {\n  return [{ json: { username, sec_user_id: prev.sec_user_id, last_video_id: lastVideoId, hasNewPosts: false, newPosts: [], newPostCount: 0 } }];\n}\n\nconst sorted = [...posts].sort((a, b) => Number(b.create_time ?? 0) - Number(a.create_time ?? 0));\nconst latestVideoId = String(sorted[0].aweme_id ?? '');\n\nconst newPosts = [];\nfor (const v of sorted) {\n  const vid = String(v.aweme_id ?? '');\n  if (lastVideoId && vid === lastVideoId) break;\n  const s = v.statistics ?? {};\n  newPosts.push({\n    video_id: vid,\n    description: String(v.desc ?? '').substring(0, 200),\n    views: Number(s.play_count ?? 0),\n    likes: Number(s.digg_count ?? 0),\n    comments: Number(s.comment_count ?? 0),\n    shares: Number(s.share_count ?? 0),\n    link: 'https://www.tiktok.com/@' + username + '/video/' + vid,\n  });\n}\n\nreturn [{\n  json: {\n    username,\n    sec_user_id: prev.sec_user_id,\n    last_video_id: latestVideoId,\n    hasNewPosts: newPosts.length > 0,\n    newPosts,\n    newPostCount: newPosts.length,\n  },\n}];",
+            "language": "javaScript"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "9",
+          "name": "Has new posts?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            2840,
+            320
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "c1",
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "true",
+                    "singleValue": true
+                  },
+                  "leftValue": "={{ $json.hasNewPosts }}",
+                  "rightValue": true
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "12",
+          "name": "Format posts",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            3060,
+            260
+          ],
+          "parameters": {
+            "jsCode": "const data = $('Find new posts').item.json;\nconst now = new Date().toISOString();\n\nreturn data.newPosts.map(p => ({\n  json: {\n    username: data.username,\n    description: p.description,\n    views: p.views,\n    likes: p.likes,\n    comments: p.comments,\n    shares: p.shares,\n    link: p.link,\n    detected_at: now,\n  }\n}));",
+            "language": "javaScript"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "13",
+          "name": "Log posts",
+          "type": "n8n-nodes-base.googleSheets",
+          "position": [
+            3280,
+            260
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "link": "={{ $json.link }}",
+                "likes": "={{ $json.likes }}",
+                "views": "={{ $json.views }}",
+                "shares": "={{ $json.shares }}",
+                "comments": "={{ $json.comments }}",
+                "username": "={{ $json.username }}",
+                "description": "={{ $json.description }}",
+                "detected_at": "={{ $json.detected_at }}"
+              },
+              "schema": [
+                {
+                  "id": "username",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "username",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": false
+                },
+                {
+                  "id": "description",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "description",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": false
+                },
+                {
+                  "id": "views",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "views",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": false
+                },
+                {
+                  "id": "likes",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "likes",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": false
+                },
+                {
+                  "id": "comments",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "comments",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": false
+                },
+                {
+                  "id": "shares",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "shares",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": false
+                },
+                {
+                  "id": "link",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "link",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": false
+                },
+                {
+                  "id": "detected_at",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "detected_at",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": false
+                }
+              ],
+              "mappingMode": "defineBelow",
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "options": {},
+            "operation": "append",
+            "sheetName": {
+              "__rl": true,
+              "mode": "list",
+              "value": "Posts"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "list",
+              "value": ""
+            }
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "",
+              "name": "Google Sheets account"
+            }
+          },
+          "typeVersion": 4.5
+        },
+        {
+          "id": "10",
+          "name": "Alert new posts",
+          "type": "n8n-nodes-base.gmail",
+          "position": [
+            3500,
+            260
+          ],
+          "parameters": {
+            "sendTo": "you@example.com",
+            "message": "=@{{ $('Find new posts').item.json.username }} has {{ $('Find new posts').item.json.newPostCount }} new TikTok post{{ $('Find new posts').item.json.newPostCount > 1 ? 's' : '' }}:\n\n{{ $('Find new posts').item.json.newPosts.map(p => '- ' + p.description.substring(0, 80) + '\\n  Views: ' + p.views + ' | Likes: ' + p.likes + '\\n  ' + p.link).join('\\n\\n') }}\n\n-- Scavio competitor monitor",
+            "options": {},
+            "subject": "=TikTok: @{{ $('Find new posts').item.json.username }} posted {{ $('Find new posts').item.json.newPostCount }} new video{{ $('Find new posts').item.json.newPostCount > 1 ? 's' : '' }}",
+            "emailType": "text",
+            "operation": "send"
+          },
+          "credentials": {
+            "gmailOAuth2": {
+              "id": "",
+              "name": "Gmail account"
+            }
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "11",
+          "name": "Save state",
+          "type": "n8n-nodes-base.googleSheets",
+          "position": [
+            3280,
+            480
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "username": "={{ $('Find new posts').item.json.username }}",
+                "sec_user_id": "={{ $('Find new posts').item.json.sec_user_id }}",
+                "last_video_id": "={{ $('Find new posts').item.json.last_video_id }}"
+              },
+              "schema": [
+                {
+                  "id": "username",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "required": false,
+                  "displayName": "username",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "sec_user_id",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "required": false,
+                  "displayName": "sec_user_id",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "last_video_id",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "required": false,
+                  "displayName": "last_video_id",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                }
+              ],
+              "mappingMode": "defineBelow",
+              "matchingColumns": [
+                "username"
+              ],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "options": {},
+            "operation": "appendOrUpdate",
+            "sheetName": {
+              "__rl": true,
+              "mode": "list",
+              "value": "Competitors"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "list",
+              "value": ""
+            }
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "",
+              "name": "Google Sheets account"
+            }
+          },
+          "typeVersion": 4.5
+        }
+      ],
+      "active": false,
+      "settings": {
+        "executionOrder": "v1"
+      },
+      "connections": {
+        "Throttle": {
+          "main": [
+            [
+              {
+                "node": "Get Profile",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Log posts": {
+          "main": [
+            [
+              {
+                "node": "Alert new posts",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Save state": {
+          "main": [
+            [
+              {
+                "node": "Loop competitors",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get Profile": {
+          "main": [
+            [
+              {
+                "node": "Store sec_user_id",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Format posts": {
+          "main": [
+            [
+              {
+                "node": "Log posts",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Every 6 Hours": {
+          "main": [
+            [
+              {
+                "node": "Read competitors",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Find new posts": {
+          "main": [
+            [
+              {
+                "node": "Has new posts?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Has new posts?": {
+          "main": [
+            [
+              {
+                "node": "Format posts",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Save state",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Alert new posts": {
+          "main": [
+            [
+              {
+                "node": "Save state",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get Latest Posts": {
+          "main": [
+            [
+              {
+                "node": "Find new posts",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Loop competitors": {
+          "main": [
+            [],
+            [
+              {
+                "node": "Throttle",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Read competitors": {
+          "main": [
+            [
+              {
+                "node": "Loop competitors",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Store sec_user_id": {
+          "main": [
+            [
+              {
+                "node": "Get Latest Posts",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 18,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 1
+        },
+        "n8n-nodes-base.code": {
+          "count": 3
+        },
+        "n8n-nodes-base.wait": {
+          "count": 1
+        },
+        "n8n-nodes-base.gmail": {
+          "count": 1
+        },
+        "n8n-nodes-scavio.scavio": {
+          "count": 2
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 5
+        },
+        "n8n-nodes-base.googleSheets": {
+          "count": 3
+        },
+        "n8n-nodes-base.splitInBatches": {
+          "count": 1
+        },
+        "n8n-nodes-base.scheduleTrigger": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Scavio AI",
+      "username": "scavio-ai",
+      "bio": "Scavio is a real-time search API for Google, Amazon, Walmart, YouTube, and Reddit \u2014 clean structured JSON for AI agents and automation. We ship official integrations for n8n, LangChain, and MCP. Free tier: 500 credits/month at scavio.dev. Templates here use the n8n-nodes-scavio community node.",
+      "verified": false,
+      "links": [
+        "https://scavio.dev"
+      ],
+      "avatar": "https://gravatar.com/avatar/ccf5be6347bce2632472b888a798a07c36a89b6af2e11c3fa0ce107e3f34cf6f?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 18,
+        "icon": "file:googleSheets.svg",
+        "name": "n8n-nodes-base.googleSheets",
+        "codex": {
+          "data": {
+            "alias": [
+              "CSV",
+              "Sheet",
+              "Spreadsheet",
+              "GS"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/love-at-first-sight-ricardos-n8n-journey/",
+                  "icon": "\u2764\ufe0f",
+                  "label": "Love at first sight: Ricardo\u2019s n8n journey"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-triggers-for-n8n-workflows-using-polling/",
+                  "icon": "\u23f2",
+                  "label": "Creating triggers for n8n workflows using polling"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/migrating-community-metrics-to-orbit-using-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Migrating Community Metrics to Orbit using n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-honest-burgers-use-automation-to-save-100k-per-year/",
+                  "icon": "\ud83c\udf54",
+                  "label": "How Honest Burgers Use Automation to Save $100k per year"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "\ud83d\udcbb",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googlesheets/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage",
+              "Productivity"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\",\"output\"]",
+        "defaults": {
+          "name": "Google Sheets"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNS42OSAxIDUyIDE3LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0OC4yOTMgNjBIMTIuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDkgNTYuMzEyVjQuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTIuNzA3IDF6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM1LjY5IDEgNTIgMTcuMjI1SDM5LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzkuMjExIDE3LjIyNSA1MiAyMi40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTIwLjEyIDMxLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMS42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzEuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNC42OSAwIDUxIDE2LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0Ny4yOTMgNTlIMTEuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDggNTUuMzEyVjMuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTEuNzA3IDB6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM0LjY5IDAgNTEgMTYuMjI1SDM4LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzguMjExIDE2LjIyNSA1MSAyMS40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTE5LjEyIDMwLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMC42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzAuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjwvZz48L3N2Zz4="
+        },
+        "displayName": "Google Sheets",
+        "typeVersion": 5,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          },
+          {
+            "id": 4,
+            "name": "Productivity"
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 39,
+        "icon": "fa:sync",
+        "name": "n8n-nodes-base.splitInBatches",
+        "codex": {
+          "data": {
+            "alias": [
+              "Loop",
+              "Concatenate",
+              "Batch",
+              "Split",
+              "Split In Batches"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Loop Over Items",
+          "color": "#007755"
+        },
+        "iconData": {
+          "icon": "sync",
+          "type": "icon"
+        },
+        "displayName": "Loop Over Items (Split in Batches)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 356,
+        "icon": "file:gmail.svg",
+        "name": "n8n-nodes-base.gmail",
+        "codex": {
+          "data": {
+            "alias": [
+              "email",
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/using-automation-to-boost-productivity-in-the-workplace/",
+                  "icon": "\ud83d\udcaa",
+                  "label": "Using Automation to Boost Productivity in the Workplace"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.gmail/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Gmail"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMTkzIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCI+PHBhdGggZmlsbD0iIzQyODVGNCIgZD0iTTU4LjE4MiAxOTIuMDVWOTMuMTRMMjcuNTA3IDY1LjA3NyAwIDQ5LjUwNHYxMjUuMDkxYzAgOS42NTggNy44MjUgMTcuNDU1IDE3LjQ1NSAxNy40NTV6Ii8+PHBhdGggZmlsbD0iIzM0QTg1MyIgZD0iTTE5Ny44MTggMTkyLjA1aDQwLjcyN2M5LjY1OSAwIDE3LjQ1NS03LjgyNiAxNy40NTUtMTcuNDU1VjQ5LjUwNWwtMzEuMTU2IDE3LjgzNy0yNy4wMjYgMjUuNzk4eiIvPjxwYXRoIGZpbGw9IiNFQTQzMzUiIGQ9Im01OC4xODIgOTMuMTQtNC4xNzQtMzguNjQ3IDQuMTc0LTM2Ljk4OUwxMjggNjkuODY4bDY5LjgxOC01Mi4zNjQgNC42NyAzNC45OTItNC42NyA0MC42NDRMMTI4IDE0NS41MDR6Ii8+PHBhdGggZmlsbD0iI0ZCQkMwNCIgZD0iTTE5Ny44MTggMTcuNTA0VjkzLjE0TDI1NiA0OS41MDRWMjYuMjMxYzAtMjEuNTg1LTI0LjY0LTMzLjg5LTQxLjg5LTIwLjk0NXoiLz48cGF0aCBmaWxsPSIjQzUyMjFGIiBkPSJtMCA0OS41MDQgMjYuNzU5IDIwLjA3TDU4LjE4MiA5My4xNFYxNy41MDRMNDEuODkgNS4yODZDMjQuNjEtNy42NiAwIDQuNjQ2IDAgMjYuMjN6Ii8+PC9zdmc+"
+        },
+        "displayName": "Gmail",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 514,
+        "icon": "fa:pause-circle",
+        "name": "n8n-nodes-base.wait",
+        "codex": {
+          "data": {
+            "alias": [
+              "pause",
+              "sleep",
+              "delay",
+              "timeout"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.wait/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Wait",
+          "color": "#804050"
+        },
+        "iconData": {
+          "icon": "pause-circle",
+          "type": "icon"
+        },
+        "displayName": "Wait",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 839,
+        "icon": "fa:clock",
+        "name": "n8n-nodes-base.scheduleTrigger",
+        "codex": {
+          "data": {
+            "alias": [
+              "Time",
+              "Scheduler",
+              "Polling",
+              "Cron",
+              "Interval"
+            ],
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\",\"schedule\"]",
+        "defaults": {
+          "name": "Schedule Trigger",
+          "color": "#31C49F"
+        },
+        "iconData": {
+          "icon": "clock",
+          "type": "icon"
+        },
+        "displayName": "Schedule Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 32,
+        "name": "Market Research"
+      }
+    ],
+    "image": []
+  }
+}

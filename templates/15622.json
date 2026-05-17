@@ -1,0 +1,1322 @@
+{
+  "workflow": {
+    "id": 15622,
+    "name": "Send order tracking updates via WhatsApp and log events to Google Sheets",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-11T13:09:43.533Z",
+    "description": "This workflow automatically delivers real-time order updates to customers via WhatsApp \u2014 covering every stage from order confirmation through final delivery.\n\n### Who's it for\n\u2022 E-commerce stores processing 50+ orders/day\n\u2022 Logistics teams managing last-mile delivery\n\u2022 Businesses wanting to reduce support tickets about order status\n\n### How it works / What it does\n1. Receives order event via webhook (new order, shipped, out for delivery, delivered)\n2. Extracts and normalises order + customer data\n3. Detects the event type using JavaScript logic\n4. Selects the matching WhatsApp message template\n5. Sends the formatted message via WhatsApp Business API\n6. Logs delivery receipt and audit trail to Google Sheets\n\n### Message Templates\n\u2022 Order Confirmed: Order #ID confirmed with total amount\n\u2022 Shipped: Tracking number + expected delivery date\n\u2022 Out for Delivery: Same-day delivery alert\n\u2022 Delivered: Thank-you confirmation message\n\n### How to set up\n1. Import this workflow into n8n\n2. Configure credentials: WhatsApp Business API, Google Sheets OAuth2\n3. Replace YOUR_SHEET_ID with your actual Google Sheet ID\n4. Replace YOUR_WHATSAPP_PHONE_NUMBER_ID with your Meta phone number ID\n5. Set WHATSAPP_ACCESS_TOKEN in your n8n credentials\n6. Activate the workflow and point your order system to the webhook URL\n\n### Requirements\n\u2022 Meta WhatsApp Business API access (approved account)\n\u2022 Google Sheets (for audit logging)\n\u2022 Order management system capable of sending webhooks\n\u2022 n8n instance (cloud or self-hosted)\n\n### How to customise\n\u2022 Edit message text in the JS - Build Message Payload node\n\u2022 Add new event types in the JS - Detect Order Event node\n\u2022 Change sheet columns in Update Google Sheet Tracker\n\u2022 Add error notification (e.g. Slack/email) in the Error Handler node",
+    "workflow": {
+      "id": "43Wkp9nCvzl5KUjG",
+      "meta": {
+        "instanceId": "dd69efaf8212c74ad206700d104739d3329588a6f3f8381a46a481f34c9cc281"
+      },
+      "name": "WhatsApp Order Tracking Automation",
+      "tags": [
+        {
+          "id": "z6mxJFPmp5Jq0Lnu",
+          "name": "whatsapp",
+          "createdAt": "2026-05-11T13:01:00.955Z",
+          "updatedAt": "2026-05-11T13:01:00.955Z"
+        },
+        {
+          "id": "qGtyEjKjSjtOWklZ",
+          "name": "ecommerce",
+          "createdAt": "2026-05-11T13:08:23.544Z",
+          "updatedAt": "2026-05-11T13:08:23.544Z"
+        },
+        {
+          "id": "NJ0ha3cOcnMLzWsO",
+          "name": "order-tracking",
+          "createdAt": "2026-05-11T13:08:23.500Z",
+          "updatedAt": "2026-05-11T13:08:23.500Z"
+        }
+      ],
+      "nodes": [
+        {
+          "id": "676e6ec8-95fc-4fdf-a3c1-1400e42f364b",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            0,
+            0
+          ],
+          "parameters": {
+            "width": 980,
+            "height": 1092,
+            "content": "## WhatsApp Order Tracking Automation\n\nThis workflow automatically delivers real-time order updates to customers via WhatsApp \u2014 covering every stage from order confirmation through final delivery.\n\n### Who's it for\n\u2022 E-commerce stores processing 50+ orders/day\n\u2022 Logistics teams managing last-mile delivery\n\u2022 Businesses wanting to reduce support tickets about order status\n\n### How it works / What it does\n1. Receives order event via webhook (new order, shipped, out for delivery, delivered)\n2. Extracts and normalises order + customer data\n3. Detects the event type using JavaScript logic\n4. Selects the matching WhatsApp message template\n5. Sends the formatted message via WhatsApp Business API\n6. Logs delivery receipt and audit trail to Google Sheets\n\n### Message Templates\n\u2022 Order Confirmed: Order #ID confirmed with total amount\n\u2022 Shipped: Tracking number + expected delivery date\n\u2022 Out for Delivery: Same-day delivery alert\n\u2022 Delivered: Thank-you confirmation message\n\n### How to set up\n1. Import this workflow into n8n\n2. Configure credentials: WhatsApp Business API, Google Sheets OAuth2\n3. Replace YOUR_SHEET_ID with your actual Google Sheet ID\n4. Replace YOUR_WHATSAPP_PHONE_NUMBER_ID with your Meta phone number ID\n5. Set WHATSAPP_ACCESS_TOKEN in your n8n credentials\n6. Activate the workflow and point your order system to the webhook URL\n\n### Requirements\n\u2022 Meta WhatsApp Business API access (approved account)\n\u2022 Google Sheets (for audit logging)\n\u2022 Order management system capable of sending webhooks\n\u2022 n8n instance (cloud or self-hosted)\n\n### How to customise\n\u2022 Edit message text in the JS - Build Message Payload node\n\u2022 Add new event types in the JS - Detect Order Event node\n\u2022 Change sheet columns in Update Google Sheet Tracker\n\u2022 Add error notification (e.g. Slack/email) in the Error Handler node"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "25a569d1-0504-40cd-bd8b-e68497202377",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1082,
+            276
+          ],
+          "parameters": {
+            "color": 4,
+            "width": 668,
+            "height": 500,
+            "content": "## 1. Trigger & Intake\n\nAccepts incoming order events from your OMS via webhook.\nBoth real-time webhooks and a scheduled polling fallback are supported."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "0c00263a-8843-449e-9320-1adaa434d693",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1856,
+            176
+          ],
+          "parameters": {
+            "color": 3,
+            "width": 820,
+            "height": 620,
+            "content": "## 2. Event Detection & Template Selection\n\nIdentifies the order event type, validates required fields,\nand selects the correct WhatsApp message template."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "a736a442-2b67-4fcc-a0ae-94450763661d",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            2736,
+            192
+          ],
+          "parameters": {
+            "color": 6,
+            "width": 1040,
+            "height": 600,
+            "content": "## 3. Send & Track\n\nDelivers the WhatsApp message, captures delivery receipt,\nand logs the full audit trail to Google Sheets.\nError handler fires on any node failure in this section."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "5abe6c3f-c6f5-4918-81dc-d9682d7ba5a5",
+          "name": "Webhook - Order Event",
+          "type": "n8n-nodes-base.webhook",
+          "position": [
+            1200,
+            424
+          ],
+          "webhookId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "parameters": {
+            "path": "order-tracking-inbound",
+            "options": {},
+            "httpMethod": "POST",
+            "responseMode": "responseNode"
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "c6bd101c-1bca-427e-b0e2-ffecae11fa91",
+          "name": "Poll Order System",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "position": [
+            1200,
+            616
+          ],
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "cronExpression",
+                  "expression": "*/15 * * * *"
+                }
+              ]
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "2df0cf68-2f16-4169-b3e8-154ff614a820",
+          "name": "Prepare Order Context",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            1424,
+            520
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "name": "orderId",
+                  "type": "string",
+                  "value": "={{ $json.order_id || $json.body?.order_id || $json.id || 'UNKNOWN' }}"
+                },
+                {
+                  "name": "orderStatus",
+                  "type": "string",
+                  "value": "={{ ($json.status || $json.body?.status || $json.event_type || '').toLowerCase().trim() }}"
+                },
+                {
+                  "name": "customerName",
+                  "type": "string",
+                  "value": "={{ $json.customer_name || $json.body?.customer?.name || $json.customer?.name || 'Valued Customer' }}"
+                },
+                {
+                  "name": "customerPhone",
+                  "type": "string",
+                  "value": "={{ $json.customer_phone || $json.body?.customer?.phone || $json.phone || '' }}"
+                },
+                {
+                  "name": "orderTotal",
+                  "type": "string",
+                  "value": "={{ $json.total || $json.body?.total || $json.amount || '0.00' }}"
+                },
+                {
+                  "name": "currency",
+                  "type": "string",
+                  "value": "={{ $json.currency || $json.body?.currency || 'USD' }}"
+                },
+                {
+                  "name": "trackingNumber",
+                  "type": "string",
+                  "value": "={{ $json.tracking_number || $json.body?.tracking?.number || $json.tracking_id || '' }}"
+                },
+                {
+                  "name": "trackingUrl",
+                  "type": "string",
+                  "value": "={{ $json.tracking_url || $json.body?.tracking?.url || '' }}"
+                },
+                {
+                  "name": "estimatedDelivery",
+                  "type": "string",
+                  "value": "={{ $json.estimated_delivery || $json.body?.estimated_delivery || $json.eta || '' }}"
+                },
+                {
+                  "name": "ingestedAt",
+                  "type": "string",
+                  "value": "={{ new Date().toISOString() }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "7cedf235-232d-43f4-815c-15c0698e9073",
+          "name": "JS - Detect Order Event",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1648,
+            520
+          ],
+          "parameters": {
+            "mode": "runOnceForEachItem",
+            "jsCode": "const item = $input.item.json;\n\n// Normalise status to a canonical event key\nconst rawStatus = (item.orderStatus || '').toLowerCase();\n\nconst STATUS_MAP = {\n  'confirmed':      'ORDER_CONFIRMED',\n  'order_confirmed':'ORDER_CONFIRMED',\n  'placed':         'ORDER_CONFIRMED',\n  'new':            'ORDER_CONFIRMED',\n  'shipped':        'ORDER_SHIPPED',\n  'dispatched':     'ORDER_SHIPPED',\n  'in_transit':     'ORDER_SHIPPED',\n  'out_for_delivery': 'OUT_FOR_DELIVERY',\n  'out for delivery': 'OUT_FOR_DELIVERY',\n  'on_the_way':     'OUT_FOR_DELIVERY',\n  'delivered':      'ORDER_DELIVERED',\n  'completed':      'ORDER_DELIVERED',\n};\n\nconst eventType = STATUS_MAP[rawStatus] || null;\n\n// Validate required fields\nconst missingPhone = !item.customerPhone || item.customerPhone.trim() === '';\nconst missingOrderId = !item.orderId || item.orderId === 'UNKNOWN';\n\nreturn {\n  json: {\n    ...item,\n    eventType,\n    isValidEvent: eventType !== null,\n    hasPhone: !missingPhone,\n    validationError: missingPhone ? 'Missing customer phone' : missingOrderId ? 'Missing order ID' : null\n  }\n};"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "8630c436-ecc4-41bd-803c-1423658884fd",
+          "name": "Filter Valid Order Events",
+          "type": "n8n-nodes-base.filter",
+          "position": [
+            1872,
+            520
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "conditions": [
+                {
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "true"
+                  },
+                  "leftValue": "={{ $json.isValidEvent }}"
+                },
+                {
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "true"
+                  },
+                  "leftValue": "={{ $json.hasPhone }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "1a50903d-2bd2-4207-ac28-09a4ec5f12be",
+          "name": "Wait - Rate Limit",
+          "type": "n8n-nodes-base.wait",
+          "position": [
+            2096,
+            520
+          ],
+          "webhookId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+          "parameters": {},
+          "typeVersion": 1
+        },
+        {
+          "id": "753e0880-d252-4353-b2dd-7484309e4b07",
+          "name": "JS - Build Message Payload",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            2320,
+            520
+          ],
+          "parameters": {
+            "mode": "runOnceForEachItem",
+            "jsCode": "const item = $input.item.json;\n\n// \u2500\u2500\u2500 Message Templates \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst templates = {\n  ORDER_CONFIRMED: [\n    `Hi ${item.customerName}! \ud83c\udf89`,\n    `Your order *#${item.orderId}* has been confirmed.`,\n    `\ud83d\udcb0 Total: ${item.currency} ${item.orderTotal}`,\n    `We'll notify you as soon as it ships. Thank you for shopping with us!`\n  ].join('\\n'),\n\n  ORDER_SHIPPED: [\n    `Hi ${item.customerName}! \ud83d\udce6`,\n    `Great news \u2014 your order *#${item.orderId}* has shipped!`,\n    item.trackingNumber ? `\ud83d\udd0d Tracking: ${item.trackingNumber}` : null,\n    item.trackingUrl    ? `\ud83d\udd17 Track here: ${item.trackingUrl}` : null,\n    item.estimatedDelivery ? `\ud83d\udcc5 Expected delivery: ${item.estimatedDelivery}` : null,\n    `We'll keep you posted every step of the way.`\n  ].filter(Boolean).join('\\n'),\n\n  OUT_FOR_DELIVERY: [\n    `Hi ${item.customerName}! \ud83d\ude9a`,\n    `Your order *#${item.orderId}* is out for delivery today!`,\n    `Please make sure someone is available to receive it.`,\n    `If you have any questions, reply to this message.`\n  ].join('\\n'),\n\n  ORDER_DELIVERED: [\n    `Hi ${item.customerName}! \u2705`,\n    `Your order *#${item.orderId}* has been delivered.`,\n    `We hope you love your purchase! \ud83d\udecd\ufe0f`,\n    `If anything is missing or damaged, please contact us within 48 hours.`,\n    `Thank you for choosing us!`\n  ].join('\\n')\n};\n\nconst messageText = templates[item.eventType] || `Hi ${item.customerName}, your order #${item.orderId} status has been updated to: ${item.orderStatus}.`;\n\n// Sanitise phone number \u2014 ensure it starts with country code, digits only\nconst sanitisedPhone = item.customerPhone\n  .replace(/\\D/g, '')\n  .replace(/^0+/, '');\n\nreturn {\n  json: {\n    ...item,\n    messageText,\n    recipientPhone: sanitisedPhone,\n    sentAt: new Date().toISOString()\n  }\n};"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "664fbdf6-d224-43ad-b914-4936b68c9957",
+          "name": "Send WhatsApp Message",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            2544,
+            520
+          ],
+          "parameters": {
+            "url": "=https://graph.facebook.com/v19.0/{{ $credentials.whatsappPhoneNumberId }}/messages",
+            "method": "POST",
+            "options": {
+              "timeout": 10000
+            },
+            "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"recipient_type\": \"individual\",\n  \"to\": \"{{ $json.recipientPhone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"preview_url\": false,\n    \"body\": {{ JSON.stringify($json.messageText) }}\n  }\n}",
+            "sendBody": true,
+            "sendHeaders": true,
+            "specifyBody": "json",
+            "authentication": "genericCredentialType",
+            "genericAuthType": "httpHeaderAuth",
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          },
+          "credentials": {
+            "httpHeaderAuth": {
+              "id": "rJ0YUgA7qjQmQxfT",
+              "name": "n8n"
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "d1fd224c-f942-471b-819d-fcb8c2b2030f",
+          "name": "JS - Capture Delivery Receipt",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            2768,
+            448
+          ],
+          "parameters": {
+            "mode": "runOnceForEachItem",
+            "jsCode": "const item = $input.item.json;\n\n// Capture WhatsApp API response\nconst apiResponse = item;\nconst waMessageId = apiResponse?.messages?.[0]?.id || 'N/A';\nconst deliveryStatus = apiResponse?.messages ? 'SENT' : 'FAILED';\n\nreturn {\n  json: {\n    ...($input.item.json),\n    waMessageId,\n    deliveryStatus,\n    loggedAt: new Date().toISOString()\n  }\n};"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "0b11c816-0cf4-4076-a058-d8945975eae6",
+          "name": "Update Google Sheet Tracker",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            2992,
+            448
+          ],
+          "parameters": {
+            "url": "=https://sheets.googleapis.com/v4/spreadsheets/YOUR_SHEET_ID/values/OrderTracking!A1:append?valueInputOption=USER_ENTERED",
+            "method": "POST",
+            "options": {},
+            "jsonBody": "={\n  \"values\": [[\n    \"{{ $json.loggedAt }}\",\n    \"{{ $json.orderId }}\",\n    \"{{ $json.customerName }}\",\n    \"{{ $json.recipientPhone }}\",\n    \"{{ $json.eventType }}\",\n    \"{{ $json.orderStatus }}\",\n    \"{{ $json.orderTotal }}\",\n    \"{{ $json.currency }}\",\n    \"{{ $json.trackingNumber }}\",\n    \"{{ $json.waMessageId }}\",\n    \"{{ $json.deliveryStatus }}\",\n    \"{{ $json.sentAt }}\"\n  ]]\n}",
+            "sendBody": true,
+            "specifyBody": "json",
+            "authentication": "oAuth2"
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "afcec925-4967-4e0c-8d86-53637955e406",
+          "name": "Respond to Webhook",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "position": [
+            3216,
+            400
+          ],
+          "parameters": {
+            "options": {},
+            "respondWith": "json",
+            "responseBody": "={ \"success\": true, \"orderId\": \"{{ $json.orderId }}\", \"waMessageId\": \"{{ $json.waMessageId }}\", \"status\": \"{{ $json.deliveryStatus }}\" }"
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "d63d2ad1-6d1c-467e-96e5-a128189af6c9",
+          "name": "Error Handler",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            3216,
+            616
+          ],
+          "parameters": {
+            "mode": "runOnceForEachItem",
+            "jsCode": "// Error handler \u2014 captures failures from Send or Sheet nodes\nconst errorDetails = {\n  failedAt: new Date().toISOString(),\n  orderId: $input.item.json?.orderId || 'N/A',\n  eventType: $input.item.json?.eventType || 'N/A',\n  recipientPhone: $input.item.json?.recipientPhone || 'N/A',\n  errorMessage: $input.item.json?.error?.message || 'Unknown error',\n  errorCode: $input.item.json?.error?.code || 'N/A'\n};\n\nconsole.error('[OrderTracking] ERROR:', JSON.stringify(errorDetails));\n\nreturn { json: errorDetails };"
+          },
+          "typeVersion": 2
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "executionOrder": "v1"
+      },
+      "versionId": "77de3cf1-6b92-4b53-bebb-aed42bb11b98",
+      "connections": {
+        "Poll Order System": {
+          "main": [
+            [
+              {
+                "node": "Prepare Order Context",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Wait - Rate Limit": {
+          "main": [
+            [
+              {
+                "node": "JS - Build Message Payload",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Prepare Order Context": {
+          "main": [
+            [
+              {
+                "node": "JS - Detect Order Event",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Send WhatsApp Message": {
+          "main": [
+            [
+              {
+                "node": "JS - Capture Delivery Receipt",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Error Handler",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Webhook - Order Event": {
+          "main": [
+            [
+              {
+                "node": "Prepare Order Context",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "JS - Detect Order Event": {
+          "main": [
+            [
+              {
+                "node": "Filter Valid Order Events",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Filter Valid Order Events": {
+          "main": [
+            [
+              {
+                "node": "Wait - Rate Limit",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "JS - Build Message Payload": {
+          "main": [
+            [
+              {
+                "node": "Send WhatsApp Message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Update Google Sheet Tracker": {
+          "main": [
+            [
+              {
+                "node": "Respond to Webhook",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Error Handler",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "JS - Capture Delivery Receipt": {
+          "main": [
+            [
+              {
+                "node": "Update Google Sheet Tracker",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 16,
+      "nodeTypes": {
+        "n8n-nodes-base.set": {
+          "count": 1
+        },
+        "n8n-nodes-base.code": {
+          "count": 4
+        },
+        "n8n-nodes-base.wait": {
+          "count": 1
+        },
+        "n8n-nodes-base.filter": {
+          "count": 1
+        },
+        "n8n-nodes-base.webhook": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 4
+        },
+        "n8n-nodes-base.httpRequest": {
+          "count": 2
+        },
+        "n8n-nodes-base.scheduleTrigger": {
+          "count": 1
+        },
+        "n8n-nodes-base.respondToWebhook": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Oneclick AI Squad",
+      "username": "oneclick-ai",
+      "bio": "The AI Squad Initiative is a pioneering effort to build, automate and scale AI-powered workflows using n8n.io. Our mission is to help individuals and businesses integrate AI agents seamlessly into their daily operations  from automating tasks and enhancing productivity to creating innovative, intelligent solutions. We design modular, reusable AI workflow templates that empower creators, developers and teams to supercharge their automation with minimal effort and maximum impact.",
+      "verified": true,
+      "links": [
+        "https://www.oneclickitsolution.com/"
+      ],
+      "avatar": "https://gravatar.com/avatar/848fca91367142f65f9e5c55d64e5c9952b160d7b060d103b52aa343c6bc7b3d?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 19,
+        "icon": "file:httprequest.svg",
+        "name": "n8n-nodes-base.httpRequest",
+        "codex": {
+          "data": {
+            "alias": [
+              "API",
+              "Request",
+              "URL",
+              "Build",
+              "cURL"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-designs-with-bannerbear-and-n8n/",
+                  "icon": "\ud83c\udfa8",
+                  "label": "Automate Designs with Bannerbear and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-use-the-http-request-node-the-swiss-army-knife-for-workflow-automation/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "How to use the HTTP Request Node - The Swiss Army Knife for Workflow Automation"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HTTP Request",
+          "color": "#0004F5"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MCAyMEM0MCA4Ljk1MzE0IDMxLjA0NjkgMCAyMCAwQzguOTUzMTQgMCAwIDguOTUzMTQgMCAyMEMwIDMxLjA0NjkgOC45NTMxNCA0MCAyMCA0MEMzMS4wNDY5IDQwIDQwIDMxLjA0NjkgNDAgMjBaTTIwIDM2Ljk0NThDMTguODg1MiAzNi45NDU4IDE3LjEzNzggMzUuOTY3IDE1LjQ5OTggMzIuNjk4NUMxNC43OTY0IDMxLjI5MTggMTQuMTk2MSAyOS41NDMxIDEzLjc1MjYgMjcuNjg0N0gyNi4xODk4QzI1LjgwNDUgMjkuNTQwMyAyNS4yMDQ0IDMxLjI5MDEgMjQuNTAwMiAzMi42OTg1QzIyLjg2MjIgMzUuOTY3IDIxLjExNDggMzYuOTQ1OCAyMCAzNi45NDU4Wk0xMi45MDY0IDIwQzEyLjkwNjQgMjEuNjA5NyAxMy4wMDg3IDIzLjE2NCAxMy4yMDAzIDI0LjYzMDVIMjYuNzk5N0MyNi45OTEzIDIzLjE2NCAyNy4wOTM2IDIxLjYwOTcgMjcuMDkzNiAyMEMyNy4wOTM2IDE4LjM5MDMgMjYuOTkxMyAxNi44MzYgMjYuNzk5NyAxNS4zNjk1SDEzLjIwMDNDMTMuMDA4NyAxNi44MzYgMTIuOTA2NCAxOC4zOTAzIDEyLjkwNjQgMjBaTTIwIDMuMDU0MTlDMjEuMTE0OSAzLjA1NDE5IDIyLjg2MjIgNC4wMzA3OCAyNC41MDAxIDcuMzAwMzlDMjUuMjA2NiA4LjcxNDA4IDI1LjgwNzIgMTAuNDA2NyAyNi4xOTIgMTIuMzE1M0gxMy43NTAxQzE0LjE5MzMgMTAuNDA0NyAxNC43OTQyIDguNzEyNTQgMTUuNDk5OCA3LjMwMDY0QzE3LjEzNzcgNC4wMzA4MyAxOC44ODUxIDMuMDU0MTkgMjAgMy4wNTQxOVpNMzAuMTQ3OCAyMEMzMC4xNDc4IDE4LjQwOTkgMzAuMDU0MyAxNi44NjE3IDI5LjgyMjcgMTUuMzY5NUgzNi4zMDQyQzM2LjcyNTIgMTYuODQyIDM2Ljk0NTggMTguMzk2NCAzNi45NDU4IDIwQzM2Ljk0NTggMjEuNjAzNiAzNi43MjUyIDIzLjE1OCAzNi4zMDQyIDI0LjYzMDVIMjkuODIyN0MzMC4wNTQzIDIzLjEzODMgMzAuMTQ3OCAyMS41OTAxIDMwLjE0NzggMjBaTTI2LjI3NjcgNC4yNTUxMkMyNy42MzY1IDYuMzYwMTkgMjguNzExIDkuMTMyIDI5LjM3NzQgMTIuMzE1M0gzNS4xMDQ2QzMzLjI1MTEgOC42NjggMzAuMTA3IDUuNzgzNDYgMjYuMjc2NyA0LjI1NTEyWk0xMC42MjI2IDEyLjMxNTNINC44OTI5M0M2Ljc1MTQ3IDguNjY3ODQgOS44OTM1MSA1Ljc4MzQxIDEzLjcyMzIgNC4yNTUxM0MxMi4zNjM1IDYuMzYwMjEgMTEuMjg5IDkuMTMyMDEgMTAuNjIyNiAxMi4zMTUzWk0zLjA1NDE5IDIwQzMuMDU0MTkgMjEuNjAzIDMuMjc3NDMgMjMuMTU3NSAzLjY5NDg0IDI0LjYzMDVIMTAuMTIxN0M5Ljk0NjE5IDIzLjE0MiA5Ljg1MjIyIDIxLjU5NDMgOS44NTIyMiAyMEM5Ljg1MjIyIDE4LjQwNTcgOS45NDYxOSAxNi44NTggMTAuMTIxNyAxNS4zNjk1SDMuNjk0ODRDMy4yNzc0MyAxNi44NDI1IDMuMDU0MTkgMTguMzk3IDMuMDU0MTkgMjBaTTI2LjI3NjYgMzUuNzQyN0MyNy42MzY1IDMzLjYzOTMgMjguNzExIDMwLjg2OCAyOS4zNzc0IDI3LjY4NDdIMzUuMTA0NkMzMy4yNTEgMzEuMzMyMiAzMC4xMDY4IDM0LjIxNzkgMjYuMjc2NiAzNS43NDI3Wk0xMy43MjM0IDM1Ljc0MjdDOS44OTM2OSAzNC4yMTc5IDYuNzUxNTUgMzEuMzMyNCA0Ljg5MjkzIDI3LjY4NDdIMTAuNjIyNkMxMS4yODkgMzAuODY4IDEyLjM2MzUgMzMuNjM5MyAxMy43MjM0IDM1Ljc0MjdaIiBmaWxsPSIjM0E0MkU5Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "HTTP Request",
+        "typeVersion": 4,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 47,
+        "icon": "file:webhook.svg",
+        "name": "n8n-nodes-base.webhook",
+        "codex": {
+          "data": {
+            "alias": [
+              "HTTP",
+              "API",
+              "Build",
+              "WH"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "\ud83d\udcbb",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-automatically-give-kudos-to-contributors-with-github-slack-and-n8n/",
+                  "icon": "\ud83d\udc4f",
+                  "label": "How to automatically give kudos to contributors with GitHub, Slack, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-custom-incident-response-workflows-with-n8n/",
+                  "label": "How to automate every step of an incident response workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Webhook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTM1IDM3Yy0yLjIgMC00LTEuOC00LTRzMS44LTQgNC00IDQgMS44IDQgNC0xLjggNC00IDQiLz48cGF0aCBmaWxsPSIjMzc0NzRmIiBkPSJNMzUgNDNjLTMgMC01LjktMS40LTcuOC0zLjdsMy4xLTIuNWMxLjEgMS40IDIuOSAyLjMgNC43IDIuMyAzLjMgMCA2LTIuNyA2LTZzLTIuNy02LTYtNmMtMSAwLTIgLjMtMi45LjdsLTEuNyAxTDIzLjMgMTZsMy41LTEuOSA1LjMgOS40YzEtLjMgMi0uNSAzLS41IDUuNSAwIDEwIDQuNSAxMCAxMFM0MC41IDQzIDM1IDQzIi8+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTE0IDQzQzguNSA0MyA0IDM4LjUgNCAzM2MwLTQuNiAzLjEtOC41IDcuNS05LjdsMSAzLjlDOS45IDI3LjkgOCAzMC4zIDggMzNjMCAzLjMgMi43IDYgNiA2czYtMi43IDYtNnYtMmgxNXY0SDIzLjhjLS45IDQuNi01IDgtOS44IDgiLz48cGF0aCBmaWxsPSIjZTkxZTYzIiBkPSJNMTQgMzdjLTIuMiAwLTQtMS44LTQtNHMxLjgtNCA0LTQgNCAxLjggNCA0LTEuOCA0LTQgNCIvPjxwYXRoIGZpbGw9IiMzNzQ3NGYiIGQ9Ik0yNSAxOWMtMi4yIDAtNC0xLjgtNC00czEuOC00IDQtNCA0IDEuOCA0IDQtMS44IDQtNCA0Ii8+PHBhdGggZmlsbD0iI2U5MWU2MyIgZD0ibTE1LjcgMzQtMy40LTIgNS45LTkuN2MtMi0xLjktMy4yLTQuNS0zLjItNy4zIDAtNS41IDQuNS0xMCAxMC0xMHMxMCA0LjUgMTAgMTBjMCAuOS0uMSAxLjctLjMgMi41bC0zLjktMWMuMS0uNS4yLTEgLjItMS41IDAtMy4zLTIuNy02LTYtNnMtNiAyLjctNiA2YzAgMi4xIDEuMSA0IDIuOSA1LjFsMS43IDF6Ii8+PC9zdmc+"
+        },
+        "displayName": "Webhook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 514,
+        "icon": "fa:pause-circle",
+        "name": "n8n-nodes-base.wait",
+        "codex": {
+          "data": {
+            "alias": [
+              "pause",
+              "sleep",
+              "delay",
+              "timeout"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.wait/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Wait",
+          "color": "#804050"
+        },
+        "iconData": {
+          "icon": "pause-circle",
+          "type": "icon"
+        },
+        "displayName": "Wait",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 535,
+        "icon": "file:webhook.svg",
+        "name": "n8n-nodes-base.respondToWebhook",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.respondtowebhook/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes",
+              "Utility"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Respond to Webhook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTM1IDM3Yy0yLjIgMC00LTEuOC00LTRzMS44LTQgNC00IDQgMS44IDQgNC0xLjggNC00IDQiLz48cGF0aCBmaWxsPSIjMzc0NzRmIiBkPSJNMzUgNDNjLTMgMC01LjktMS40LTcuOC0zLjdsMy4xLTIuNWMxLjEgMS40IDIuOSAyLjMgNC43IDIuMyAzLjMgMCA2LTIuNyA2LTZzLTIuNy02LTYtNmMtMSAwLTIgLjMtMi45LjdsLTEuNyAxTDIzLjMgMTZsMy41LTEuOSA1LjMgOS40YzEtLjMgMi0uNSAzLS41IDUuNSAwIDEwIDQuNSAxMCAxMFM0MC41IDQzIDM1IDQzIi8+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTE0IDQzQzguNSA0MyA0IDM4LjUgNCAzM2MwLTQuNiAzLjEtOC41IDcuNS05LjdsMSAzLjlDOS45IDI3LjkgOCAzMC4zIDggMzNjMCAzLjMgMi43IDYgNiA2czYtMi43IDYtNnYtMmgxNXY0SDIzLjhjLS45IDQuNi01IDgtOS44IDgiLz48cGF0aCBmaWxsPSIjZTkxZTYzIiBkPSJNMTQgMzdjLTIuMiAwLTQtMS44LTQtNHMxLjgtNCA0LTQgNCAxLjggNCA0LTEuOCA0LTQgNCIvPjxwYXRoIGZpbGw9IiMzNzQ3NGYiIGQ9Ik0yNSAxOWMtMi4yIDAtNC0xLjgtNC00czEuOC00IDQtNCA0IDEuOCA0IDQtMS44IDQtNCA0Ii8+PHBhdGggZmlsbD0iI2U5MWU2MyIgZD0ibTE1LjcgMzQtMy40LTIgNS45LTkuN2MtMi0xLjktMy4yLTQuNS0zLjItNy4zIDAtNS41IDQuNS0xMCAxMC0xMHMxMCA0LjUgMTAgMTBjMCAuOS0uMSAxLjctLjMgMi41bC0zLjktMWMuMS0uNS4yLTEgLjItMS41IDAtMy4zLTIuNy02LTYtNnMtNiAyLjctNiA2YzAgMi4xIDEuMSA0IDIuOSA1LjFsMS43IDF6Ii8+PC9zdmc+"
+        },
+        "displayName": "Respond to Webhook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 7,
+            "name": "Utility"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 839,
+        "icon": "fa:clock",
+        "name": "n8n-nodes-base.scheduleTrigger",
+        "codex": {
+          "data": {
+            "alias": [
+              "Time",
+              "Scheduler",
+              "Polling",
+              "Cron",
+              "Interval"
+            ],
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\",\"schedule\"]",
+        "defaults": {
+          "name": "Schedule Trigger",
+          "color": "#31C49F"
+        },
+        "iconData": {
+          "icon": "clock",
+          "type": "icon"
+        },
+        "displayName": "Schedule Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 844,
+        "icon": "fa:filter",
+        "name": "n8n-nodes-base.filter",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The Filter node can be used to filter items based on a condition. If the condition is met, the item will be passed on to the next node. If the condition is not met, the item will be omitted. Conditions can be combined together by AND(meet all conditions), or OR(meet at least one condition).",
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.filter/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Filter",
+          "color": "#229eff"
+        },
+        "iconData": {
+          "icon": "filter",
+          "type": "icon"
+        },
+        "displayName": "Filter",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 41,
+        "name": "Ticket Management"
+      }
+    ],
+    "image": []
+  }
+}

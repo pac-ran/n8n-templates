@@ -1,0 +1,1490 @@
+{
+  "workflow": {
+    "id": 15668,
+    "name": "Extract key earnings insights from Google News RSS and send alerts to Slack with Gemini Pro",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-12T14:28:45.361Z",
+    "description": "# AI Earnings Analyst\n&gt; RSS to Slack Automation via Gemini & n8n\n\n---\n\nThis workflow automates the tedious task of monitoring financial news by converting raw Google News RSS feeds into structured, actionable insights. Using **Gemini Pro**, it scans the latest earnings headlines to extract Revenue Trends, Guidance and Surprises, logging them into a database and alerting your **Slack** channel only when significant financial data is detected.\n\n\n### Rapid Deployment Guide\n\n1.  [**Import** the JSON file into your n8n account](https://n8n.partnerlinks.io/om1efg2qgvwi).\n2.  **Configure RSS:** Open the *Fetch: Google News RSS* node and update the `q=` parameter with your specific stock tickers or company names.\n3.  **Connect AI:** Add your Google AI (Gemini) API key to the *Model: Gemini Pro* node.\n4.  **Set Database:** Ensure the *Database: Log Results* node is pointed to your preferred n8n Data Table.\n5.  **Enable Alerts:** Authenticate your Slack account in the *Send a message* node and pick your target channel.\n6.  **Execute:** Click \"Execute Workflow\" to pull your first batch of high-signal earnings data.\n\n\n## What It Does\n\nThe **Earnings News \u2192 Key Takeaways Extractor** acts as a 24/7 digital financial analyst. Instead of manually scrolling through news aggregators or reading lengthy press releases, this workflow proactively hunts for news related to quarterly results. It doesn't just pass along links; it \"reads\" the content using Large Language Models (LLMs) to identify the specific numbers that move markets.\n\nThe workflow is designed with a \"High-Signal\" philosophy. It includes a specialized logic filter that distinguishes between a simple announcement (e.g., \"Company X to report earnings next week\") and actual results (e.g., \"Company X beats revenue by 10%\"). By filtering out the noise, it ensures that your Slack notifications remain valuable and free of clutter.\n\nFinally, the workflow provides a dual-layer output. Every article processed is archived in a centralized database for historical record-keeping, while the most critical \"market-moving\" updates are pushed instantly to your communication platform. This ensures you never miss a beat during a busy earnings season.\n\n\n## Who It's For\n\n* **Equity Analysts & Investors:** Stay ahead of market swings by getting structured data the second it hits the wire.\n* **Portfolio Managers:** Monitor dozens of companies simultaneously without manual oversight.\n* **Financial Journalists:** Automate the discovery of \"surprises\" and \"beats\" to prioritize story writing.\n* **Corporate Strategy Teams:** Keep a pulse on competitor performance and market sentiment in real-time.\n\n\n## Requirements to use this workflow\n\n* [**n8n account**](https://n8n.partnerlinks.io/om1efg2qgvwi)\n* **Google AI API Key:** To access the Gemini Pro model.\n* **Slack Workspace:** An app or webhook integration to receive alerts.\n* **n8n Data Table:** A table created within n8n to log the extracted results.\n\n\n## How It Works & Setup Guide\n\nThe workflow is divided into three distinct layers: Data Acquisition, AI Intelligence and Governance/Delivery.\n\n### Step 1: Data Acquisition\n\nThe **Fetch: Google News RSS** node pulls the latest news based on a search query. By default, it looks for \"company earnings\" or \"quarterly results.\"\n\n* **Configuration:** You can modify the URL in this node to target specific companies by adding `q=APPLE+earnings` or similar search terms.\n\n* **Precondition:** The **Filter: Top 5 Articles** node is set to limit the batch size, preventing excessive API usage and ensuring you only process the most recent news.\n\n### Step 2: Intelligence Engine\n\nThe raw RSS data is in XML format, which is hard for machines to read. The **Parser** converts this to JSON and the **Prompt Builder** packages the headline and link into a structured request for the AI.\n\n* **AI Extraction:** The **AI: Extract Key Takeaways** node uses Gemini Pro to categorize data into three fields: *Revenue Trend, Guidance* and *Surprises*.\n\n### Step 3: Governance & Delivery\n\nBefore any notification is sent, the **Formatter** cleans the AI text. The data is then saved to the **Database: Log Results** node.\n\n* **The Filter:** The **High-Signal Filter** checks if the AI found actual numbers. If the Revenue Trend returns \"Not available,\" the workflow stops there, keeping your Slack quiet. If data exists, it sends a formatted message to Slack including a link to the original article.\n\n\n## How To Customize Nodes\n\n* **Change the AI Model:** You can swap the *Model: Gemini Pro* node with OpenAI (GPT-4o) or Anthropic (Claude) by replacing the sub-node within the LangChain block.\n* **Adjust Filter Sensitivity:** Change the logic in the **High-Signal Filter** to trigger based on specific keywords like \"Surplus\" or \"Loss.\"\n* **Modify Output Format:** Update the **Prompt Builder** to ask the AI for different metrics, such as \"Dividend Announcements\" or \"CEO Quotes.\"\n\n\n## Add\u2011ons\n\n* **Email Summaries:** Add a Gmail node at the end of the loop to send a daily \"Morning Report\" of all logged results.\n* **Sentiment Scoring:** Add a second AI node to give every headline a numerical sentiment score (1-10) to visualize market trends over time.\n* **Multi-Source Fetching:** Connect other financial APIs like Yahoo Finance or Alpha Vantage for even deeper data verification.\n\n\n## Use Case Examples\n\n* **Competitor Tracking:** Set the RSS query to your top 5 competitors to get instant alerts on their fiscal health.\n* **Sector Monitoring:** Use broad queries like \"Semiconductor Earnings\" to track an entire industry.\n* **Crisis Management:** Monitor for keywords like \"Loss\" or \"Restructuring\" to catch negative news early.\n* **Investment Research:** Build a database of \"Guidance\" vs \"Actuals\" over several quarters by letting the workflow run on a schedule.\n* **Internal Reporting:** Automate the collection of earnings data for weekly executive briefings.\n\n\n## Troubleshooting Guide\n\n| Issue | Possible Cause | Solution |\n| :--- | :--- | :--- |\n| **No data in Slack** | The High-Signal Filter is blocking \"empty\" news. | Check the *Database: Log Results* node to see if articles are being processed but filtered out. |\n| **AI Node Error** | Invalid or expired Google AI API Key. | Verify your credentials in the *Model: Gemini Pro* node and ensure billing is active. |\n| **RSS Fetch Failed** | Google News URL format is incorrect. | Open the URL in a browser to ensure it returns a valid XML feed. |\n| **Database Error** | The n8n Data Table ID does not match. | Re-select your table in the *Database: Log Results* node mapping. |\n\n\n## Need Help?\n\nBuilding complex financial automations can be tricky. If you need a hand setting up this workflow, customizing the AI prompts or building a completely bespoke business process, we are here to help!\n\n**[Contact WeblineIndia](https://www.weblineindia.com/contact-us.html)** today to speak with our n8n experts and take your business automation to the next level.",
+    "workflow": {
+      "id": "eU3mOTO8q2WgjYtn",
+      "meta": {
+        "instanceId": "9f24379abd1ca05a3f590fdaa874ca82fbc5e1188798d609d51d2a8f6bacb662",
+        "templateCredsSetupCompleted": true
+      },
+      "name": "Earnings News \u2192 Key Takeaways Extractor",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "5f4cec36-c29b-4d3f-bfbb-a95809ff270d",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -288,
+            -512
+          ],
+          "parameters": {
+            "width": 464,
+            "height": 480,
+            "content": "## Earnings News \u2192 Key Takeaways Extractor\n\n## How it Works\nThis workflow automates financial monitoring by fetching the latest earnings reports via Google News RSS. It uses Gemini AI to parse messy news snippets into structured data (Revenue, Guidance and Surprises). A Logic Filter then separates actual financial results from simple meeting announcements, ensuring only high-signal alerts are sent to Slack while all data is logged for records.\n\n## Setup Steps\n\nHTTP Request: Update the q= parameter with your target companies.\n\nGemini Node: Ensure your Google AI API key is connected.\n\nSlack Node: Connect your Slack account and select a destination channel.\n\nDatabase: Map the \"Clean AI Output\" fields to your table columns.\n\nTest: Click \"Execute Workflow\" to verify the extraction and filtering logic."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "8960a447-da8d-4581-ad2b-5f27902d6e3e",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            304,
+            -128
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 672,
+            "height": 368,
+            "content": "## Data Acquisition Group \n(Nodes: Fetch: Google News RSS \u2192 Filter: Top 5 Articles\u2192 Iterator: Process Each Article)\n\nSection: Source Fetching\nRetrieves the latest RSS feed from Google News. The Limit node prevents high API costs by processing only the top 5 stories, while the Loop ensures each article is analyzed individually."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "8a625516-9519-46d7-af20-bc05b961a48a",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1120,
+            -192
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 768,
+            "height": 416,
+            "content": "## AI Processing Group \n(Nodes: Parser: XML to JSON\u2192 Prompt Builder: Financial Analyst \u2192 Gemini)\n\nSection: Intelligence Engine\nConverts raw XML into readable JSON. The Edit Fields node constructs a \"Financial Analyst\" prompt, which Gemini uses to extract hard numbers and market sentiment from the news text."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "fd3eb0e2-c135-4159-88fe-bc79bd484906",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1968,
+            -160
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 784,
+            "height": 336,
+            "content": "## Governance & Delivery Layer\n(Nodes: Formatter \u2192 Database Log \u2192 High-Signal Filter \u2192 Slack Alert)\n\nSection: Quality & Alerts\nCleans AI responses for database compatibility and logs every result. A Logic Filter then identifies \"empty\" announcements, ensuring only high-value, actionable financial data is pushed to Slack to prevent user alert fatigue."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "8aa8d8db-0cbb-47b6-a6e2-748023216d1c",
+          "name": "Start: Manual Trigger",
+          "type": "n8n-nodes-base.manualTrigger",
+          "position": [
+            128,
+            48
+          ],
+          "parameters": {},
+          "typeVersion": 1
+        },
+        {
+          "id": "b67fa332-4438-4c2a-aa85-dd2151adea94",
+          "name": "Fetch: Google News RSS",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            368,
+            48
+          ],
+          "parameters": {
+            "url": "https://news.google.com/rss/search?q=company+earnings+OR+quarterly+results+OR+earnings+report&hl=en-IN&gl=IN&ceid=IN:en",
+            "options": {}
+          },
+          "typeVersion": 4.3
+        },
+        {
+          "id": "c8e3c655-c571-4001-bf7b-3750111c92cd",
+          "name": "Filter: Top 5 Articles",
+          "type": "n8n-nodes-base.limit",
+          "position": [
+            592,
+            48
+          ],
+          "parameters": {
+            "maxItems": 5
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "bab0f7b6-7fcc-4bee-9d1c-d0534b400230",
+          "name": "Iterator: Process Each Article",
+          "type": "n8n-nodes-base.splitInBatches",
+          "position": [
+            816,
+            48
+          ],
+          "parameters": {
+            "options": {}
+          },
+          "executeOnce": false,
+          "retryOnFail": false,
+          "typeVersion": 3,
+          "alwaysOutputData": false
+        },
+        {
+          "id": "e47d5c1a-5448-4c7f-87be-9358aefaaa6b",
+          "name": "Parser: XML to JSON",
+          "type": "n8n-nodes-base.xml",
+          "position": [
+            1168,
+            64
+          ],
+          "parameters": {
+            "options": {}
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "c677e3dd-befd-4ae7-a02d-dc95c195cce7",
+          "name": "Prompt Builder: Financial Analyst",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            1392,
+            64
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "62befc81-af19-446f-b722-bec904d04fe3",
+                  "name": "rss.channel.title",
+                  "type": "string",
+                  "value": "={{ $json.rss.channel.title }}"
+                },
+                {
+                  "id": "960b17dd-200c-42fc-853d-179b09c28a81",
+                  "name": "rss.channel.link",
+                  "type": "string",
+                  "value": "={{ $json.rss.channel.link }}"
+                },
+                {
+                  "id": "bbb706b6-e457-419a-be57-c50462f6775f",
+                  "name": "rss.channel.item[0].description",
+                  "type": "string",
+                  "value": "={{ $json.rss.channel.item[0].description }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "9e9d4b71-b32b-47c4-941e-02fb75466857",
+          "name": "AI: Extract Key Takeaways",
+          "type": "@n8n/n8n-nodes-langchain.chainLlm",
+          "position": [
+            1648,
+            -32
+          ],
+          "parameters": {
+            "text": "=You are a financial analyst. I have an earnings headline: \"{{ $json.rss.channel.title }},{{ $json.rss.channel.link }}, {{ $json.rss.channel.item[0].description }}\nIf the headline contains specific numbers, extract them. If it doesn't, then check the given link summarize the general sentiment (e.g., \"Record results implies a positive revenue trend\").\n\nProvide:\n1. Revenue Trend\n2. Guidance\n3. Surprises\n\n",
+            "batching": {},
+            "promptType": "define"
+          },
+          "typeVersion": 1.8
+        },
+        {
+          "id": "0e678609-c19e-4264-a818-ac4eb5b0cfb9",
+          "name": "Model: Gemini Pro",
+          "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+          "position": [
+            1664,
+            240
+          ],
+          "parameters": {
+            "options": {}
+          },
+          "credentials": {
+            "googlePalmApi": {
+              "id": "iG33LldVboeWz8nQ",
+              "name": "Lalit-Google Gemini(PaLM) Api account"
+            }
+          },
+          "retryOnFail": true,
+          "typeVersion": 1,
+          "waitBetweenTries": 5000
+        },
+        {
+          "id": "2280c704-3807-4bbf-ad85-8f30a654372d",
+          "name": "Formatter: Clean AI Output",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            2000,
+            32
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "fcd2a217-cb80-47c8-9a99-fab4c089e2bc",
+                  "name": "rss.channel.title",
+                  "type": "string",
+                  "value": "={{ $node[\"Parser: XML to JSON\"].json[\"rss\"][\"channel\"][\"item\"][0][\"title\"] }}"
+                },
+                {
+                  "id": "b7cc388a-b0cc-4794-aaf7-21f0fc5c3265",
+                  "name": "Revenue Trend",
+                  "type": "string",
+                  "value": "={{ $json.text.split('Guidance:')[0].replace('Revenue:', '').trim() }}"
+                },
+                {
+                  "id": "ffae6c06-8a8b-44c0-83d1-a78639bf7838",
+                  "name": "Guidance",
+                  "type": "string",
+                  "value": "={{ $json.text.split('Guidance:')[1].split('Surprises:')[0].trim() }}"
+                },
+                {
+                  "id": "43c39cf5-a084-4b58-9b22-17a3c74d8358",
+                  "name": "Surprises",
+                  "type": "string",
+                  "value": "={{ $json.text.split('Surprises:')[1].trim() }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "1f647dee-e19f-4c75-b34d-552a207fc23a",
+          "name": "Database: Log Results",
+          "type": "n8n-nodes-base.dataTable",
+          "position": [
+            2224,
+            48
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "Title": "={{ $json.rss.channel.title }}",
+                "Guidance": "={{ $json.Guidance }}",
+                "Surprises": "={{ $json.Surprises }}",
+                "Revenue_Trend": "={{ $json['Revenue Trend'] }}"
+              },
+              "schema": [
+                {
+                  "id": "Title",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "Title",
+                  "defaultMatch": false
+                },
+                {
+                  "id": "Revenue_Trend",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "Revenue_Trend",
+                  "defaultMatch": false
+                },
+                {
+                  "id": "Guidance",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "Guidance",
+                  "defaultMatch": false
+                },
+                {
+                  "id": "Surprises",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "Surprises",
+                  "defaultMatch": false
+                }
+              ],
+              "mappingMode": "defineBelow",
+              "matchingColumns": [],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "options": {},
+            "dataTableId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "eRSBSLxgRO2ZZN8D",
+              "cachedResultUrl": "/projects/XkgejKSYcPusPWyB/datatables/eRSBSLxgRO2ZZN8D",
+              "cachedResultName": "Lalit-n8n"
+            }
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "b23b8f45-c7d2-467a-aad4-7f6383a3d1fa",
+          "name": "Send a message",
+          "type": "n8n-nodes-base.slack",
+          "position": [
+            2640,
+            48
+          ],
+          "webhookId": "97b35103-3414-42c5-9344-487ab4a9bbd1",
+          "parameters": {
+            "text": "=New Earnings Takeaway:  {{ $json.Title }}  Revenue Trend:{{ $json.Revenue_Trend }} Guidance: {{ $json[\"Guidance\"] }}  Surprises: {{ $json[\"Surprises\"] }}   [View Original Article]({{ $node[\"Parser: XML to JSON\"].json[\"rss\"][\"channel\"][\"item\"][0][\"link\"] }})",
+            "user": {
+              "__rl": true,
+              "mode": "id",
+              "value": "U0AP17N3QRY"
+            },
+            "select": "user",
+            "otherOptions": {}
+          },
+          "credentials": {
+            "slackApi": {
+              "id": "uTvS18JD2nOQcxMv",
+              "name": "Lalit slack new"
+            }
+          },
+          "typeVersion": 2.4
+        },
+        {
+          "id": "b325a5d9-cff3-45ca-a391-b42bacef4829",
+          "name": "High-Signal Filter",
+          "type": "n8n-nodes-base.filter",
+          "position": [
+            2432,
+            48
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "2987caa3-03c1-4c73-af02-b729037472a1",
+                  "operator": {
+                    "type": "string",
+                    "operation": "notContains"
+                  },
+                  "leftValue": "={{ $json.Revenue_Trend }}",
+                  "rightValue": "Not available"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "availableInMCP": false,
+        "executionOrder": "v1"
+      },
+      "versionId": "442a81d9-8a78-4371-a9ac-b04ff20063ad",
+      "connections": {
+        "Model: Gemini Pro": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "AI: Extract Key Takeaways",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "High-Signal Filter": {
+          "main": [
+            [
+              {
+                "node": "Send a message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Parser: XML to JSON": {
+          "main": [
+            [
+              {
+                "node": "Prompt Builder: Financial Analyst",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Database: Log Results": {
+          "main": [
+            [
+              {
+                "node": "High-Signal Filter",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Start: Manual Trigger": {
+          "main": [
+            [
+              {
+                "node": "Fetch: Google News RSS",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch: Google News RSS": {
+          "main": [
+            [
+              {
+                "node": "Filter: Top 5 Articles",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Filter: Top 5 Articles": {
+          "main": [
+            [
+              {
+                "node": "Iterator: Process Each Article",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "AI: Extract Key Takeaways": {
+          "main": [
+            [
+              {
+                "node": "Formatter: Clean AI Output",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Formatter: Clean AI Output": {
+          "main": [
+            [
+              {
+                "node": "Database: Log Results",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Iterator: Process Each Article": {
+          "main": [
+            [],
+            [
+              {
+                "node": "Parser: XML to JSON",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Prompt Builder: Financial Analyst": {
+          "main": [
+            [
+              {
+                "node": "AI: Extract Key Takeaways",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 16,
+      "nodeTypes": {
+        "n8n-nodes-base.set": {
+          "count": 2
+        },
+        "n8n-nodes-base.xml": {
+          "count": 1
+        },
+        "n8n-nodes-base.limit": {
+          "count": 1
+        },
+        "n8n-nodes-base.slack": {
+          "count": 1
+        },
+        "n8n-nodes-base.filter": {
+          "count": 1
+        },
+        "n8n-nodes-base.dataTable": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 4
+        },
+        "n8n-nodes-base.httpRequest": {
+          "count": 1
+        },
+        "n8n-nodes-base.manualTrigger": {
+          "count": 1
+        },
+        "n8n-nodes-base.splitInBatches": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.chainLlm": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.lmChatGoogleGemini": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "WeblineIndia",
+      "username": "weblineindia",
+      "bio": "A Leading Software Engineering, Consulting & Outsourcing Services Company in USA & India serving Clients Globally since 1999.",
+      "verified": true,
+      "links": [
+        "https://www.weblineindia.com/hire-n8n-developers/"
+      ],
+      "avatar": "https://gravatar.com/avatar/a229d43aefca4588581583c58bb37b4773aebbdf4c1fef86a08bb1d38eae91fa?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 19,
+        "icon": "file:httprequest.svg",
+        "name": "n8n-nodes-base.httpRequest",
+        "codex": {
+          "data": {
+            "alias": [
+              "API",
+              "Request",
+              "URL",
+              "Build",
+              "cURL"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-designs-with-bannerbear-and-n8n/",
+                  "icon": "\ud83c\udfa8",
+                  "label": "Automate Designs with Bannerbear and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-use-the-http-request-node-the-swiss-army-knife-for-workflow-automation/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "How to use the HTTP Request Node - The Swiss Army Knife for Workflow Automation"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HTTP Request",
+          "color": "#0004F5"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MCAyMEM0MCA4Ljk1MzE0IDMxLjA0NjkgMCAyMCAwQzguOTUzMTQgMCAwIDguOTUzMTQgMCAyMEMwIDMxLjA0NjkgOC45NTMxNCA0MCAyMCA0MEMzMS4wNDY5IDQwIDQwIDMxLjA0NjkgNDAgMjBaTTIwIDM2Ljk0NThDMTguODg1MiAzNi45NDU4IDE3LjEzNzggMzUuOTY3IDE1LjQ5OTggMzIuNjk4NUMxNC43OTY0IDMxLjI5MTggMTQuMTk2MSAyOS41NDMxIDEzLjc1MjYgMjcuNjg0N0gyNi4xODk4QzI1LjgwNDUgMjkuNTQwMyAyNS4yMDQ0IDMxLjI5MDEgMjQuNTAwMiAzMi42OTg1QzIyLjg2MjIgMzUuOTY3IDIxLjExNDggMzYuOTQ1OCAyMCAzNi45NDU4Wk0xMi45MDY0IDIwQzEyLjkwNjQgMjEuNjA5NyAxMy4wMDg3IDIzLjE2NCAxMy4yMDAzIDI0LjYzMDVIMjYuNzk5N0MyNi45OTEzIDIzLjE2NCAyNy4wOTM2IDIxLjYwOTcgMjcuMDkzNiAyMEMyNy4wOTM2IDE4LjM5MDMgMjYuOTkxMyAxNi44MzYgMjYuNzk5NyAxNS4zNjk1SDEzLjIwMDNDMTMuMDA4NyAxNi44MzYgMTIuOTA2NCAxOC4zOTAzIDEyLjkwNjQgMjBaTTIwIDMuMDU0MTlDMjEuMTE0OSAzLjA1NDE5IDIyLjg2MjIgNC4wMzA3OCAyNC41MDAxIDcuMzAwMzlDMjUuMjA2NiA4LjcxNDA4IDI1LjgwNzIgMTAuNDA2NyAyNi4xOTIgMTIuMzE1M0gxMy43NTAxQzE0LjE5MzMgMTAuNDA0NyAxNC43OTQyIDguNzEyNTQgMTUuNDk5OCA3LjMwMDY0QzE3LjEzNzcgNC4wMzA4MyAxOC44ODUxIDMuMDU0MTkgMjAgMy4wNTQxOVpNMzAuMTQ3OCAyMEMzMC4xNDc4IDE4LjQwOTkgMzAuMDU0MyAxNi44NjE3IDI5LjgyMjcgMTUuMzY5NUgzNi4zMDQyQzM2LjcyNTIgMTYuODQyIDM2Ljk0NTggMTguMzk2NCAzNi45NDU4IDIwQzM2Ljk0NTggMjEuNjAzNiAzNi43MjUyIDIzLjE1OCAzNi4zMDQyIDI0LjYzMDVIMjkuODIyN0MzMC4wNTQzIDIzLjEzODMgMzAuMTQ3OCAyMS41OTAxIDMwLjE0NzggMjBaTTI2LjI3NjcgNC4yNTUxMkMyNy42MzY1IDYuMzYwMTkgMjguNzExIDkuMTMyIDI5LjM3NzQgMTIuMzE1M0gzNS4xMDQ2QzMzLjI1MTEgOC42NjggMzAuMTA3IDUuNzgzNDYgMjYuMjc2NyA0LjI1NTEyWk0xMC42MjI2IDEyLjMxNTNINC44OTI5M0M2Ljc1MTQ3IDguNjY3ODQgOS44OTM1MSA1Ljc4MzQxIDEzLjcyMzIgNC4yNTUxM0MxMi4zNjM1IDYuMzYwMjEgMTEuMjg5IDkuMTMyMDEgMTAuNjIyNiAxMi4zMTUzWk0zLjA1NDE5IDIwQzMuMDU0MTkgMjEuNjAzIDMuMjc3NDMgMjMuMTU3NSAzLjY5NDg0IDI0LjYzMDVIMTAuMTIxN0M5Ljk0NjE5IDIzLjE0MiA5Ljg1MjIyIDIxLjU5NDMgOS44NTIyMiAyMEM5Ljg1MjIyIDE4LjQwNTcgOS45NDYxOSAxNi44NTggMTAuMTIxNyAxNS4zNjk1SDMuNjk0ODRDMy4yNzc0MyAxNi44NDI1IDMuMDU0MTkgMTguMzk3IDMuMDU0MTkgMjBaTTI2LjI3NjYgMzUuNzQyN0MyNy42MzY1IDMzLjYzOTMgMjguNzExIDMwLjg2OCAyOS4zNzc0IDI3LjY4NDdIMzUuMTA0NkMzMy4yNTEgMzEuMzMyMiAzMC4xMDY4IDM0LjIxNzkgMjYuMjc2NiAzNS43NDI3Wk0xMy43MjM0IDM1Ljc0MjdDOS44OTM2OSAzNC4yMTc5IDYuNzUxNTUgMzEuMzMyNCA0Ljg5MjkzIDI3LjY4NDdIMTAuNjIyNkMxMS4yODkgMzAuODY4IDEyLjM2MzUgMzMuNjM5MyAxMy43MjM0IDM1Ljc0MjdaIiBmaWxsPSIjM0E0MkU5Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "HTTP Request",
+        "typeVersion": 4,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 39,
+        "icon": "fa:sync",
+        "name": "n8n-nodes-base.splitInBatches",
+        "codex": {
+          "data": {
+            "alias": [
+              "Loop",
+              "Concatenate",
+              "Batch",
+              "Split",
+              "Split In Batches"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Loop Over Items",
+          "color": "#007755"
+        },
+        "iconData": {
+          "icon": "sync",
+          "type": "icon"
+        },
+        "displayName": "Loop Over Items (Split in Batches)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 40,
+        "icon": "file:slack.svg",
+        "name": "n8n-nodes-base.slack",
+        "codex": {
+          "data": {
+            "alias": [
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-automatically-give-kudos-to-contributors-with-github-slack-and-n8n/",
+                  "icon": "\ud83d\udc4f",
+                  "label": "How to automatically give kudos to contributors with GitHub, Slack, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.slack/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/slack/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "Slack"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgMTUwLjg1MiAxNTAuODUyIj48dXNlIHhsaW5rOmhyZWY9IiNhIiB4PSIuOTI2IiB5PSIuOTI2Ii8+PHN5bWJvbCBpZD0iYSIgb3ZlcmZsb3c9InZpc2libGUiPjxnIHN0cm9rZS13aWR0aD0iMS44NTIiPjxwYXRoIGZpbGw9IiNlMDFlNWEiIHN0cm9rZT0iI2UwMWU1YSIgZD0iTTQwLjc0MSA5My41NWMwLTguNzM1IDYuNjA3LTE1Ljc3MiAxNC44MTUtMTUuNzcyczE0LjgxNSA3LjAzNyAxNC44MTUgMTUuNzcydjM4LjgyNGMwIDguNzM3LTYuNjA3IDE1Ljc3NC0xNC44MTUgMTUuNzc0cy0xNC44MTUtNy4wMzctMTQuODE1LTE1Ljc3MnoiLz48cGF0aCBmaWxsPSIjZWNiMjJkIiBzdHJva2U9IiNlY2IyMmQiIGQ9Ik05My41NSAxMDcuNDA4Yy04LjczNSAwLTE1Ljc3Mi02LjYwNy0xNS43NzItMTQuODE1czcuMDM3LTE0LjgxNSAxNS43NzItMTQuODE1aDM4LjgyNmM4LjczNSAwIDE1Ljc3MiA2LjYwNyAxNS43NzIgMTQuODE1cy03LjAzNyAxNC44MTUtMTUuNzcyIDE0LjgxNXoiLz48cGF0aCBmaWxsPSIjMmZiNjdjIiBzdHJva2U9IiMyZmI2N2MiIGQ9Ik03Ny43NzggMTUuNzcyQzc3Ljc3OCA3LjAzNyA4NC4zODUgMCA5Mi41OTMgMHMxNC44MTUgNy4wMzcgMTQuODE1IDE1Ljc3MnYzOC44MjZjMCA4LjczNS02LjYwNyAxNS43NzItMTQuODE1IDE1Ljc3MnMtMTQuODE1LTcuMDM3LTE0LjgxNS0xNS43NzJ6Ii8+PHBhdGggZmlsbD0iIzM2YzVmMSIgc3Ryb2tlPSIjMzZjNWYxIiBkPSJNMTUuNzcyIDcwLjM3MUM3LjAzNyA3MC4zNzEgMCA2My43NjMgMCA1NS41NTZzNy4wMzctMTQuODE1IDE1Ljc3Mi0xNC44MTVoMzguODI2YzguNzM1IDAgMTUuNzcyIDYuNjA3IDE1Ljc3MiAxNC44MTVzLTcuMDM3IDE0LjgxNS0xNS43NzIgMTQuODE1eiIvPjxnIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiPjxwYXRoIGZpbGw9IiNlY2IyMmQiIHN0cm9rZT0iI2VjYjIyZCIgZD0iTTc3Ljc3OCAxMzMuMzMzYzAgOC4yMDggNi42MDcgMTQuODE1IDE0LjgxNSAxNC44MTVzMTQuODE1LTYuNjA3IDE0LjgxNS0xNC44MTUtNi42MDctMTQuODE1LTE0LjgxNS0xNC44MTVINzcuNzc4eiIvPjxwYXRoIGZpbGw9IiMyZmI2N2MiIHN0cm9rZT0iIzJmYjY3YyIgZD0iTTEzMy4zMzQgNzAuMzcxaC0xNC44MTVWNTUuNTU2YzAtOC4yMDcgNi42MDctMTQuODE1IDE0LjgxNS0xNC44MTVzMTQuODE1IDYuNjA3IDE0LjgxNSAxNC44MTUtNi42MDcgMTQuODE1LTE0LjgxNSAxNC44MTV6Ii8+PHBhdGggZmlsbD0iI2UwMWU1YSIgc3Ryb2tlPSIjZTAxZTVhIiBkPSJNMTQuODE1IDc3Ljc3OEgyOS42M3YxNC44MTVjMCA4LjIwNy02LjYwNyAxNC44MTUtMTQuODE1IDE0LjgxNVMwIDEwMC44IDAgOTIuNTkzczYuNjA3LTE0LjgxNSAxNC44MTUtMTQuODE1eiIvPjxwYXRoIGZpbGw9IiMzNmM1ZjEiIHN0cm9rZT0iIzM2YzVmMSIgZD0iTTcwLjM3MSAxNC44MTVWMjkuNjNINTUuNTU2Yy04LjIwNyAwLTE0LjgxNS02LjYwNy0xNC44MTUtMTQuODE1UzQ3LjM0OCAwIDU1LjU1NiAwczE0LjgxNSA2LjYwNyAxNC44MTUgMTQuODE1eiIvPjwvZz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Slack",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 48,
+        "icon": "fa:file-code",
+        "name": "n8n-nodes-base.xml",
+        "codex": {
+          "data": {
+            "alias": [
+              "Parse"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.xml/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "XML",
+          "color": "#333377"
+        },
+        "iconData": {
+          "icon": "file-code",
+          "type": "icon"
+        },
+        "displayName": "XML",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 838,
+        "icon": "fa:mouse-pointer",
+        "name": "n8n-nodes-base.manualTrigger",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.manualworkflowtrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "When clicking \u2018Execute workflow\u2019",
+          "color": "#909298"
+        },
+        "iconData": {
+          "icon": "mouse-pointer",
+          "type": "icon"
+        },
+        "displayName": "Manual Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 844,
+        "icon": "fa:filter",
+        "name": "n8n-nodes-base.filter",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The Filter node can be used to filter items based on a condition. If the condition is met, the item will be passed on to the next node. If the condition is not met, the item will be omitted. Conditions can be combined together by AND(meet all conditions), or OR(meet at least one condition).",
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.filter/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Filter",
+          "color": "#229eff"
+        },
+        "iconData": {
+          "icon": "filter",
+          "type": "icon"
+        },
+        "displayName": "Filter",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1123,
+        "icon": "fa:link",
+        "name": "@n8n/n8n-nodes-langchain.chainLlm",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.chainllm/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Chains",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Basic LLM Chain",
+          "color": "#909298"
+        },
+        "iconData": {
+          "icon": "link",
+          "type": "icon"
+        },
+        "displayName": "Basic LLM Chain",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1237,
+        "icon": "file:limit.svg",
+        "name": "n8n-nodes-base.limit",
+        "codex": {
+          "data": {
+            "alias": [
+              "Limit",
+              "Remove",
+              "Slice",
+              "Transform",
+              "Array",
+              "List",
+              "Item"
+            ],
+            "details": "",
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.limit/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Limit"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJub25lIj48ZyBmaWxsPSIjMkZCNjdDIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcGF0aD0idXJsKCNhKSIgY2xpcC1ydWxlPSJldmVub2RkIj48cGF0aCBkPSJNNTEyIDQ1OGMwLTYuNjI3LTUuMzczLTEyLTEyLTEyaC02OGMtNi42MjcgMC0xMiA1LjM3My0xMiAxMnYyNGMwIDYuNjI3IDUuMzczIDEyIDEyIDEyaDY4YzYuNjI3IDAgMTItNS4zNzMgMTItMTJ6bS0xNDAgMGMwLTYuNjI3LTUuMzczLTEyLTEyLTEyaC02OGMtNi42MjcgMC0xMiA1LjM3My0xMiAxMnYyNGMwIDYuNjI3IDUuMzczIDEyIDEyIDEyaDY4YzYuNjI3IDAgMTItNS4zNzMgMTItMTJ6bS0xNDAgMGMwLTYuNjI3LTUuMzczLTEyLTEyLTEyaC02OGMtNi42MjcgMC0xMiA1LjM3My0xMiAxMnYyNGMwIDYuNjI3IDUuMzczIDEyIDEyIDEyaDY4YzYuNjI3IDAgMTItNS4zNzMgMTItMTJ6bS0xNDAgMGMwLTYuNjI3LTUuMzczLTEyLTEyLTEySDEyYy02LjYyNyAwLTEyIDUuMzczLTEyIDEydjI0YzAgNi42MjcgNS4zNzMgMTIgMTIgMTJoNjhjNi42MjcgMCAxMi01LjM3MyAxMi0xMnptMTUyLTIyMmMtNi42MjcgMC0xMi01LjM3My0xMi0xMlYzMGMwLTYuNjI3IDUuMzczLTEyIDEyLTEyaDI0YzYuNjI3IDAgMTIgNS4zNzMgMTIgMTJ2MTk0YzAgNi42MjctNS4zNzMgMTItMTIgMTJ6Ii8+PHBhdGggZD0iTTE0OS41NzcgMTQ2Ljk4MmM5LjM5OC05LjM0NiAyNC41OTQtOS4zMDQgMzMuOTQxLjA5NUwyNTYgMjE5Ljk2NGw3Mi40ODItNzIuODg3YzkuMzQ3LTkuMzk5IDI0LjU0My05LjQ0MSAzMy45NDEtLjA5NXM5LjQ0MSAyNC41NDMuMDk1IDMzLjk0MWwtODkuNSA5MGEyNCAyNCAwIDAgMS0zNC4wMzYgMGwtODkuNS05MGMtOS4zNDYtOS4zOTgtOS4zMDQtMjQuNTk0LjA5NS0zMy45NDFNMCAzNTBjMC02LjYyNyA1LjM3My0xMiAxMi0xMmg0ODhjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnYyNGMwIDYuNjI3LTUuMzczIDEyLTEyIDEySDEyYy02LjYyNyAwLTEyLTUuMzczLTEyLTEyeiIvPjwvZz48ZGVmcz48Y2xpcFBhdGggaWQ9ImEiPjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik0wIDBoNTEydjUxMkgweiIvPjwvY2xpcFBhdGg+PC9kZWZzPjwvc3ZnPg=="
+        },
+        "displayName": "Limit",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1262,
+        "icon": "file:google.svg",
+        "name": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmchatgooglegemini/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Language Models",
+                "Root Nodes"
+              ],
+              "Language Models": [
+                "Chat Models (Recommended)"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Google Gemini Chat Model"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2aWV3Qm94PSIwIDAgNDggNDgiPjxkZWZzPjxwYXRoIGlkPSJhIiBkPSJNNDQuNSAyMEgyNHY4LjVoMTEuOEMzNC43IDMzLjkgMzAuMSAzNyAyNCAzN2MtNy4yIDAtMTMtNS44LTEzLTEzczUuOC0xMyAxMy0xM2MzLjEgMCA1LjkgMS4xIDguMSAyLjlsNi40LTYuNEMzNC42IDQuMSAyOS42IDIgMjQgMiAxMS44IDIgMiAxMS44IDIgMjRzOS44IDIyIDIyIDIyYzExIDAgMjEtOCAyMS0yMiAwLTEuMy0uMi0yLjctLjUtNCIvPjwvZGVmcz48Y2xpcFBhdGggaWQ9ImIiPjx1c2UgeGxpbms6aHJlZj0iI2EiIG92ZXJmbG93PSJ2aXNpYmxlIi8+PC9jbGlwUGF0aD48cGF0aCBmaWxsPSIjRkJCQzA1IiBkPSJNMCAzN1YxMWwxNyAxM3oiIGNsaXAtcGF0aD0idXJsKCNiKSIvPjxwYXRoIGZpbGw9IiNFQTQzMzUiIGQ9Im0wIDExIDE3IDEzIDctNi4xTDQ4IDE0VjBIMHoiIGNsaXAtcGF0aD0idXJsKCNiKSIvPjxwYXRoIGZpbGw9IiMzNEE4NTMiIGQ9Im0wIDM3IDMwLTIzIDcuOSAxTDQ4IDB2NDhIMHoiIGNsaXAtcGF0aD0idXJsKCNiKSIvPjxwYXRoIGZpbGw9IiM0Mjg1RjQiIGQ9Ik00OCA0OCAxNyAyNGwtNC0zIDM1LTEweiIgY2xpcC1wYXRoPSJ1cmwoI2IpIi8+PC9zdmc+"
+        },
+        "displayName": "Google Gemini Chat Model",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1315,
+        "icon": "fa:table",
+        "name": "n8n-nodes-base.dataTable",
+        "codex": {
+          "data": {
+            "alias": [
+              "data",
+              "table",
+              "knowledge",
+              "data table",
+              "table",
+              "sheet",
+              "database",
+              "data base",
+              "mysql",
+              "postgres",
+              "postgresql",
+              "airtable",
+              "supabase",
+              "noco",
+              "notion"
+            ],
+            "details": "Data table",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.datatable/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes",
+              "Development"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\",\"transform\"]",
+        "defaults": {
+          "name": "Data table"
+        },
+        "iconData": {
+          "icon": "table",
+          "type": "icon"
+        },
+        "displayName": "Data table",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 44,
+        "name": "Crypto Trading"
+      },
+      {
+        "id": 49,
+        "name": "AI Summarization"
+      }
+    ],
+    "image": []
+  }
+}

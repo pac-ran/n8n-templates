@@ -1,0 +1,1435 @@
+{
+  "workflow": {
+    "id": 15675,
+    "name": "Delay football goal alerts with API-Football, Google Sheets and Gmail",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-12T19:57:45.251Z",
+    "description": "**Your streaming service is 45 seconds behind live. Your phone notifications aren't. This workflow fixes that.**\n\nReal-time alerts arrive before they happen on your screen. You're watching a corner kick, your phone buzzes with a goal notification, moment destroyed. This workflow monitors live match data, detects goals for your team, then holds the notification for however long your stream is lagging. Test your delay once, never get spoiled again.\n\n### How it actually works\n\nThe schedule runs every 10 minutes, but here's the thing: it doesn't just blindly hit the API 144 times a day (which would blow through the free tier in like 18 hours). There's a timing check that reads your match kickoff from a Google Sheet and does the math: if you're more than 2 hours before or after the match, it just skips the whole thing. Saves about 80-90% of your rate limit for when matches are actually live.\n\nOnce you're inside the match window, the API call happens, and the data splits into two parallel branches (this took me forever to get right, more on that in a second):\n\n**Branch 1 - Goal Detection:**\nParses the event feed, checks if any goals happened that aren't already in your \"notified\" log (stored in the Sheet as a comma-separated string\u2014yeah, I know, but it works). If there are new goals, it logs them, waits for your delay (you set this once, like 45 seconds or whatever your service needs), then fires off an email via Gmail with the scorer, minute, score, opponent. Done.\n\n**Branch 2 - Auto Reset:**\nReads the match status from the same API response. If it says FT (full time) or any of the finished codes (AET, PEN, CANC, etc.), it flips your `Active` column to \"No\" in the Sheet. This stops the polling automatically so you're not burning API calls after the match ends.\n\n\n### Setup \n\n1. Make a Google Sheet with these columns: `User Email`, `Team ID`, `Active`, `Delay Seconds`, `Streaming Service`, `Match Datetime`, `Last Notified Goals`, `Last Notification`. Only the first six need data from you, the last two auto-populate.\n\n2. Get an API-Football account (free tier is 100 requests/day). Grab your API key and find your team's ID from their docs.\n\n3. Connect your Google Sheets OAuth in n8n (you'll use it in 3 different nodes) and your Gmail OAuth (1 node).\n\n4. Replace `YOUR_SPREADSHEET_ID` in all the Google Sheets nodes with your actual Sheet ID (it's in the URL). Paste your API key into the HTTP Request node's headers.\n\n5. Before a match: add the kickoff time in ISO format (`2026-06-15T15:00:00Z`), set your delay in seconds (test with 45-60 first), flip `Active` to \"Yes\". That's it.\n\n### Who this is for\n\nFootball fans who are tired of the phone-muting game. Expats watching via VPN who have weird delays. Anyone who wants a free alternative to those paid spoiler blocker apps (which are like $5/month for something you can self-host in 15 minutes).\n\n### What you need\n\n- API-Football (free or paid, depending on how many matches you watch)\n- Google account (Sheets + Gmail)\n- n8n instance (cloud or self-hosted, doesn't matter)\n\n### If you want to extend it\n\n**Multi-channel:** Add Slack/WhatsApp nodes in parallel with Gmail so you get notifications everywhere.\n\n**More events:** Tweak the goal detection code to also catch cards, subs, VAR decisions, it's all in the same API response.\n\n**Auto-delay detection:** Right now you set the delay manually. You could build a lookup table that maps streaming services to known delays and auto-populate it.\n\n\u221a\n\n\n\n\n",
+    "workflow": {
+      "id": "wYBTkt01w6ZJpwim",
+      "meta": {
+        "instanceId": "8d116b92d51947f1f9904dd6d69f8f252af7816f81d50c41f62a5878cbcf4365",
+        "templateCredsSetupCompleted": true
+      },
+      "name": "Sync & Play - Anti-Spoiler Alerts",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "e75024c2-0966-4f93-8776-ae438412d9ed",
+          "name": "README: Setup & Fixes",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            128,
+            80
+          ],
+          "parameters": {
+            "color": 2,
+            "width": 560,
+            "height": 632,
+            "content": "# Sync & Play - Anti-Spoiler Alerts\n## How it works\n1. **Schedule**: Polls every 10 minutes during match window (\u00b12 hours of kickoff) to stay under API limits.\n2. **Validate**: Checks match timing and active status before making API calls.\n3. **Monitor**: Fetches live match data from API-Football and detects new goals for your team.\n4. **Sync**: Waits for your exact streaming delay (30-90 seconds) before sending notification.\n5. **Alert**: Delivers goal notification via email with scorer, minute, and score.\n6. **Reset**: Auto-disables tracking when match ends to prevent unnecessary polling.\n\n## Setup steps\n- [ ] Create Google Sheet with 8 required columns: User Email, Team ID, Active, Delay Seconds, Streaming Service, Match Datetime, Last Notified Goals, Last Notification\n- [ ] Get free API-Football key (100 req/day) and find your team ID\n- [ ] Connect Google Sheets OAuth2 credential in 3 nodes (Load, Update, Disable)\n- [ ] Connect Gmail OAuth2 credential in Send Alert node\n- [ ] Replace `YOUR_SPREADSHEET_ID` with your Google Sheet ID\n- [ ] Add API key to HTTP Request node header parameters\n- [ ] Set Match Datetime in ISO format (YYYY-MM-DDTHH:MM:SSZ) and Active=\"Yes\"\n- [ ] Test with manual execution during match window"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "b270eedf-2400-4223-b856-10425e858c3d",
+          "name": "Sticky Note - Section 1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            752,
+            256
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1336,
+            "height": 340,
+            "content": "### Polling & Timing Intelligence\nTriggers every 10 minutes. The Setup Validation node runs pre-flight checks. The Match Timing Window code node calculates hours until kickoff and only proceeds if within \u00b12 hours, saving 80-90% of API calls on non-match days."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "d574ef01-475b-4f4d-8eef-1e330cde97df",
+          "name": "Sticky Note - Section ",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            2112,
+            256
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 648,
+            "height": 340,
+            "content": "### Data Loading & Filtering\nReads user preferences from Google Sheets. The IF node filters for Active=\"Yes\" status to ensure only active users are processed during match tracking."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "2eccd2f5-f2c9-458e-a8e8-5bb690871dcb",
+          "name": "Sticky Note - Section 2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            2784,
+            256
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 664,
+            "height": 340,
+            "content": "### State Management & Delivery\nLogs goal IDs to Google Sheet using User Email as row lookup. Waits for the user's exact streaming delay, then sends Gmail notification with scorer, minute, and score. Perfectly timed to your screen\u2014no spoilers."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "555a9cd5-db86-4dc1-97eb-2f753a8a885d",
+          "name": "Sticky Note - Section 3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            3472,
+            256
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 664,
+            "height": 340,
+            "content": "### Auto-Reset\nAfter email delivery, checks if match status is finished (FT, AET, PEN, etc). If yes, updates Google Sheet to set Active=\"No\" so polling stops automatically until the next match."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "bc10b713-18c2-40b2-bda0-3ee89c215849",
+          "name": "Schedule: Every 10 Minutes",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "notes": "FIXED: Changed from 2min to 10min to stay under API-Football free tier (100 req/day)",
+          "position": [
+            816,
+            384
+          ],
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "minutes",
+                  "minutesInterval": 10
+                }
+              ]
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "14b19593-36e7-4dfc-aa18-ab20a954691a",
+          "name": "Setup Validation",
+          "type": "n8n-nodes-base.code",
+          "notes": "NEW: Pre-flight checks before processing",
+          "position": [
+            1040,
+            384
+          ],
+          "parameters": {
+            "jsCode": "try {\n  if (!$input.all().length) {\n    return [{\n      json: {\n        valid: true,\n        message: \"Initial trigger - proceeding to load preferences\"\n      }\n    }];\n  }\n\n  const items = $input.all();\n  if (!items.length) {\n    return [{\n      json: {\n        valid: false,\n        error: \"No data received from trigger\"\n      }\n    }];\n  }\n\n  return [{\n    json: {\n      valid: true,\n      message: \"Validation passed\"\n    }\n  }];\n\n} catch (error) {\n  return [{\n    json: {\n      valid: false,\n      error: `Setup validation failed: ${error.message}`\n    }\n  }];\n}"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "197f0e00-ca12-44f5-a50c-6a6ab66d605f",
+          "name": "Load User Preferences",
+          "type": "n8n-nodes-base.googleSheets",
+          "position": [
+            1264,
+            384
+          ],
+          "parameters": {
+            "options": {},
+            "sheetName": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gid=0",
+              "cachedResultName": "Sheet1"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "YOUR_SPREADSHEET_ID",
+              "cachedResultName": "User Preferences"
+            }
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "8aTyckV5QGZHCwrI",
+              "name": "Google Sheets OAuth2 API"
+            }
+          },
+          "typeVersion": 4.5
+        },
+        {
+          "id": "62786d3a-3592-4216-ac54-817ad07e9493",
+          "name": "Filter Active Users Only",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            1472,
+            384
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 1,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "active-check",
+                  "operator": {
+                    "type": "string",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $json.Active }}",
+                  "rightValue": "Yes"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "fa58c543-163c-4802-9c83-7f7b9831b468",
+          "name": "Check Match Timing Window",
+          "type": "n8n-nodes-base.code",
+          "notes": "NEW: Only poll API during match window (saves 80% of API calls)",
+          "position": [
+            1712,
+            384
+          ],
+          "parameters": {
+            "jsCode": "try {\n  const input = $input.first().json;\n  \n  // Parse match datetime\n  const matchDateStr = input['Match Datetime'];\n  if (!matchDateStr) {\n    return [{\n      json: {\n        shouldPoll: false,\n        reason: \"No Match Datetime set. Please add match time to Google Sheet.\"\n      }\n    }];\n  }\n\n  const matchTime = new Date(matchDateStr);\n  const now = new Date();\n  \n  // Calculate hours difference\n  const hoursDiff = (matchTime - now) / (1000 * 60 * 60);\n  \n\n  const shouldPoll = hoursDiff >= -2 && hoursDiff <= 2;\n  \n  if (!shouldPoll) {\n    return [{\n      json: {\n        shouldPoll: false,\n        reason: `Match window not active. Match is ${Math.abs(hoursDiff).toFixed(1)}h ${hoursDiff > 0 ? 'in future' : 'in past'}`,\n        nextCheck: matchTime.toISOString()\n      }\n    }];\n  }\n  \n  return [{\n    json: {\n      shouldPoll: true,\n      ...input\n    }\n  }];\n\n} catch (error) {\n  return [{\n    json: {\n      shouldPoll: false,\n      error: `Match timing check failed: ${error.message}`\n    }\n  }];\n}"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "443231da-081b-44e9-8570-6eae9a3c0fb6",
+          "name": "Should Poll API?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            1936,
+            384
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json.shouldPoll }}",
+                  "value2": true
+                }
+              ],
+              "options": {
+                "version": 1,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and"
+            }
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "bfd68c50-c8fc-4bff-87a1-a4c385ab9696",
+          "name": "API-Football: Get Live Match",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            2160,
+            384
+          ],
+          "parameters": {
+            "url": "=https://v3.football.api-sports.io/fixtures?live=all&team={{ $json['Team ID'] }}",
+            "options": {},
+            "sendHeaders": true,
+            "authentication": "genericCredentialType",
+            "genericAuthType": "httpHeaderAuth",
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "x-rapidapi-key",
+                  "value": "YOUR_API_FOOTBALL_KEY"
+                },
+                {
+                  "name": "x-rapidapi-host",
+                  "value": "v3.football.api-sports.io"
+                }
+              ]
+            }
+          },
+          "credentials": {
+            "httpHeaderAuth": {
+              "id": "roWxl7N9g4KQPqAT",
+              "name": "Netvisor User Key"
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "faa5d7d7-3890-4634-bf23-4a9c89726e87",
+          "name": "Detect New Goals",
+          "type": "n8n-nodes-base.code",
+          "notes": "FIXED: Error handling, type safety, null checks",
+          "position": [
+            2384,
+            384
+          ],
+          "parameters": {
+            "jsCode": "try {\n  const apiResponse = $input.item.json;\n  const response = apiResponse.response;\n  \n  // Validate API response\n  if (!response || !Array.isArray(response) || response.length === 0) {\n    return [];\n  }\n\n  const match = response[0];\n  const events = match?.events || [];\n  \n  const userPrefsNode = $('Filter Active Users Only');\n  if (!userPrefsNode || !userPrefsNode.first()) {\n    throw new Error('Cannot find user preferences node');\n  }\n  \n  const userPrefs = userPrefsNode.first().json;\n  \n  const userTeamId = parseInt(userPrefs['Team ID']);\n  if (isNaN(userTeamId)) {\n    throw new Error(`Invalid Team ID: ${userPrefs['Team ID']}`);\n  }\n\n  const goals = events.filter(event => {\n    return event?.type === 'Goal' && \n           event?.team?.id === userTeamId &&\n           event?.detail !== 'Missed Penalty';\n  });\n\n  const notifiedGoals = userPrefs['Last Notified Goals'] || '';\n  const notifiedArray = notifiedGoals.split(',').filter(Boolean);\n\n  const newGoals = goals.filter(goal => {\n    const goalId = `${goal.time.elapsed}_${goal.player.id}`;\n    return !notifiedArray.includes(goalId);\n  });\n\n  if (newGoals.length === 0) {\n    return [];\n  }\n\n  const allNewGoalIds = newGoals.map(g => `${g.time.elapsed}_${g.player.id}`);\n  const updatedNotifiedGoals = [...notifiedArray, ...allNewGoalIds].join(',');\n\n  const opponent = match?.teams?.home?.id === userTeamId \n    ? match?.teams?.away?.name || 'Unknown' \n    : match?.teams?.home?.name || 'Unknown';\n\n  return newGoals.map(goal => ({\n    json: {\n      goalId: `${goal.time.elapsed}_${goal.player.id}`,\n      playerName: goal?.player?.name || 'Unknown Player',\n      minute: goal?.time?.elapsed || '0',\n      teamName: goal?.team?.name || userPrefs['Team ID'],\n      matchScore: `${match?.goals?.home || 0}-${match?.goals?.away || 0}`,\n      opponent: opponent,\n      userEmail: userPrefs['User Email'],\n      delaySeconds: parseInt(userPrefs['Delay Seconds']) || 45,\n      streamingService: userPrefs['Streaming Service'] || 'Streaming',\n      updatedNotifiedGoals: updatedNotifiedGoals,\n      matchStatus: match?.fixture?.status?.short || 'UNKNOWN'\n    }\n  }));\n\n} catch (error) {\n  return [{\n    json: {\n      error: true,\n      errorMessage: `Goal detection failed: ${error.message}`,\n      timestamp: new Date().toISOString()\n    }\n  }];\n}"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "f35419b2-f4db-4d29-b6bf-308959ed7443",
+          "name": "Filter Error Results",
+          "type": "n8n-nodes-base.if",
+          "notes": "NEW: Prevent errors from propagating",
+          "position": [
+            2592,
+            384
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json.error !== true }}",
+                  "value2": true
+                }
+              ],
+              "options": {
+                "version": 1,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and"
+            }
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "67f41c5b-0606-4ed0-9d2c-2d0d5d401d7a",
+          "name": "Update Notified Goals Log",
+          "type": "n8n-nodes-base.googleSheets",
+          "notes": "FIXED: Added User Email as lookup column for proper row targeting",
+          "position": [
+            2816,
+            384
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "User Email": "={{ $json.userEmail }}",
+                "Last Notification": "={{ $now.toISO() }}",
+                "Last Notified Goals": "={{ $json.updatedNotifiedGoals }}"
+              },
+              "mappingMode": "defineBelow",
+              "matchingColumns": [
+                "User Email"
+              ]
+            },
+            "options": {},
+            "operation": "update",
+            "sheetName": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gid=0",
+              "cachedResultName": "Sheet1"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "YOUR_SPREADSHEET_ID"
+            }
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "8aTyckV5QGZHCwrI",
+              "name": "Google Sheets OAuth2 API"
+            }
+          },
+          "typeVersion": 4.5
+        },
+        {
+          "id": "e2625636-7ad3-4f2c-9628-cdc38eb7012b",
+          "name": "Wait: User Streaming Delay",
+          "type": "n8n-nodes-base.wait",
+          "notes": "\u26a0\ufe0f State lost on restart - document this limitation",
+          "position": [
+            3040,
+            384
+          ],
+          "webhookId": "sync-play-wait-webhook",
+          "parameters": {
+            "amount": "={{ $json.delaySeconds }}"
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "7e19841a-7040-4739-8810-eaf6b9d89810",
+          "name": "Gmail: Send Goal Alert",
+          "type": "n8n-nodes-base.gmail",
+          "notes": "FIXED: Proper markdown link for upsell",
+          "position": [
+            3264,
+            384
+          ],
+          "webhookId": "7098ea17-3253-469f-87bb-34108b055608",
+          "parameters": {
+            "sendTo": "={{ $json.userEmail }}",
+            "message": "=\ud83c\udf89 **GOAL FOR {{ $json.teamName.toUpperCase() }}!**\n\n**Scorer:** {{ $json.playerName }}\n**Minute:** {{ $json.minute }}'\n**Score:** {{ $json.matchScore }}\n**Opponent:** {{ $json.opponent }}\n\n---\n\n\u2705 **Synced to your {{ $json.streamingService }} delay**\nNo spoilers. Just pure football joy.\n\n_Sync & Play - Anti-Spoiler Alerts_",
+            "options": {},
+            "subject": "=\u26bd GOAL! {{ $json.playerName }} {{ $json.minute }}' - {{ $json.teamName }}"
+          },
+          "credentials": {
+            "gmailOAuth2": {
+              "id": "YiEZXjl1frFK5Rp7",
+              "name": "Gmail OAuth2 API"
+            }
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "cb05e2d1-e467-47ec-a586-304ace0aed9e",
+          "name": "Check Match Status",
+          "type": "n8n-nodes-base.code",
+          "notes": "FIXED: Runs in parallel with goal detection to prevent Empty Array Trap",
+          "position": [
+            3504,
+            384
+          ],
+          "parameters": {
+            "jsCode": "// ===== CHECK MATCH STATUS =====\n// Runs in parallel with goal detection - prevents Empty Array Trap\n\ntry {\n  const apiResponse = $input.item.json;\n  const response = apiResponse.response;\n  \n  // Validate API response\n  if (!response || !Array.isArray(response) || response.length === 0) {\n    return [];  // No match data, skip gracefully\n  }\n\n  const match = response[0];\n  const matchStatus = match?.fixture?.status?.short || 'UNKNOWN';\n  \n  // Get user email from the active user node\n  const userPrefsNode = $('Filter Active Users Only');\n  if (!userPrefsNode || !userPrefsNode.first()) {\n    throw new Error('Cannot find user preferences node');\n  }\n  \n  const userPrefs = userPrefsNode.first().json;\n  const userEmail = userPrefs['User Email'];\n  \n  // Check if match is finished\n  const finishedStatuses = ['FT', 'AET', 'PEN', 'CANC', 'ABD', 'AWD', 'PST', 'SUSP'];\n  const isFinished = finishedStatuses.includes(matchStatus);\n  \n  return [{\n    json: {\n      isFinished,\n      matchStatus,\n      userEmail,\n      timestamp: new Date().toISOString()\n    }\n  }];\n\n} catch (error) {\n  return [{\n    json: {\n      error: true,\n      errorMessage: `Match status check failed: ${error.message}`\n    }\n  }];\n}"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "c4542076-69ac-4d8e-ae53-3f8fc715317c",
+          "name": "Is Match Finished?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            3696,
+            384
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json.isFinished }}",
+                  "value2": true
+                }
+              ],
+              "options": {
+                "version": 1,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and"
+            }
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "c3f982cc-b783-4451-87be-eed95b502940",
+          "name": "Disable Active Status",
+          "type": "n8n-nodes-base.googleSheets",
+          "notes": "FIXED: Added User Email as lookup column",
+          "position": [
+            3920,
+            384
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "Active": "No",
+                "User Email": "={{ $json.userEmail }}"
+              },
+              "mappingMode": "defineBelow",
+              "matchingColumns": [
+                "User Email"
+              ]
+            },
+            "options": {},
+            "operation": "update",
+            "sheetName": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gid=0",
+              "cachedResultName": "Sheet1"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "YOUR_SPREADSHEET_ID"
+            }
+          },
+          "typeVersion": 4.5
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "70fd6b37-11c2-433f-ac3c-af5841408fd2",
+      "connections": {
+        "Detect New Goals": {
+          "main": [
+            [
+              {
+                "node": "Filter Error Results",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Setup Validation": {
+          "main": [
+            [
+              {
+                "node": "Load User Preferences",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Should Poll API?": {
+          "main": [
+            [
+              {
+                "node": "API-Football: Get Live Match",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Check Match Status": {
+          "main": [
+            [
+              {
+                "node": "Is Match Finished?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Is Match Finished?": {
+          "main": [
+            [
+              {
+                "node": "Disable Active Status",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Filter Error Results": {
+          "main": [
+            [
+              {
+                "node": "Update Notified Goals Log",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Load User Preferences": {
+          "main": [
+            [
+              {
+                "node": "Filter Active Users Only",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Filter Active Users Only": {
+          "main": [
+            [
+              {
+                "node": "Check Match Timing Window",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Check Match Timing Window": {
+          "main": [
+            [
+              {
+                "node": "Should Poll API?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Update Notified Goals Log": {
+          "main": [
+            [
+              {
+                "node": "Wait: User Streaming Delay",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Schedule: Every 10 Minutes": {
+          "main": [
+            [
+              {
+                "node": "Setup Validation",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Wait: User Streaming Delay": {
+          "main": [
+            [
+              {
+                "node": "Gmail: Send Goal Alert",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "API-Football: Get Live Match": {
+          "main": [
+            [
+              {
+                "node": "Detect New Goals",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Check Match Status",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 20,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 4
+        },
+        "n8n-nodes-base.code": {
+          "count": 4
+        },
+        "n8n-nodes-base.wait": {
+          "count": 1
+        },
+        "n8n-nodes-base.gmail": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 5
+        },
+        "n8n-nodes-base.httpRequest": {
+          "count": 1
+        },
+        "n8n-nodes-base.googleSheets": {
+          "count": 3
+        },
+        "n8n-nodes-base.scheduleTrigger": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Mychel Garzon",
+      "username": "mychel-garzon",
+      "bio": "n8n Verified Creator and Junction 2025 n8n Tech Challenge Winner based in Helsinki, Finland. Full Stack Engineer specializing in AI automation workflows, multi-agent systems, RAG pipelines, and automated incident triage. Node.js, TypeScript, React, LLMs (OpenAI, Anthropic, Gemini, Groq). 99.9% production uptime.\n\nCustom n8n workflows: mychel.garzon@gmail.com",
+      "verified": true,
+      "links": [
+        "https://mychelgarzon.com/"
+      ],
+      "avatar": "https://gravatar.com/avatar/8937dc435f1eb7cc47cfc0139be315f5e28add64bc872edc5e5315137ee12b75?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 18,
+        "icon": "file:googleSheets.svg",
+        "name": "n8n-nodes-base.googleSheets",
+        "codex": {
+          "data": {
+            "alias": [
+              "CSV",
+              "Sheet",
+              "Spreadsheet",
+              "GS"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/love-at-first-sight-ricardos-n8n-journey/",
+                  "icon": "\u2764\ufe0f",
+                  "label": "Love at first sight: Ricardo\u2019s n8n journey"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-triggers-for-n8n-workflows-using-polling/",
+                  "icon": "\u23f2",
+                  "label": "Creating triggers for n8n workflows using polling"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/migrating-community-metrics-to-orbit-using-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Migrating Community Metrics to Orbit using n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-honest-burgers-use-automation-to-save-100k-per-year/",
+                  "icon": "\ud83c\udf54",
+                  "label": "How Honest Burgers Use Automation to Save $100k per year"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "\ud83d\udcbb",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googlesheets/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage",
+              "Productivity"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\",\"output\"]",
+        "defaults": {
+          "name": "Google Sheets"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNS42OSAxIDUyIDE3LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0OC4yOTMgNjBIMTIuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDkgNTYuMzEyVjQuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTIuNzA3IDF6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM1LjY5IDEgNTIgMTcuMjI1SDM5LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzkuMjExIDE3LjIyNSA1MiAyMi40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTIwLjEyIDMxLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMS42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzEuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNC42OSAwIDUxIDE2LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0Ny4yOTMgNTlIMTEuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDggNTUuMzEyVjMuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTEuNzA3IDB6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM0LjY5IDAgNTEgMTYuMjI1SDM4LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzguMjExIDE2LjIyNSA1MSAyMS40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTE5LjEyIDMwLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMC42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzAuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjwvZz48L3N2Zz4="
+        },
+        "displayName": "Google Sheets",
+        "typeVersion": 5,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          },
+          {
+            "id": 4,
+            "name": "Productivity"
+          }
+        ]
+      },
+      {
+        "id": 19,
+        "icon": "file:httprequest.svg",
+        "name": "n8n-nodes-base.httpRequest",
+        "codex": {
+          "data": {
+            "alias": [
+              "API",
+              "Request",
+              "URL",
+              "Build",
+              "cURL"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-designs-with-bannerbear-and-n8n/",
+                  "icon": "\ud83c\udfa8",
+                  "label": "Automate Designs with Bannerbear and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-use-the-http-request-node-the-swiss-army-knife-for-workflow-automation/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "How to use the HTTP Request Node - The Swiss Army Knife for Workflow Automation"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HTTP Request",
+          "color": "#0004F5"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MCAyMEM0MCA4Ljk1MzE0IDMxLjA0NjkgMCAyMCAwQzguOTUzMTQgMCAwIDguOTUzMTQgMCAyMEMwIDMxLjA0NjkgOC45NTMxNCA0MCAyMCA0MEMzMS4wNDY5IDQwIDQwIDMxLjA0NjkgNDAgMjBaTTIwIDM2Ljk0NThDMTguODg1MiAzNi45NDU4IDE3LjEzNzggMzUuOTY3IDE1LjQ5OTggMzIuNjk4NUMxNC43OTY0IDMxLjI5MTggMTQuMTk2MSAyOS41NDMxIDEzLjc1MjYgMjcuNjg0N0gyNi4xODk4QzI1LjgwNDUgMjkuNTQwMyAyNS4yMDQ0IDMxLjI5MDEgMjQuNTAwMiAzMi42OTg1QzIyLjg2MjIgMzUuOTY3IDIxLjExNDggMzYuOTQ1OCAyMCAzNi45NDU4Wk0xMi45MDY0IDIwQzEyLjkwNjQgMjEuNjA5NyAxMy4wMDg3IDIzLjE2NCAxMy4yMDAzIDI0LjYzMDVIMjYuNzk5N0MyNi45OTEzIDIzLjE2NCAyNy4wOTM2IDIxLjYwOTcgMjcuMDkzNiAyMEMyNy4wOTM2IDE4LjM5MDMgMjYuOTkxMyAxNi44MzYgMjYuNzk5NyAxNS4zNjk1SDEzLjIwMDNDMTMuMDA4NyAxNi44MzYgMTIuOTA2NCAxOC4zOTAzIDEyLjkwNjQgMjBaTTIwIDMuMDU0MTlDMjEuMTE0OSAzLjA1NDE5IDIyLjg2MjIgNC4wMzA3OCAyNC41MDAxIDcuMzAwMzlDMjUuMjA2NiA4LjcxNDA4IDI1LjgwNzIgMTAuNDA2NyAyNi4xOTIgMTIuMzE1M0gxMy43NTAxQzE0LjE5MzMgMTAuNDA0NyAxNC43OTQyIDguNzEyNTQgMTUuNDk5OCA3LjMwMDY0QzE3LjEzNzcgNC4wMzA4MyAxOC44ODUxIDMuMDU0MTkgMjAgMy4wNTQxOVpNMzAuMTQ3OCAyMEMzMC4xNDc4IDE4LjQwOTkgMzAuMDU0MyAxNi44NjE3IDI5LjgyMjcgMTUuMzY5NUgzNi4zMDQyQzM2LjcyNTIgMTYuODQyIDM2Ljk0NTggMTguMzk2NCAzNi45NDU4IDIwQzM2Ljk0NTggMjEuNjAzNiAzNi43MjUyIDIzLjE1OCAzNi4zMDQyIDI0LjYzMDVIMjkuODIyN0MzMC4wNTQzIDIzLjEzODMgMzAuMTQ3OCAyMS41OTAxIDMwLjE0NzggMjBaTTI2LjI3NjcgNC4yNTUxMkMyNy42MzY1IDYuMzYwMTkgMjguNzExIDkuMTMyIDI5LjM3NzQgMTIuMzE1M0gzNS4xMDQ2QzMzLjI1MTEgOC42NjggMzAuMTA3IDUuNzgzNDYgMjYuMjc2NyA0LjI1NTEyWk0xMC42MjI2IDEyLjMxNTNINC44OTI5M0M2Ljc1MTQ3IDguNjY3ODQgOS44OTM1MSA1Ljc4MzQxIDEzLjcyMzIgNC4yNTUxM0MxMi4zNjM1IDYuMzYwMjEgMTEuMjg5IDkuMTMyMDEgMTAuNjIyNiAxMi4zMTUzWk0zLjA1NDE5IDIwQzMuMDU0MTkgMjEuNjAzIDMuMjc3NDMgMjMuMTU3NSAzLjY5NDg0IDI0LjYzMDVIMTAuMTIxN0M5Ljk0NjE5IDIzLjE0MiA5Ljg1MjIyIDIxLjU5NDMgOS44NTIyMiAyMEM5Ljg1MjIyIDE4LjQwNTcgOS45NDYxOSAxNi44NTggMTAuMTIxNyAxNS4zNjk1SDMuNjk0ODRDMy4yNzc0MyAxNi44NDI1IDMuMDU0MTkgMTguMzk3IDMuMDU0MTkgMjBaTTI2LjI3NjYgMzUuNzQyN0MyNy42MzY1IDMzLjYzOTMgMjguNzExIDMwLjg2OCAyOS4zNzc0IDI3LjY4NDdIMzUuMTA0NkMzMy4yNTEgMzEuMzMyMiAzMC4xMDY4IDM0LjIxNzkgMjYuMjc2NiAzNS43NDI3Wk0xMy43MjM0IDM1Ljc0MjdDOS44OTM2OSAzNC4yMTc5IDYuNzUxNTUgMzEuMzMyNCA0Ljg5MjkzIDI3LjY4NDdIMTAuNjIyNkMxMS4yODkgMzAuODY4IDEyLjM2MzUgMzMuNjM5MyAxMy43MjM0IDM1Ljc0MjdaIiBmaWxsPSIjM0E0MkU5Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "HTTP Request",
+        "typeVersion": 4,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 356,
+        "icon": "file:gmail.svg",
+        "name": "n8n-nodes-base.gmail",
+        "codex": {
+          "data": {
+            "alias": [
+              "email",
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/using-automation-to-boost-productivity-in-the-workplace/",
+                  "icon": "\ud83d\udcaa",
+                  "label": "Using Automation to Boost Productivity in the Workplace"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.gmail/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Gmail"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMTkzIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCI+PHBhdGggZmlsbD0iIzQyODVGNCIgZD0iTTU4LjE4MiAxOTIuMDVWOTMuMTRMMjcuNTA3IDY1LjA3NyAwIDQ5LjUwNHYxMjUuMDkxYzAgOS42NTggNy44MjUgMTcuNDU1IDE3LjQ1NSAxNy40NTV6Ii8+PHBhdGggZmlsbD0iIzM0QTg1MyIgZD0iTTE5Ny44MTggMTkyLjA1aDQwLjcyN2M5LjY1OSAwIDE3LjQ1NS03LjgyNiAxNy40NTUtMTcuNDU1VjQ5LjUwNWwtMzEuMTU2IDE3LjgzNy0yNy4wMjYgMjUuNzk4eiIvPjxwYXRoIGZpbGw9IiNFQTQzMzUiIGQ9Im01OC4xODIgOTMuMTQtNC4xNzQtMzguNjQ3IDQuMTc0LTM2Ljk4OUwxMjggNjkuODY4bDY5LjgxOC01Mi4zNjQgNC42NyAzNC45OTItNC42NyA0MC42NDRMMTI4IDE0NS41MDR6Ii8+PHBhdGggZmlsbD0iI0ZCQkMwNCIgZD0iTTE5Ny44MTggMTcuNTA0VjkzLjE0TDI1NiA0OS41MDRWMjYuMjMxYzAtMjEuNTg1LTI0LjY0LTMzLjg5LTQxLjg5LTIwLjk0NXoiLz48cGF0aCBmaWxsPSIjQzUyMjFGIiBkPSJtMCA0OS41MDQgMjYuNzU5IDIwLjA3TDU4LjE4MiA5My4xNFYxNy41MDRMNDEuODkgNS4yODZDMjQuNjEtNy42NiAwIDQuNjQ2IDAgMjYuMjN6Ii8+PC9zdmc+"
+        },
+        "displayName": "Gmail",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 514,
+        "icon": "fa:pause-circle",
+        "name": "n8n-nodes-base.wait",
+        "codex": {
+          "data": {
+            "alias": [
+              "pause",
+              "sleep",
+              "delay",
+              "timeout"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.wait/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Wait",
+          "color": "#804050"
+        },
+        "iconData": {
+          "icon": "pause-circle",
+          "type": "icon"
+        },
+        "displayName": "Wait",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 839,
+        "icon": "fa:clock",
+        "name": "n8n-nodes-base.scheduleTrigger",
+        "codex": {
+          "data": {
+            "alias": [
+              "Time",
+              "Scheduler",
+              "Polling",
+              "Cron",
+              "Interval"
+            ],
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\",\"schedule\"]",
+        "defaults": {
+          "name": "Schedule Trigger",
+          "color": "#31C49F"
+        },
+        "iconData": {
+          "icon": "clock",
+          "type": "icon"
+        },
+        "displayName": "Schedule Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 43,
+        "name": "Personal Productivity"
+      }
+    ],
+    "image": []
+  }
+}

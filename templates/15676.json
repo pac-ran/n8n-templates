@@ -1,0 +1,2234 @@
+{
+  "workflow": {
+    "id": 15676,
+    "name": "Generate service quotes with GPT-4.1-mini, Telegram approval and Gmail",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-12T20:20:18.195Z",
+    "description": "## Who's it for\n\nService businesses such as trade contractors (roofers, plumbers, electricians, cleaners, facility management) who want to send out customer quotes automatically as PDFs \u2014 either triggered by a **Tally form** embedded on their website or by a **Voice AI agent** webhook request. The business owner wants to delegate the operational work without giving up control, so every quote passes through an **approval instance via Telegram** before reaching the customer.\n\n## How it works\n\n1. **Intake**: A Tally form submission triggers the workflow. A parallel Webhook path catches direct API submissions (e.g., from a Voice AI agent) and routes them through a validity check.\n2. **Normalization**: An Edit Fields node maps the raw payload into a clean, consistent schema.\n3. **AI classification**: GPT analyzes the request and assigns one of six categories (single-family quote, multi-family quote, management matter, emergency, on-site appointment, special request).\n4. **Routing**: A Switch node dispatches the request to the matching branch.\n5. **Approval-gated quoting** (for quote-requiring requests): PDFMonkey generates a draft PDF, a Telegram `sendAndWait` approval request is sent to the business owner, and depending on the response the document is either emailed to the customer via Gmail or discarded.\n6. **Direct notification paths** (management, emergency, on-site, special requests): Each fires a Telegram alert plus a structured Gmail message to the relevant inbox.\n\n## How to set up\n\nEstimated time: **30\u201345 minutes**\n\n1. **Credentials** \u2014 connect: Tally (webhook), OpenAI, Telegram Bot, Gmail (OAuth2), PDFMonkey API.\n2. **Tally form** \u2014 duplicate your form, copy its ID into the Tally Trigger node.\n3. **Telegram** \u2014 create a bot via @BotFather, paste the token, and set the target chat IDs in each Telegram node (one per branch).\n4. **Gmail recipients** \u2014 open each Gmail node and set the correct destination address per category (management, emergency, on-site, special).\n5. **PDFMonkey** \u2014 create your document template in PDFMonkey, paste the `template_id` into both PDFMonkey nodes (one for single-family, one for multi-family).\n6. **AI prompt** \u2014 open the \"Classify Request\" node and adapt the classification categories to your business vocabulary if needed.\n7. **Test** \u2014 submit a test entry per category through the Tally form and verify each branch fires correctly.\n\n## Requirements\n\n- n8n (self-hosted or cloud)\n- OpenAI API key (GPT-4o or comparable model)\n- Telegram Bot token\n- Gmail OAuth2 credentials\n- PDFMonkey account with at least one document template\n- Tally account with a form (optional: Voice AI agent for the webhook path)\n\n## How to customize\n\n- **Add more categories**: extend the AI prompt and add new Switch routes.\n- **Swap Telegram for Slack/Discord**: replace the Telegram nodes with your channel of choice \u2014 the approval flow works identically with Slack's \"Send and Wait\".\n- **Change the LLM**: replace the OpenAI node with Anthropic, Mistral, or any other supported model node.\n- **Skip the approval step**: bypass PDFMonkey + sendAndWait for low-risk document categories by adding a direct route.\n- **Trigger via Voice AI agent**: point your Voice AI's tool/webhook output at the Webhook node instead of using the Tally form.",
+    "workflow": {
+      "id": "cX045Xn8vWdlrwFU",
+      "meta": {
+        "instanceId": "abcd43261500031ffbcd495dbf2105c72007ebdbb164defce086029bb07d17b6"
+      },
+      "name": "Auto-generated offering for service based business",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "a69127c6-5861-4a60-8a0f-a2b65e54712b",
+          "name": "Set Quote Variables (EFH/MFH)",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            2080,
+            688
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "df8eadc8-486e-4384-8b21-22d7dd2659e5",
+                  "name": "name",
+                  "type": "string",
+                  "value": "={{ $json.kundenname }}"
+                },
+                {
+                  "id": "01322fd4-1629-4664-9afe-dfcc3497faee",
+                  "name": "email",
+                  "type": "string",
+                  "value": "={{ $json.email }}"
+                },
+                {
+                  "id": "13120ee8-f2a2-4b8d-8889-045163d8a76c",
+                  "name": "Telefonnummer",
+                  "type": "string",
+                  "value": "={{ $json.telefonnummer }}"
+                },
+                {
+                  "id": "4467d8be-dc4c-48b4-8f0c-940ed04842d3",
+                  "name": "qm",
+                  "type": "string",
+                  "value": "={{ $json.quadratmeter }}"
+                },
+                {
+                  "id": "f3f8e3b7-de4a-484f-a9b6-2ed61c9ca004",
+                  "name": "Service",
+                  "type": "string",
+                  "value": "={{ $json.reinigungsservice }}"
+                },
+                {
+                  "id": "21701790-73d0-4afa-8ae6-33a87142de4a",
+                  "name": "ausstellungsDatum",
+                  "type": "string",
+                  "value": "={{ $now.toISO() }}"
+                },
+                {
+                  "id": "74211ec1-b936-4a7d-99a9-496e8db75dd0",
+                  "name": "gueltigBis",
+                  "type": "string",
+                  "value": "={{ $now.plus(30, 'days').toISO() }}"
+                },
+                {
+                  "id": "80e28595-dfbf-484b-a5f1-3d4a7dd34a72",
+                  "name": "angebotNummer",
+                  "type": "string",
+                  "value": "ANG-001"
+                },
+                {
+                  "id": "2f8ff24e-b634-4b5a-b59d-bf3c1ab86f18",
+                  "name": "preisProQm",
+                  "type": "string",
+                  "value": "50"
+                },
+                {
+                  "id": "dc946d61-d8ab-4d5e-8259-7ba066e988da",
+                  "name": "Geb\u00e4udetyp",
+                  "type": "string",
+                  "value": "={{ $json.gebaudetyp }}"
+                },
+                {
+                  "id": "5d1d777a-7e84-4228-a12d-e825c765170d",
+                  "name": "adresse",
+                  "type": "string",
+                  "value": "={{ $json.adresse }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "56ded72e-026b-47ef-9e79-16208848f433",
+          "name": "Route by Request Category",
+          "type": "n8n-nodes-base.switch",
+          "position": [
+            1408,
+            1200
+          ],
+          "parameters": {
+            "rules": {
+              "values": [
+                {
+                  "conditions": {
+                    "options": {
+                      "version": 3,
+                      "leftValue": "",
+                      "caseSensitive": true,
+                      "typeValidation": "strict"
+                    },
+                    "combinator": "and",
+                    "conditions": [
+                      {
+                        "id": "cc737de4-5b94-4951-80d3-120d1dae2f41",
+                        "operator": {
+                          "type": "string",
+                          "operation": "equals"
+                        },
+                        "leftValue": "=ANGEBOT_DACHREINIGUNG_MFH",
+                        "rightValue": "={{ $json.kategorie }}"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "conditions": {
+                    "options": {
+                      "version": 3,
+                      "leftValue": "",
+                      "caseSensitive": true,
+                      "typeValidation": "strict"
+                    },
+                    "combinator": "and",
+                    "conditions": [
+                      {
+                        "id": "a1bcf5cf-8ec9-4c5a-8b71-c7e03216fbec",
+                        "operator": {
+                          "type": "string",
+                          "operation": "equals"
+                        },
+                        "leftValue": "EMAIL_GESCHAEFTSLEITUNG",
+                        "rightValue": "={{ $json.kategorie }}"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "conditions": {
+                    "options": {
+                      "version": 3,
+                      "leftValue": "",
+                      "caseSensitive": true,
+                      "typeValidation": "strict"
+                    },
+                    "combinator": "and",
+                    "conditions": [
+                      {
+                        "id": "19e21d42-84d6-4c70-bfd0-57129ac6665b",
+                        "operator": {
+                          "type": "string",
+                          "operation": "equals"
+                        },
+                        "leftValue": "ANGEBOT_DACHREINIGUNG_EFH",
+                        "rightValue": "={{ $json.kategorie }}"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "conditions": {
+                    "options": {
+                      "version": 3,
+                      "leftValue": "",
+                      "caseSensitive": true,
+                      "typeValidation": "strict"
+                    },
+                    "combinator": "and",
+                    "conditions": [
+                      {
+                        "id": "5b7712cb-fc6a-407d-ad89-0835e5896183",
+                        "operator": {
+                          "type": "string",
+                          "operation": "equals"
+                        },
+                        "leftValue": "NOTFALL_AKUTSCHADEN",
+                        "rightValue": "={{ $json.kategorie }}"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "conditions": {
+                    "options": {
+                      "version": 3,
+                      "leftValue": "",
+                      "caseSensitive": true,
+                      "typeValidation": "strict"
+                    },
+                    "combinator": "and",
+                    "conditions": [
+                      {
+                        "id": "7c92a163-73a8-44d9-abe6-666fe8de8c6d",
+                        "operator": {
+                          "name": "filter.operator.equals",
+                          "type": "string",
+                          "operation": "equals"
+                        },
+                        "leftValue": "TERMIN_VOR_ORT",
+                        "rightValue": "={{ $json.kategorie }}"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "conditions": {
+                    "options": {
+                      "version": 3,
+                      "leftValue": "",
+                      "caseSensitive": true,
+                      "typeValidation": "strict"
+                    },
+                    "combinator": "and",
+                    "conditions": [
+                      {
+                        "id": "6a5ac830-1477-4cc4-a6f6-cd31c2c4b916",
+                        "operator": {
+                          "type": "string",
+                          "operation": "equals"
+                        },
+                        "leftValue": "SONSTIGES",
+                        "rightValue": "={{ $json.kategorie }}"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "options": {}
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "cd9c08f1-2ecc-4325-bd1e-2ddcb4d7c941",
+          "name": "Telegram: Notify Management",
+          "type": "n8n-nodes-base.telegram",
+          "position": [
+            2080,
+            1056
+          ],
+          "webhookId": "d2f6cc5c-0156-4de9-9a54-ce50580e9f90",
+          "parameters": {
+            "text": "=Neue Email an Gesch\u00e4ftsleitung von {{ $('Format Tally Data').item.json.kundenname }}: \nAnliegen: {{ $('Format Tally Data').item.json.sonderanliegen }}\nEmail: {{ $('Tally Trigger').item.json.question_E1zP1B.value }}\nTelefon: {{ $('Tally Trigger').item.json.question_rKylK2.value }}\nAdresse: {{ $('Tally Trigger').item.json.question_4kX2kA.value }}",
+            "chatId": "YOUR_TELEGRAM_CHAT_ID",
+            "additionalFields": {}
+          },
+          "credentials": {
+            "telegramApi": {
+              "id": "credential-id",
+              "name": "Telegram account"
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "d7fc83eb-814a-46fc-9790-6361edc4dbad",
+          "name": "Telegram: Emergency Alert",
+          "type": "n8n-nodes-base.telegram",
+          "position": [
+            2080,
+            1248
+          ],
+          "webhookId": "b953ccb7-c791-4146-8c8c-aa2fa74b5dc8",
+          "parameters": {
+            "text": "=Neuer Notfall/ Akutschaden von {{ $('Tally Trigger').item.json.question_1KPrDW.value }}: {{ $('Format Tally Data').item.json.schadensbeschreibung }}\nTelefon: {{ $('Tally Trigger').item.json.question_MOKAvX.value }}",
+            "chatId": "YOUR_TELEGRAM_CHAT_ID",
+            "additionalFields": {}
+          },
+          "credentials": {
+            "telegramApi": {
+              "id": "credential-id",
+              "name": "Telegram account"
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "615191ee-862c-4381-8764-75825d7a002d",
+          "name": "Telegram: On-Site Appointment Request",
+          "type": "n8n-nodes-base.telegram",
+          "position": [
+            2080,
+            1440
+          ],
+          "webhookId": "e690a2bf-64bc-4c8f-bc1b-327b4c74d9d6",
+          "parameters": {
+            "text": "=Neuer Vorort-Termin von {{ $('Format Tally Data').item.json.kundenname }}:\nMaterialwahl: {{ $('Format Tally Data').item.json.materialwahl }} \nBesichtigung: {{ $('Format Tally Data').item.json.vorortBesichtigung }}\nTelefon: {{ $('Tally Trigger').item.json.question_rKylK2.value }}\nEmail: {{ $('Tally Trigger').item.json.question_E1zP1B.value }}\nAdresse: {{ $('Tally Trigger').item.json.question_4kX2kA.value }}\n",
+            "chatId": "YOUR_TELEGRAM_CHAT_ID",
+            "additionalFields": {}
+          },
+          "credentials": {
+            "telegramApi": {
+              "id": "credential-id",
+              "name": "Telegram account"
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "47b748ee-7032-44a1-ae0c-4a3e753ac236",
+          "name": "Telegram: Special Request",
+          "type": "n8n-nodes-base.telegram",
+          "position": [
+            2080,
+            1632
+          ],
+          "webhookId": "377172c2-7d71-4296-88c7-3d9f71515fc7",
+          "parameters": {
+            "text": "=Neues Sonderanliegen von {{ $('Format Tally Data').item.json.kundenname }}: {{ $('Format Tally Data').item.json.sonderanliegen }}",
+            "chatId": "YOUR_TELEGRAM_CHAT_ID",
+            "additionalFields": {}
+          },
+          "credentials": {
+            "telegramApi": {
+              "id": "credential-id",
+              "name": "Telegram account"
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "3d1c11a2-a3df-44a7-9739-9ccd84f5fd4d",
+          "name": "Tally Trigger: New Form Submission",
+          "type": "n8n-nodes-tallyforms.tallyTrigger",
+          "position": [
+            144,
+            1120
+          ],
+          "webhookId": "377ec844-0bba-4dbe-b266-66861e46625e",
+          "parameters": {
+            "formId": "YOUR_TALLY_FORM_ID"
+          },
+          "credentials": {
+            "tallyApi": {
+              "id": "credential-id",
+              "name": "Tally account"
+            }
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "776402e3-0115-46d5-9478-44e0f05a2720",
+          "name": "Classify Request with GPT-4.1-mini",
+          "type": "@n8n/n8n-nodes-langchain.openAi",
+          "position": [
+            688,
+            1184
+          ],
+          "parameters": {
+            "modelId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gpt-4.1-mini",
+              "cachedResultName": "GPT-4.1-MINI"
+            },
+            "options": {},
+            "responses": {
+              "values": [
+                {
+                  "content": "=Du erh\u00e4ltst die Gespr\u00e4chsdaten eines Anrufs oder Formulardaten einer Tally-Anfrage bei [YOUR_BUSINESS_NAME].\n\nGeb\u00e4udetyp: {{ $json.gebaudetyp ?? \"\" }}\nReinigungsservice: {{ $json.reinigungsservice ?? \"\" }}\nKundenname: {{ $json.kundenname ?? \"\" }}\nEmail: {{ $json.email ?? \"\" }}\nTelefonnummer: {{ $json.telefonnummer ?? \"\" }}\nAdresse: {{ $json.adresse ?? \"\" }}\nQuadratmeter: {{ $json.quadratmeter ?? \"\" }}\nReparaturbeschreibung: {{ $json.reparaturbeschreibung ?? \"\" }}\nMaterialwahl: {{ $json.materialwahl ?? \"\" }}\nVor-Ort Besichtigung: {{ $json.vorortBesichtigung ?? \"\" }}\nSchadensbeschreibung: {{ $json.schadensbeschreibung ?? \"\" }}\nSonderanliegen: {{ $json.sonderanliegen ?? \"\" }}\nService: {{ $json.service ?? \"\" }}\n\nRegeln in dieser Priorit\u00e4tsreihenfolge:\n1. Ist \"Schadensbeschreibung\" ausgef\u00fcllt? \u2192 NOTFALL_AKUTSCHADEN\n2. Ist \"Sonderanliegen\" ausgef\u00fcllt? \u2192 EMAIL_GESCHAEFTSLEITUNG\n3. Ist \"Materialwahl\" oder \"Vor-Ort Besichtigung\" ausgef\u00fcllt? \u2192 TERMIN_VOR_ORT\n4. Ist \"Reinigungsservice\" ausgef\u00fcllt UND Geb\u00e4udetyp ist Einfamilienhaus? \u2192 ANGEBOT_DACHREINIGUNG_EFH\n5. Ist \"Reinigungsservice\" ausgef\u00fcllt UND Geb\u00e4udetyp ist Mehrfamilienhaus? \u2192 ANGEBOT_DACHREINIGUNG_MFH\n6. Nichts trifft zu \u2192 SONSTIGES\n\nAntworte NUR mit dem Kategorie-Schl\u00fcssel. Absolut kein weiterer Text, keine Backticks, keine Erkl\u00e4rung."
+                }
+              ]
+            },
+            "builtInTools": {}
+          },
+          "credentials": {
+            "openAiApi": {
+              "id": "credential-id",
+              "name": "OpenAi account"
+            }
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "18793a4f-5dbc-46a6-8005-9a8688fe3875",
+          "name": "Map Tally Fields to Schema",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            432,
+            1120
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "1",
+                  "name": "gebaudetyp",
+                  "type": "string",
+                  "value": "={{ $json.question_G1vr1L.value }}"
+                },
+                {
+                  "id": "2",
+                  "name": "reinigungsservice",
+                  "type": "string",
+                  "value": "={{ $json.question_OP1APY.value }}"
+                },
+                {
+                  "id": "3",
+                  "name": "kundenname",
+                  "type": "string",
+                  "value": "={{ $json.question_PEjAEB.value }}"
+                },
+                {
+                  "id": "4",
+                  "name": "email",
+                  "type": "string",
+                  "value": "={{ $json.question_E1zP1B.value }}"
+                },
+                {
+                  "id": "5",
+                  "name": "telefonnummer",
+                  "type": "string",
+                  "value": "={{ $json.question_rKylK2.value }}"
+                },
+                {
+                  "id": "6",
+                  "name": "adresse",
+                  "type": "string",
+                  "value": "={{ $json.question_4kX2kA.value }}"
+                },
+                {
+                  "id": "7",
+                  "name": "quadratmeter",
+                  "type": "string",
+                  "value": "={{ $json.question_jMDBMJ.value }}"
+                },
+                {
+                  "id": "8",
+                  "name": "reparaturbeschreibung",
+                  "type": "string",
+                  "value": "={{ $json.question_2k84kD.value }}"
+                },
+                {
+                  "id": "9",
+                  "name": "materialwahl",
+                  "type": "string",
+                  "value": "={{ $json.question_xQxdQv.value }}"
+                },
+                {
+                  "id": "10",
+                  "name": "vorortBesichtigung",
+                  "type": "string",
+                  "value": "={{ $json.question_R4Kz4j.value }}"
+                },
+                {
+                  "id": "11",
+                  "name": "sonderanliegen",
+                  "type": "string",
+                  "value": "={{ $json.question_G1vr1k.value }}"
+                },
+                {
+                  "id": "12",
+                  "name": "schadensbeschreibung",
+                  "type": "string",
+                  "value": "={{ $json.question_PEjAEe.value }}"
+                },
+                {
+                  "id": "670cd7ef-195b-4ea8-8f5f-1a2c9fbe3fd9",
+                  "name": "service",
+                  "type": "string",
+                  "value": "={{ $json.question_oB6ABO.value }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "6aa361bb-9ba8-4284-b9f5-d479db0e0f16",
+          "name": "Route by Building Type (EFH vs MFH)",
+          "type": "n8n-nodes-base.switch",
+          "position": [
+            2304,
+            688
+          ],
+          "parameters": {
+            "rules": {
+              "values": [
+                {
+                  "conditions": {
+                    "options": {
+                      "version": 3,
+                      "leftValue": "",
+                      "caseSensitive": true,
+                      "typeValidation": "strict"
+                    },
+                    "combinator": "and",
+                    "conditions": [
+                      {
+                        "id": "49fc066b-bad8-456b-9f4c-1d20713c3945",
+                        "operator": {
+                          "type": "string",
+                          "operation": "equals"
+                        },
+                        "leftValue": "={{ $json.Geb\u00e4udetyp }}",
+                        "rightValue": "Einfamilienhaus"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "conditions": {
+                    "options": {
+                      "version": 3,
+                      "leftValue": "",
+                      "caseSensitive": true,
+                      "typeValidation": "strict"
+                    },
+                    "combinator": "and",
+                    "conditions": [
+                      {
+                        "id": "b172f3c0-7823-4572-9a25-1cf22b314264",
+                        "operator": {
+                          "name": "filter.operator.equals",
+                          "type": "string",
+                          "operation": "equals"
+                        },
+                        "leftValue": "={{ $json.Geb\u00e4udetyp }}",
+                        "rightValue": "Mehrfamilienhaus"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "options": {}
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "2d972a96-34b7-410f-8bb7-d098e144b4eb",
+          "name": "Telegram: Approval Request EFH",
+          "type": "n8n-nodes-base.telegram",
+          "position": [
+            2800,
+            608
+          ],
+          "webhookId": "4440f638-003d-41a6-91ff-f0be5dec1a6d",
+          "parameters": {
+            "chatId": "YOUR_TELEGRAM_CHAT_ID",
+            "message": "=\ud83d\udd14 Neue Angebotsanfrage\n\n\ud83d\udc64 Kunde:{{ $('Edit Fields').item.json.name }}\n\ud83d\udce7 Email: {{ $('Edit Fields').item.json.email }}\n\ud83d\udcde Telefon: {{ $('Edit Fields').item.json.Telefonnummer }}\n\ud83c\udfe2 Geb\u00e4udetyp: {{ $('Edit Fields').item.json['Geb\u00e4udetyp'] }}\n\ud83d\udcd0 Quadratmeter: {{ $('Edit Fields').item.json.qm }}m\u00b2\n\ud83d\udcb0 Preis pro m\u00b2: 50\u20ac\n\nAngebot versenden?",
+            "options": {},
+            "operation": "sendAndWait"
+          },
+          "credentials": {
+            "telegramApi": {
+              "id": "credential-id",
+              "name": "Telegram account"
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "10a4fd73-8c3c-4801-8248-f98b5ac442c4",
+          "name": "Generate Quote PDF: Single-Family Home",
+          "type": "n8n-nodes-pdfmonkey.pdfMonkey",
+          "position": [
+            2576,
+            592
+          ],
+          "parameters": {
+            "payload": "={{ { \"name\": $('Edit Fields').item.json.name, \"email\": $('Edit Fields').item.json.email, \"Telefonnummer\": $('Edit Fields').item.json.Telefonnummer, \"qm\": $('Edit Fields').item.json.qm, \"Service\": $('Edit Fields').item.json.Service, \"leistungsart\": $('Edit Fields').item.json.Service, \"ausstellungsDatum\": $now.toISO(), \"gueltigBis\": $now.plus(30, \"days\").toISO(), \"angebotNummer\": \"ANG-\" + $('Edit Fields').item.json.name.substring(0, 3).toUpperCase() + \"-001\", \"preisProQm\": 50 } }}",
+            "documentTemplateId": "=YOUR_PDFMONKEY_TEMPLATE_ID_EFH"
+          },
+          "credentials": {
+            "pdfMonkeyApi": {
+              "id": "credential-id",
+              "name": "PDFMonkey account"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "71866b6f-bf50-4a4d-ae30-4aab36e1832c",
+          "name": "Gmail: Send Approved Quote EFH",
+          "type": "n8n-nodes-base.gmail",
+          "position": [
+            3248,
+            592
+          ],
+          "webhookId": "03dcda5a-85cb-49e0-aed2-a5749a7b9a39",
+          "parameters": {
+            "sendTo": "={{ $('Edit Fields').item.json.email }}",
+            "message": "=<p>Hallo {{ $('Edit Fields').item.json.name }},</p>\n\n<p>vielen Dank f\u00fcr Ihr Interesse! Anbei finden Sie Ihr pers\u00f6nliches Angebot.</p>\n\n<p>Wir haben es sorgf\u00e4ltig auf Ihre Anforderungen abgestimmt und freuen uns auf Ihre R\u00fcckmeldung.</p>\n\n<p>Hier k\u00f6nnen Sie Ihr <a href=\"{{ $('PDFMonkey').item.json.document_card.download_url }}\">Angebot</a> finden.</p>\n\n<p>Bei Fragen stehen wir Ihnen jederzeit gerne zur Verf\u00fcgung.</p>\n\n<p>Mit freundlichen Gr\u00fc\u00dfen,<br>\nElias</p>",
+            "options": {},
+            "subject": "Angebot"
+          },
+          "credentials": {
+            "gmailOAuth2": {
+              "id": "credential-id",
+              "name": "Gmail OAuth2 API"
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "99f14f2c-f580-4e30-9b5d-134ba69ec7a0",
+          "name": "If Approval Approved EFH",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            3008,
+            608
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "be62f349-76c6-4ad6-b3a5-d39cf6849da2",
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $('Send Approval Request').item.json.data.approved }}",
+                  "rightValue": true
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "557941d6-7c78-48f5-9904-7e6c03c9d071",
+          "name": "Generate Quote PDF: Multi-Family Home",
+          "type": "n8n-nodes-pdfmonkey.pdfMonkey",
+          "position": [
+            2560,
+            768
+          ],
+          "parameters": {
+            "payload": "={}",
+            "documentTemplateId": "YOUR_PDFMONKEY_TEMPLATE_ID_MFH"
+          },
+          "credentials": {
+            "pdfMonkeyApi": {
+              "id": "credential-id",
+              "name": "PDFMonkey account"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "5d8b6c9d-1ade-4c15-a801-f7fa57b194aa",
+          "name": "Telegram: Approval Request MFH",
+          "type": "n8n-nodes-base.telegram",
+          "position": [
+            2800,
+            784
+          ],
+          "webhookId": "7890c3e9-3064-4fda-b64c-6e7d004d85a0",
+          "parameters": {
+            "chatId": "YOUR_TELEGRAM_CHAT_ID",
+            "message": "=\ud83d\udd14 Neue Angebotsanfrage\n\n\ud83d\udc64 Kunde: {{ $('Edit Fields').item.json.name }}\n\ud83d\udce7 Email: {{ $('Edit Fields').item.json.email }}\n\ud83d\udcde Telefon: {{ $('Edit Fields').item.json.Telefonnummer }}\n\ud83c\udfe2 Geb\u00e4udetyp: {{ $('Edit Fields').item.json['Geb\u00e4udetyp'] }}\n\ud83e\uddf9 Service: {{ $('Edit Fields').item.json.Service }}\nAngebot versenden?",
+            "options": {},
+            "operation": "sendAndWait"
+          },
+          "credentials": {
+            "telegramApi": {
+              "id": "credential-id",
+              "name": "Telegram account"
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "78fc8023-a5c3-43f9-b2e9-8c705ad06b3a",
+          "name": "Gmail: Send Approved Quote MFH",
+          "type": "n8n-nodes-base.gmail",
+          "position": [
+            3248,
+            768
+          ],
+          "webhookId": "3f1ea9dd-8c34-49bb-850a-cdf0fa61ff9c",
+          "parameters": {
+            "sendTo": "={{ $('Edit Fields').item.json.email }}",
+            "message": "=<p>Hallo {{ $('Edit Fields').item.json.name }},</p>\n\n<p>vielen Dank f\u00fcr Ihr Interesse! Anbei finden Sie Ihr pers\u00f6nliches Angebot.</p>\n\n<p>Wir haben es sorgf\u00e4ltig auf Ihre Anforderungen abgestimmt und freuen uns auf Ihre R\u00fcckmeldung.</p>\n\n<p>Hier k\u00f6nnen Sie Ihr <a href=\"{{ $('PDFMonkey2').item.json.document_card.download_url }}\">Angebot</a> finden.</p>\n\n<p>Bei Fragen stehen wir Ihnen jederzeit gerne zur Verf\u00fcgung.</p>\n\n<p>Mit freundlichen Gr\u00fc\u00dfen,<br>\nElias</p>",
+            "options": {},
+            "subject": "Angebot"
+          },
+          "credentials": {
+            "gmailOAuth2": {
+              "id": "credential-id",
+              "name": "Gmail OAuth2 API"
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "9dea242f-5133-448a-9715-7296e31e64f0",
+          "name": "If Approval Approved MFH",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            3008,
+            784
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "be62f349-76c6-4ad6-b3a5-d39cf6849da2",
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $('Send Approval Request1').item.json.data.approved }}",
+                  "rightValue": true
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "20547759-6d13-4731-b191-6304bf1850df",
+          "name": "Gmail: Forward to Management",
+          "type": "n8n-nodes-base.gmail",
+          "position": [
+            2288,
+            1056
+          ],
+          "webhookId": "d48d7abc-25c7-47bd-a0c4-b58968755236",
+          "parameters": {
+            "sendTo": " user@example.com",
+            "message": "=Neue Sonderfrage an Gesch\u00e4ftsleitung von {{ $('Format Tally Data').item.json.kundenname }}:  Anliegen: {{ $('Format Tally Data').item.json.sonderanliegen }} Email: {{ $('Tally Trigger').item.json.question_E1zP1B.value }} Telefon: {{ $('Tally Trigger').item.json.question_rKylK2.value }} Adresse: {{ $('Tally Trigger').item.json.question_4kX2kA.value }}",
+            "options": {},
+            "subject": "=Sonderanfrage \u2013 R\u00fcckruf erforderlich \u2013 {{ $('Format Tally Data').item.json.kundenname }} "
+          },
+          "credentials": {
+            "gmailOAuth2": {
+              "id": "credential-id",
+              "name": "Gmail OAuth2 API"
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "251a0328-7427-4ef9-923c-3797479470d5",
+          "name": "Gmail: On-Site Appointment Notification",
+          "type": "n8n-nodes-base.gmail",
+          "position": [
+            2288,
+            1440
+          ],
+          "webhookId": "0c9e4fe9-32aa-4918-9bf5-ac13a814d198",
+          "parameters": {
+            "sendTo": " user@example.com",
+            "message": "=Neuer Vorort-Termin von {{ $('Format Tally Data').item.json.kundenname }}: Materialwahl: {{ $('Format Tally Data').item.json.materialwahl }}  Besichtigung: {{ $('Format Tally Data').item.json.vorortBesichtigung }} Telefon: {{ $('Tally Trigger').item.json.question_rKylK2.value }} Email: {{ $('Tally Trigger').item.json.question_E1zP1B.value }} Adresse: {{ $('Tally Trigger').item.json.question_4kX2kA.value }}",
+            "options": {},
+            "subject": "=Neuer Vorort-Termin von {{ $('Format Tally Data').item.json.kundenname }}"
+          },
+          "credentials": {
+            "gmailOAuth2": {
+              "id": "credential-id",
+              "name": "Gmail OAuth2 API"
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "c15e1429-d89f-4fcc-a2f6-9b95ccea231f",
+          "name": "Gmail: Emergency Notification",
+          "type": "n8n-nodes-base.gmail",
+          "position": [
+            2288,
+            1248
+          ],
+          "webhookId": "59c24962-8a3d-48b7-8197-69a60d9078f7",
+          "parameters": {
+            "sendTo": "=your-business-email@example.com",
+            "message": "=Neuer Notfall/ Akutschaden von {{ $('Tally Trigger').item.json.question_1KPrDW.value }}: {{ $('Format Tally Data').item.json.schadensbeschreibung }} Telefon: {{ $('Tally Trigger').item.json.question_MOKAvX.value }}",
+            "options": {},
+            "subject": "=Neuer Notfall/ Akutschaden von {{ $('Tally Trigger').item.json.question_1KPrDW.value }}"
+          },
+          "credentials": {
+            "gmailOAuth2": {
+              "id": "credential-id",
+              "name": "Gmail OAuth2 API"
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "ad04f750-ebb7-4694-950f-66c6e9e0beb1",
+          "name": "Gmail: Special Request Notification",
+          "type": "n8n-nodes-base.gmail",
+          "position": [
+            2288,
+            1632
+          ],
+          "webhookId": "cb6938a7-3cd5-465d-bb89-dd7e514c33c2",
+          "parameters": {
+            "sendTo": "user@example.com",
+            "message": "=Neues Sonderanliegen von {{ $('Format Tally Data').item.json.kundenname }}: {{ $('Format Tally Data').item.json.sonderanliegen }}",
+            "options": {},
+            "subject": "=Neues Sonderanliegen von {{ $('Format Tally Data').item.json.kundenname }}"
+          },
+          "credentials": {
+            "gmailOAuth2": {
+              "id": "credential-id",
+              "name": "Gmail OAuth2 API"
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "22d0ee24-9f4c-48a1-ba26-ed802826fe6a",
+          "name": "Webhook: Alternative Intake",
+          "type": "n8n-nodes-base.webhook",
+          "position": [
+            112,
+            1504
+          ],
+          "webhookId": "06ed7c0b-1296-4857-afb8-9a5db95791a1",
+          "parameters": {
+            "path": "your-webhook-path-uuid",
+            "options": {},
+            "httpMethod": "POST"
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "91579be6-ae64-47f8-8532-6f4ca3acdd50",
+          "name": "Map Webhook Fields",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            480,
+            1344
+          ],
+          "parameters": {
+            "mode": "raw",
+            "options": {},
+            "jsonOutput": "={\n  \"kundenname\": \"={{ $json.body.call.call_analysis.custom_analysis_data.vorname }} {{ $json.body.call.call_analysis.custom_analysis_data.nachname }}\",\n  \"email\": \"={{ $json.body.call.call_analysis.custom_analysis_data.email }}\",\n  \"telefonnummer\": \"={{ $json.body.call.call_analysis.custom_analysis_data.telefon }}\",\n  \"adresse\": \"={{ $json.body.call.call_analysis.custom_analysis_data.adresse }}\",\n  \"gebaudetyp\": \"={{ $json.body.call.call_analysis.custom_analysis_data.gebaeudetyp }}\",\n  \"reinigungsservice\": \"={{ $json.body.call.call_analysis.custom_analysis_data.reinigungsservice }}\",\n  \"service\": \"\",\n  \"quadratmeter\": \"={{ $json.body.call.call_analysis.custom_analysis_data.quadratmeter }}\",\n  \"reparaturbeschreibung\": \"\",\n  \"materialwahl\": \"\",\n  \"vorortBesichtigung\": \"\",\n  \"schadensbeschreibung\": \"\"\n}"
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "40008728-8da3-4a8b-9fa1-3755afc32f5a",
+          "name": "Check Webhook Payload Valid",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            336,
+            1504
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "or",
+              "conditions": [
+                {
+                  "id": "85c20fc4-9e8b-4c4b-82c2-55cbb7cbbcca",
+                  "operator": {
+                    "name": "filter.operator.equals",
+                    "type": "string",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $json.body.event }}",
+                  "rightValue": "call_analyzed"
+                }
+              ]
+            },
+            "looseTypeValidation": "={{ false }}"
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "9a6500ca-17f5-4ef3-aa11-ae9c0fe6a19a",
+          "name": "Parse Category from AI Response",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            992,
+            1184
+          ],
+          "parameters": {
+            "mode": "runOnceForEachItem",
+            "jsCode": "const openAiOutput = ($input.item.json.output?.[0]?.content?.[0]?.text ?? $input.item.json.text ?? \"\").trim();\n\n// Hole Kundendaten aus dem richtigen vorherigen Node\nlet customerData = {};\n\ntry {\n  customerData = $('Format Tally Data').item.json;\n} catch(e) {\n  try {\n    customerData = $('Edit Fields1').item.json;\n  } catch(e2) {\n    customerData = {};\n  }\n}\n\nreturn {\n  kategorie: openAiOutput,\n  kundenname: (customerData.kundenname ?? \"\").replace(/^=/, \"\"),\n  email: (customerData.email ?? \"\").replace(/^=/, \"\"),\n  telefonnummer: (customerData.telefonnummer ?? \"\").replace(/^=/, \"\"),\n  adresse: (customerData.adresse ?? \"\").replace(/^=/, \"\"),\n  gebaudetyp: (customerData.gebaudetyp ?? \"\").replace(/^=/, \"\"),\n  reinigungsservice: (customerData.reinigungsservice ?? \"\").replace(/^=/, \"\"),\n  quadratmeter: (customerData.quadratmeter ?? \"\").replace(/^=/, \"\"),\n  service: (customerData.service ?? \"\").replace(/^=/, \"\")\n};"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "fd27f69e-9e02-4e8d-8532-a1e04566a915",
+          "name": "Sticky Note - Overview",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -896,
+            448
+          ],
+          "parameters": {
+            "width": 900,
+            "height": 892,
+            "content": "# \ud83c\udfe0  Automated Quote Generation via PDF for Service Businesses with AI Classification Engine, Telegram Approval Bot and Automated Gmail Delivery\n\n## Who's it for\nService businesses such as trade contractors (roofers, plumbers, electricians, cleaners, facility management) who want to send out customer quotes automatically as PDFs \u2014 either triggered by a **Tally form** embedded on their website or by a **Voice AI agent** webhook request. The business owner wants to delegate the operational work without giving up control, so every quote passes through an **approval instance via Telegram** before reaching the customer.\n\n## What it does\n1. **Intake** \u2014 Tally form OR direct webhook (e.g. AI Voice Agent summary)\n2. **AI classification** \u2014 GPT-4.1-mini categorizes the request into 6 buckets:\n   - `ANGEBOT_DACHREINIGUNG_EFH` \u2192 auto-generate PDF quote (single-family) + Telegram approval \u2192 email customer\n   - `ANGEBOT_DACHREINIGUNG_MFH` \u2192 auto-generate PDF quote (multi-family) + Telegram approval \u2192 email customer\n   - `EMAIL_GESCHAEFTSLEITUNG` \u2192 notify management\n   - `NOTFALL_AKUTSCHADEN` \u2192 emergency alert\n   - `TERMIN_VOR_ORT` \u2192 on-site appointment request\n   - `SONSTIGES` \u2192 special request fallback\n3. **Approval-gated quoting** \u2014 quotes are previewed via Telegram `sendAndWait` before any email goes to the customer\n4. **Direct notifications** \u2014 non-quote categories trigger Telegram + Gmail alerts to the team\n\n## How to set up\nEstimated **30-45 min**. See setup sticky on the bottom \u2192\n\n## Requirements\n- OpenAI (GPT-4.1-mini or any chat model)\n- Tally account with form\n- Telegram Bot (chat ID + token)\n- Gmail OAuth2\n- PDFMonkey account with 2 templates (EFH + MFH)\n\n## Customization\n- Change AI categories in the **Classify Request** node prompt\n- Swap GPT for any chat model\n- Replace Telegram with Slack `sendAndWait`\n- Skip approval gate for low-risk categories\n"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "eed86955-7cfd-4abb-99ac-34c4eda27224",
+          "name": "Sticky Note - Setup",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -880,
+            1360
+          ],
+          "parameters": {
+            "width": 620,
+            "height": 652,
+            "content": "## \u2699\ufe0f Setup Steps\n\n**1. Credentials** \u2014 connect:\n- OpenAI (any chat model node compatible)\n- Tally API\n- Telegram Bot (get token from @BotFather)\n- Gmail OAuth2\n- PDFMonkey API\n\n**2. Tally Form**\n- Replace `YOUR_TALLY_FORM_ID` in the Tally Trigger node\n- Map your form fields to: `gebaudetyp`, `reinigungsservice`, `kundenname`, `email`, `telefonnummer`, `adresse`, `quadratmeter`, `reparaturbeschreibung`, `materialwahl`, `vorortBesichtigung`, `schadensbeschreibung`, `sonderanliegen`, `service`\n\n**3. Telegram**\n- Replace ALL `YOUR_TELEGRAM_CHAT_ID` placeholders (6 telegram nodes)\n- Different chat IDs per category? Set per-node\n\n**4. Gmail**\n- Replace ALL `your-business-email@example.com` placeholders (4 Gmail nodes)\n\n**5. PDFMonkey**\n- Create 2 templates: one for single-family, one for multi-family quotes\n- Replace `YOUR_PDFMONKEY_TEMPLATE_ID_EFH` and `_MFH`\n\n**6. AI Prompt**\n- Open **Classify Request** node, adapt categories and field names to your business\n\n**7. Test**\n- Submit a test entry per category through Tally\n- Verify each branch fires correctly"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "8f6962e1-50f4-40d5-bf88-056ee14ab99e",
+          "name": "Sticky Note - Intake",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            32,
+            976
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 568,
+            "height": 664,
+            "content": "## Intake\nTally form OR direct webhook \u2192 field mapping"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "73e1cab5-8a38-4c53-9f83-bbe836eb00be",
+          "name": "Sticky Note - AI Classification",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            608,
+            1040
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 664,
+            "height": 344,
+            "content": "## AI Classification\nGPT-4.1-mini assigns one of 6 categories, then JS parses it"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "c7ff7dbc-bfdd-4113-a1cb-164454a4a637",
+          "name": "Sticky Note - Routing",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1296,
+            1104
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 360,
+            "height": 440,
+            "content": "## Routing\nSwitch directs to the right branch"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "70877649-f6d8-4c94-a6b3-62e8a25563a5",
+          "name": "Sticky Note - Quote Generation (EFH & MFH)",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            2016,
+            480
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1528,
+            "height": 472,
+            "content": "## Quote Generation + Approval\nPDFMonkey \u2192 Telegram sendAndWait \u2192 If approved \u2192 Gmail to customer"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "dd4a1700-f726-4642-b320-c1994edb84cf",
+          "name": "Sticky Note - Direct Notifications",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            2000,
+            976
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 568,
+            "height": 856,
+            "content": "## Direct Notifications\nManagement / Emergency / On-Site / Special"
+          },
+          "typeVersion": 1
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "13014c38-b92c-459b-9f79-37002e6ade04",
+      "connections": {
+        "Map Webhook Fields": {
+          "main": [
+            [
+              {
+                "node": "Classify Request with GPT-4.1-mini",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "If Approval Approved EFH": {
+          "main": [
+            [
+              {
+                "node": "Gmail: Send Approved Quote EFH",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "If Approval Approved MFH": {
+          "main": [
+            [
+              {
+                "node": "Gmail: Send Approved Quote MFH",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Route by Request Category": {
+          "main": [
+            [
+              {
+                "node": "Set Quote Variables (EFH/MFH)",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Telegram: Notify Management",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Set Quote Variables (EFH/MFH)",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Telegram: Emergency Alert",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Telegram: On-Site Appointment Request",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Telegram: Special Request",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Telegram: Emergency Alert": {
+          "main": [
+            [
+              {
+                "node": "Gmail: Emergency Notification",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Telegram: Special Request": {
+          "main": [
+            [
+              {
+                "node": "Gmail: Special Request Notification",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Map Tally Fields to Schema": {
+          "main": [
+            [
+              {
+                "node": "Classify Request with GPT-4.1-mini",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Check Webhook Payload Valid": {
+          "main": [
+            [
+              {
+                "node": "Map Webhook Fields",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Telegram: Notify Management": {
+          "main": [
+            [
+              {
+                "node": "Gmail: Forward to Management",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Webhook: Alternative Intake": {
+          "main": [
+            [
+              {
+                "node": "Check Webhook Payload Valid",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Set Quote Variables (EFH/MFH)": {
+          "main": [
+            [
+              {
+                "node": "Route by Building Type (EFH vs MFH)",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Telegram: Approval Request EFH": {
+          "main": [
+            [
+              {
+                "node": "If Approval Approved EFH",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Telegram: Approval Request MFH": {
+          "main": [
+            [
+              {
+                "node": "If Approval Approved MFH",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Parse Category from AI Response": {
+          "main": [
+            [
+              {
+                "node": "Route by Request Category",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Classify Request with GPT-4.1-mini": {
+          "main": [
+            [
+              {
+                "node": "Parse Category from AI Response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Tally Trigger: New Form Submission": {
+          "main": [
+            [
+              {
+                "node": "Map Tally Fields to Schema",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Route by Building Type (EFH vs MFH)": {
+          "main": [
+            [
+              {
+                "node": "Generate Quote PDF: Multi-Family Home",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Generate Quote PDF: Single-Family Home",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Generate Quote PDF: Multi-Family Home": {
+          "main": [
+            [
+              {
+                "node": "Telegram: Approval Request MFH",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Telegram: On-Site Appointment Request": {
+          "main": [
+            [
+              {
+                "node": "Gmail: On-Site Appointment Notification",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Generate Quote PDF: Single-Family Home": {
+          "main": [
+            [
+              {
+                "node": "Telegram: Approval Request EFH",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 33,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 3
+        },
+        "n8n-nodes-base.set": {
+          "count": 3
+        },
+        "n8n-nodes-base.code": {
+          "count": 1
+        },
+        "n8n-nodes-base.gmail": {
+          "count": 6
+        },
+        "n8n-nodes-base.switch": {
+          "count": 2
+        },
+        "n8n-nodes-base.webhook": {
+          "count": 1
+        },
+        "n8n-nodes-base.telegram": {
+          "count": 6
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 7
+        },
+        "n8n-nodes-pdfmonkey.pdfMonkey": {
+          "count": 2
+        },
+        "@n8n/n8n-nodes-langchain.openAi": {
+          "count": 1
+        },
+        "n8n-nodes-tallyforms.tallyTrigger": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Elias Jakob",
+      "username": "eliasjakob",
+      "bio": "Automation & AI Agent Designer with strong business strategy thinking. Finance domain expert. 5+ years as a consultant in Germany at Deloitte, MHP Porsche, and Aldi S\u00fcd.",
+      "verified": false,
+      "links": [
+        "https://www.linkedin.com/in/eliasjakob/"
+      ],
+      "avatar": "https://gravatar.com/avatar/b07635a0efa76e233ade3cafa9dcbb8b80a60fcfbea301af929d8154c4a8abf5?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 47,
+        "icon": "file:webhook.svg",
+        "name": "n8n-nodes-base.webhook",
+        "codex": {
+          "data": {
+            "alias": [
+              "HTTP",
+              "API",
+              "Build",
+              "WH"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "\ud83d\udcbb",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-automatically-give-kudos-to-contributors-with-github-slack-and-n8n/",
+                  "icon": "\ud83d\udc4f",
+                  "label": "How to automatically give kudos to contributors with GitHub, Slack, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-custom-incident-response-workflows-with-n8n/",
+                  "label": "How to automate every step of an incident response workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Webhook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTM1IDM3Yy0yLjIgMC00LTEuOC00LTRzMS44LTQgNC00IDQgMS44IDQgNC0xLjggNC00IDQiLz48cGF0aCBmaWxsPSIjMzc0NzRmIiBkPSJNMzUgNDNjLTMgMC01LjktMS40LTcuOC0zLjdsMy4xLTIuNWMxLjEgMS40IDIuOSAyLjMgNC43IDIuMyAzLjMgMCA2LTIuNyA2LTZzLTIuNy02LTYtNmMtMSAwLTIgLjMtMi45LjdsLTEuNyAxTDIzLjMgMTZsMy41LTEuOSA1LjMgOS40YzEtLjMgMi0uNSAzLS41IDUuNSAwIDEwIDQuNSAxMCAxMFM0MC41IDQzIDM1IDQzIi8+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTE0IDQzQzguNSA0MyA0IDM4LjUgNCAzM2MwLTQuNiAzLjEtOC41IDcuNS05LjdsMSAzLjlDOS45IDI3LjkgOCAzMC4zIDggMzNjMCAzLjMgMi43IDYgNiA2czYtMi43IDYtNnYtMmgxNXY0SDIzLjhjLS45IDQuNi01IDgtOS44IDgiLz48cGF0aCBmaWxsPSIjZTkxZTYzIiBkPSJNMTQgMzdjLTIuMiAwLTQtMS44LTQtNHMxLjgtNCA0LTQgNCAxLjggNCA0LTEuOCA0LTQgNCIvPjxwYXRoIGZpbGw9IiMzNzQ3NGYiIGQ9Ik0yNSAxOWMtMi4yIDAtNC0xLjgtNC00czEuOC00IDQtNCA0IDEuOCA0IDQtMS44IDQtNCA0Ii8+PHBhdGggZmlsbD0iI2U5MWU2MyIgZD0ibTE1LjcgMzQtMy40LTIgNS45LTkuN2MtMi0xLjktMy4yLTQuNS0zLjItNy4zIDAtNS41IDQuNS0xMCAxMC0xMHMxMCA0LjUgMTAgMTBjMCAuOS0uMSAxLjctLjMgMi41bC0zLjktMWMuMS0uNS4yLTEgLjItMS41IDAtMy4zLTIuNy02LTYtNnMtNiAyLjctNiA2YzAgMi4xIDEuMSA0IDIuOSA1LjFsMS43IDF6Ii8+PC9zdmc+"
+        },
+        "displayName": "Webhook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 49,
+        "icon": "file:telegram.svg",
+        "name": "n8n-nodes-base.telegram",
+        "codex": {
+          "data": {
+            "alias": [
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/using-automation-to-boost-productivity-in-the-workplace/",
+                  "icon": "\ud83d\udcaa",
+                  "label": "Using Automation to Boost Productivity in the Workplace"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-telegram-bots-with-n8n-a-no-code-platform/",
+                  "icon": "\ud83d\udcac",
+                  "label": "Creating Telegram Bots with n8n, a No-Code Platform"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.telegram/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/telegram/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "Telegram"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgNjYgNjYiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48ZyBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSI+PHBhdGggZmlsbD0iIzM3YWVlMiIgZD0iTTAgMzJjMCAxNy42NzMgMTQuMzI3IDMyIDMyIDMyczMyLTE0LjMyNyAzMi0zMlM0OS42NzMgMCAzMiAwIDAgMTQuMzI3IDAgMzIiLz48cGF0aCBmaWxsPSIjYzhkYWVhIiBkPSJtMjEuNjYxIDM0LjMzOCAzLjc5NyAxMC41MDhzLjQ3NS45ODMuOTgzLjk4MyA4LjA2OC03Ljg2NCA4LjA2OC03Ljg2NGw4LjQwNy0xNi4yMzctMjEuMTE5IDkuODk4eiIvPjxwYXRoIGZpbGw9IiNhOWM2ZDgiIGQ9Im0yNi42OTUgMzcuMDM0LS43MjkgNy43NDZzLS4zMDUgMi4zNzMgMi4wNjggMGw0LjY0NC00LjIwMyIvPjxwYXRoIGQ9Im0yMS43MyAzNC43MTItNy44MDktMi41NDVzLS45MzItLjM3OC0uNjMzLTEuMjM3Yy4wNjItLjE3Ny4xODYtLjMyOC41NTktLjU4OCAxLjczMS0xLjIwNiAzMi4wMjgtMTIuMDk2IDMyLjAyOC0xMi4wOTZzLjg1Ni0uMjg4IDEuMzYxLS4wOTdjLjIzMS4wODguMzc4LjE4Ny41MDMuNTQ4LjA0NS4xMzIuMDcxLjQxMS4wNjguNjg5LS4wMDMuMjAxLS4wMjcuMzg2LS4wNDUuNjc4LS4xODQgMi45NzgtNS43MDYgMjUuMTk4LTUuNzA2IDI1LjE5OHMtLjMzIDEuMy0xLjUxNCAxLjM0NWMtLjQzMi4wMTYtLjk1Ni0uMDcxLTEuNTgyLS42MS0yLjMyMy0xLjk5OC0xMC4zNTItNy4zOTQtMTIuMTI2LTguNThhLjM0LjM0IDAgMCAxLS4xNDYtLjIzOWMtLjAyNS0uMTI1LjEwOC0uMjguMTA4LS4yOHMxMy45OC0xMi40MjcgMTQuMzUyLTEzLjczMWMuMDI5LS4xMDEtLjA3OS0uMTUxLS4yMjYtLjEwNy0uOTI5LjM0Mi0xNy4wMjUgMTAuNTA2LTE4LjgwMSAxMS42MjktLjEwNC4wNjYtLjM5NS4wMjMtLjM5NS4wMjMiLz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Telegram",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 112,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.switch",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "If",
+              "Path",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Branch",
+              "Case"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.switch/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Switch",
+          "color": "#506000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "Switch",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 356,
+        "icon": "file:gmail.svg",
+        "name": "n8n-nodes-base.gmail",
+        "codex": {
+          "data": {
+            "alias": [
+              "email",
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/using-automation-to-boost-productivity-in-the-workplace/",
+                  "icon": "\ud83d\udcaa",
+                  "label": "Using Automation to Boost Productivity in the Workplace"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.gmail/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Gmail"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMTkzIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCI+PHBhdGggZmlsbD0iIzQyODVGNCIgZD0iTTU4LjE4MiAxOTIuMDVWOTMuMTRMMjcuNTA3IDY1LjA3NyAwIDQ5LjUwNHYxMjUuMDkxYzAgOS42NTggNy44MjUgMTcuNDU1IDE3LjQ1NSAxNy40NTV6Ii8+PHBhdGggZmlsbD0iIzM0QTg1MyIgZD0iTTE5Ny44MTggMTkyLjA1aDQwLjcyN2M5LjY1OSAwIDE3LjQ1NS03LjgyNiAxNy40NTUtMTcuNDU1VjQ5LjUwNWwtMzEuMTU2IDE3LjgzNy0yNy4wMjYgMjUuNzk4eiIvPjxwYXRoIGZpbGw9IiNFQTQzMzUiIGQ9Im01OC4xODIgOTMuMTQtNC4xNzQtMzguNjQ3IDQuMTc0LTM2Ljk4OUwxMjggNjkuODY4bDY5LjgxOC01Mi4zNjQgNC42NyAzNC45OTItNC42NyA0MC42NDRMMTI4IDE0NS41MDR6Ii8+PHBhdGggZmlsbD0iI0ZCQkMwNCIgZD0iTTE5Ny44MTggMTcuNTA0VjkzLjE0TDI1NiA0OS41MDRWMjYuMjMxYzAtMjEuNTg1LTI0LjY0LTMzLjg5LTQxLjg5LTIwLjk0NXoiLz48cGF0aCBmaWxsPSIjQzUyMjFGIiBkPSJtMCA0OS41MDQgMjYuNzU5IDIwLjA3TDU4LjE4MiA5My4xNFYxNy41MDRMNDEuODkgNS4yODZDMjQuNjEtNy42NiAwIDQuNjQ2IDAgMjYuMjN6Ii8+PC9zdmc+"
+        },
+        "displayName": "Gmail",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1250,
+        "icon": "file:openAi.svg",
+        "name": "@n8n/n8n-nodes-langchain.openAi",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain",
+              "ChatGPT",
+              "Sora",
+              "DallE",
+              "whisper",
+              "audio",
+              "transcribe",
+              "tts",
+              "assistant"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-langchain.openai/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Agents",
+                "Miscellaneous",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "OpenAI"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTM2Ljg2NzEgMTYuMzcxOEMzNy43NzQ2IDEzLjY0OCAzNy40NjIxIDEwLjY2NDIgMzYuMDEwOCA4LjE4NjYxQzMzLjgyODIgNC4zODY1MyAyOS40NDA3IDIuNDMxNDkgMjUuMTU1NiAzLjM1MTUxQzIzLjI0OTMgMS4yMDM5NiAyMC41MTA1IC0wLjAxNzMxNDggMTcuNjM5MiAwLjAwMDE4NTUzM0MxMy4yNTkxIC0wLjAwOTgxNDY4IDkuMzcyNzMgMi44MTAyNSA4LjAyNTIgNi45Nzc4M0M1LjIxMTM5IDcuNTU0MSAyLjc4MjU4IDkuMzE1MzggMS4zNjEzIDExLjgxMTdDLTAuODM3NDkzIDE1LjYwMTggLTAuMzM2MjMyIDIwLjM3OTQgMi42MDEzMyAyMy42Mjk0QzEuNjkzODEgMjYuMzUzMiAyLjAwNjMyIDI5LjMzNzEgMy40NTc2IDMxLjgxNDZDNS42NDAxNSAzNS42MTQ3IDEwLjAyNzcgMzcuNTY5NyAxNC4zMTI4IDM2LjY0OTdDMTYuMjE3OSAzOC43OTczIDE4Ljk1NzkgNDAuMDE4NSAyMS44MjkyIDM5Ljk5OThDMjYuMjExOCA0MC4wMTEgMzAuMDk5NCAzNy4xODg1IDMxLjQ0NjkgMzMuMDE3MUMzNC4yNjA4IDMyLjQ0MDkgMzYuNjg5NiAzMC42Nzk2IDM4LjExMDggMjguMTgzM0M0MC4zMDcxIDI0LjM5MzIgMzkuODA0NiAxOS42MTk0IDM2Ljg2ODMgMTYuMzY5M0wzNi44NjcxIDE2LjM3MThaTTIxLjgzMTcgMzcuMzg2QzIwLjA3OCAzNy4zODg1IDE4LjM3OTIgMzYuNzc0NyAxNy4wMzI5IDM1LjY1MDlDMTcuMDk0MSAzNS42MTg1IDE3LjIwMDQgMzUuNTU5NyAxNy4yNjkxIDM1LjUxNzJMMjUuMjM0MyAzMC45MTcxQzI1LjY0MTggMzAuNjg1OCAyNS44OTE4IDMwLjI1MjEgMjUuODg5MyAyOS43ODMzVjE4LjU1NDNMMjkuMjU1NiAyMC40OTgxQzI5LjI5MTkgMjAuNTE1NiAyOS4zMTU3IDIwLjU1MDYgMjkuMzIwNyAyMC41OTA2VjI5Ljg4OTZDMjkuMzE1NyAzNC4wMjQ3IDI1Ljk2NjggMzcuMzc3MiAyMS44MzE3IDM3LjM4NlpNNS43MjY0IDMwLjUwNzFDNC44NDc2MyAyOC45ODk2IDQuNTMxMzcgMjcuMjEwOCA0LjgzMjYzIDI1LjQ4NDVDNC44OTEzOCAyNS41MTk1IDQuOTk1MTMgMjUuNTgzMiA1LjA2ODg4IDI1LjYyNTdMMTMuMDM0MSAzMC4yMjU4QzEzLjQzNzggMzAuNDYyMSAxMy45Mzc4IDMwLjQ2MjEgMTQuMzQyOCAzMC4yMjU4TDI0LjA2NjggMjQuNjEwN1YyOC40OTgzQzI0LjA2OTMgMjguNTM4MyAyNC4wNTA1IDI4LjU3NyAyNC4wMTkzIDI4LjYwMkwxNS45Njc5IDMzLjI1MDlDMTIuMzgxNSAzNS4zMTU5IDcuODAxNDQgMzQuMDg4NCA1LjcyNzY1IDMwLjUwNzFINS43MjY0Wk0zLjYzMDEgMTMuMTIwNUM0LjUwNTEyIDExLjYwMDQgNS44ODY0IDEwLjQzNzkgNy41MzE0NCA5LjgzNDE1QzcuNTMxNDQgOS45MDI5IDcuNTI3NjkgMTAuMDI0MSA3LjUyNzY5IDEwLjEwOTJWMTkuMzEwNkM3LjUyNTE5IDE5Ljc3ODEgNy43NzUxOSAyMC4yMTE5IDguMTgxNDUgMjAuNDQzMUwxNy45MDU0IDI2LjA1N0wxNC41MzkxIDI4LjAwMDhDMTQuNTA1MyAyOC4wMjMzIDE0LjQ2MjggMjguMDI3IDE0LjQyNTMgMjguMDEwOEw2LjM3MjY2IDIzLjM1ODJDMi43OTM4MyAyMS4yODU2IDEuNTY2MzEgMTYuNzA2OCAzLjYyODg1IDEzLjEyMTdMMy42MzAxIDEzLjEyMDVaTTMxLjI4ODIgMTkuNTU2OUwyMS41NjQyIDEzLjk0MTdMMjQuOTMwNiAxMS45OTkyQzI0Ljk2NDMgMTEuOTc2NyAyNS4wMDY4IDExLjk3MjkgMjUuMDQ0MyAxMS45ODkyTDMzLjA5NyAxNi42MzhDMzYuNjgyMSAxOC43MDkzIDM3LjkxMDggMjMuMjk1NyAzNS44Mzk1IDI2Ljg4MDhDMzQuOTYzMyAyOC4zOTgzIDMzLjU4MzIgMjkuNTYwOCAzMS45Mzk1IDMwLjE2NThWMjAuNjg5NEMzMS45NDMyIDIwLjIyMTkgMzEuNjk0NSAxOS43ODk0IDMxLjI4OTQgMTkuNTU2OUgzMS4yODgyWk0zNC42MzgzIDE0LjUxNDJDMzQuNTc5NSAxNC40NzggMzQuNDc1OCAxNC40MTU1IDM0LjQwMiAxNC4zNzNMMjYuNDM2OCA5Ljc3Mjg5QzI2LjAzMzEgOS41MzY2NCAyNS41MzMxIDkuNTM2NjQgMjUuMTI4MSA5Ljc3Mjg5TDE1LjQwNDEgMTUuMzg4VjExLjUwMDRDMTUuNDAxNiAxMS40NjA0IDE1LjQyMDQgMTEuNDIxNyAxNS40NTE2IDExLjM5NjdMMjMuNTAzIDYuNzUxNThDMjcuMDg5NCA0LjY4Mjc5IDMxLjY3NDUgNS45MTQwNiAzMy43NDIgOS41MDE2NEMzNC42MTU4IDExLjAxNjcgMzQuOTMyIDEyLjc5MDUgMzQuNjM1OCAxNC41MTQySDM0LjYzODNaTTEzLjU3NDEgMjEuNDQzMUwxMC4yMDY1IDE5LjQ5OTRDMTAuMTcwMiAxOS40ODE5IDEwLjE0NjUgMTkuNDQ2OCAxMC4xNDE1IDE5LjQwNjhWMTAuMTA3OUMxMC4xNDQgNS45Njc4MSAxMy41MDI4IDIuNjEyNzQgMTcuNjQyOSAyLjYxNTI0QzE5LjM5NDIgMi42MTUyNCAyMS4wODkyIDMuMjMwMjUgMjIuNDM1NSA0LjM1MDI4QzIyLjM3NDMgNC4zODI3OCAyMi4yNjkzIDQuNDQxNTMgMjIuMTk5MiA0LjQ4NDAzTDE0LjIzNDEgOS4wODQxM0MxMy44MjY2IDkuMzE1MzggMTMuNTc2NiA5Ljc0Nzg5IDEzLjU3OTEgMTAuMjE2N0wxMy41NzQxIDIxLjQ0MDZWMjEuNDQzMVpNMTUuNDAyOSAxNy41MDA2TDE5LjczNDIgMTQuOTk5M0wyNC4wNjU1IDE3LjQ5OTNWMjIuNTAwN0wxOS43MzQyIDI1LjAwMDdMMTUuNDAyOSAyMi41MDA3VjE3LjUwMDZaIiBmaWxsPSJibGFjayIvPgo8L3N2Zz4K"
+        },
+        "displayName": "OpenAI",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 35,
+        "name": "Document Extraction"
+      },
+      {
+        "id": 49,
+        "name": "AI Summarization"
+      }
+    ],
+    "image": []
+  }
+}

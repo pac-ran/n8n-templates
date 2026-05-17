@@ -1,0 +1,1206 @@
+{
+  "workflow": {
+    "id": 15570,
+    "name": "Turn a GitHub knowledge base into a Telegram RAG bot with Qwen via OpenRouter",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-09T08:59:15.889Z",
+    "description": "## WHAT IT DOES\n\n* This workflow turns a plain JSON file sitting in a GitHub repository into a fully functional Telegram chatbot with\nretrieval-augmented generation (RAG) \u2014 no Pinecone, no Qdrant, no vector database, no extra subscription.\n\n* A user sends /ask &lt;question&gt; to your Telegram bot. The\nworkflow pulls the knowledge base from GitHub, runs a\nlocal keyword-matching engine to find the most relevant\nchunks, feeds them as context to a Qwen 3 model via\nOpenRouter, and sends the answer back as a reply to the\noriginal message.\n\n![GitHub Knowledge Base to Telegram Bot.png](fileId:6175)\n\n\n## HOW IT WORKS\n\n**1. Telegram Trigger**\n   Listens for messages starting with /ask. Anything shorter than 7 characters is rejected with an error message explaining the correct format.\n\n**2. Input Validation**\n   If a user sends just /ask without a question, or sends a message shorter than 7 characters, the workflow catches it immediately and replies with a clear   instruction: ***\"Please use: /ask &lt;your question&gt;\"***. \nThis prevents unnecessary API calls to GitHub and the LLM, and teaches the user the correct format on the first try.\n\n**3. GitHub File Fetch**\n   Pulls a JSON file from a GitHub repository using a Personal Access Token. If the file doesn't exist or the token is invalid, the user gets a specific error message instead of a silent failure or a generic n8n error. Same applies when the LLM returns an empty response \u2014 the user always gets a message, never silence.\n\n**4. Binary Decode & Parse**\n   Reads the raw binary output from the GitHub node, decodes it to UTF-8, and parses the JSON array. Each entry in the array is expected to have a \"text\" field (other field names like \"content\", \"answer\", \"title\"   also work).\n\n**5. Rough Keyword Match**\n   Splits the user's question into individual words, scores every knowledge base entry by counting how many words appear in it, and picks the top 2 matches. This is intentionally simple \u2014 no embeddings, no   vector math, no external API calls for retrieval. It works well for small-to-medium knowledge bases (up to a few hundred entries) where exact keyword overlap is a reliable signal.\n\n**6. LLM Call (Qwen 3 via OpenRouter)**\n   Sends the matched context and the original question to Qwen 3 235B through OpenRouter. The prompt instructs the model to answer strictly from the provided context. If the context doesn't contain relevant information, the model says so instead of hallucinating.\n\n**7. Output Formatting**\n   Strips any thinking tags from the model response, capitalizes the first letter, enforces Telegram's 4000-character limit, and appends a branded footer.\n\n**8. Telegram Reply**\n   Sends the formatted answer as a reply to the user's original message, so conversations stay threaded.\n\n\n## WHY THIS APPROACH\n\n- Most RAG setups require a vector database, an embedding model, and ongoing infrastructure costs. This workflow skips all of that. The trade-off is precision \u2014 keyword matching won't catch semantic synonyms the way vector search does. But for knowledge bases that are focused on a specific topic (FAQ, product info, internal docs, local business info), keyword overlap is surprisingly effective and the setup cost is zero.\n\n- The LLM handles the fuzzy part. Even if the keyword match pulls in slightly noisy context, the model can usually extract the right answer. This division of labor - simple retrieval plus smart generation - keeps the workflow fast, cheap, and easy to maintain.\n\n### SETUP (5-10 minutes)\n\n1. Create a GitHub Fine-grained Personal Access Token with read access to the repository containing your knowledge base file.\n\n2. Add the GitHub credential in n8n and configure the \"get gh file\" node with your repository owner, name, and file path.\n\n3. Prepare your knowledge base as a JSON array:\n   *[\n     { \"text\": \"your knowledge entry here\" },\n     { \"text\": \"another knowledge entry\" }\n   ]*\n\n4. Add your Telegram Bot credential to all four Telegram nodes.\n\n5. Add your OpenRouter credential to the Qwen model node. You can swap Qwen for any model supported by OpenRouter by changing the model name field.\n\n6. Activate the workflow and send ***/ask &lt;your question&gt;*** to your Telegram bot.\n\n\n### CUSTOMIZATION\n\n- **Swap the LLM:** Change the model field in the \"qwen model\" node to any OpenRouter-compatible model (GPT-4o, Claude, Gemini, etc.). You can also point to a self-hosted model by changing the base URL.\n\n- **Change retrieval depth:** Edit the \"rough match\" node to return top 3 or top 5 chunks instead of 2. More chunks = more context for the LLM but higher token cost per request.\n\n- **Add more knowledge:** Just edit the JSON file on GitHub. The workflow fetches fresh data on every request \u2014 no redeployment needed.\n\n- **Multi-language:** The workflow works with any language in the knowledge base. The LLM will respond in the same language as the question.\n\n\n## WHAT'S NEXT\n\nThis workflow is designed as a foundation. The keyword matching engine works well for small knowledge bases, but here's where it can grow:\n\n- **Vector search:** Replace the rough keyword match node with an embedding-based retrieval step (OpenAI embeddings + Qdrant or Pinecone) for larger knowledge bases where keyword overlap isn't enough.\n\n- **Multi-source KB:** Pull from multiple GitHub files, Notion databases, or Google Sheets instead of a single JSON file.\n\n- **Conversation memory:** Add a short-term memory buffer so the bot remembers the last 3-5 messages in a conversation.\n\n- **Web interface:** Add a Webhook trigger alongside the Telegram trigger to serve a chat widget on any website.\n\n- **Auto-sync:** Watch the GitHub file for changes and rebuild the search index automatically instead of fetching on every request.\n\nThe current version is intentionally simple. Simple means it runs cheap, breaks rarely, and is easy to debug. Complexity can be added when the use case demands it.\n\n\n### REQUIREMENTS\n\n- n8n instance (self-hosted or cloud)\n- Telegram Bot token\n- GitHub Personal Access Token (fine-grained,  read-only, scoped to the KB repository)\n- OpenRouter API key (or OpenAI-compatible endpoint)",
+    "workflow": {
+      "id": "",
+      "meta": {
+        "instanceId": "",
+        "templateCredsSetupCompleted": true
+      },
+      "name": "GitHub Knowledge Base to Telegram Bot",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "093210cf-5e40-45ab-8be4-432cfab436d2",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -368,
+            -736
+          ],
+          "parameters": {
+            "width": 688,
+            "height": 1456,
+            "content": "## GitHub Knowledge Base \u2192 Telegram RAG Bot\n\nTurn a plain JSON file on GitHub into a Telegram chatbot with retrieval-augmented generation. No vector DB, no embeddings, no extra subscription.\n\nUser sends /ask <question> \u2192 bot pulls KB from GitHub \u2192 keyword match the top 2 chunks \u2192 send context + question to LLM \u2192 reply with a grounded answer.\n\n### How it works\n\n1. **Telegram Trigger** \u2014 Listens for messages starting with /ask.\n2. **Input Validation** \u2014 Rejects messages shorter than 7 characters (e.g. just \"/ask\" with no question). Replies with a usage hint so the user learns the format on the first try. Prevents unnecessary API calls downstream.\n3. **GitHub File Fetch** \u2014 Pulls kb.json from a GitHub repo using a Fine-grained Personal Access Token (read-only, scoped to the repo). If the file is missing, the token is expired, or the repo is unreachable, the user gets a clear error message instead of a silent crash.\n4. **Binary Decode & Parse** \u2014 Reads raw binary from the GitHub node, decodes to UTF-8, parses the JSON array. Each entry needs a \"text\" field (also accepts \"content\", \"answer\", \"title\").\n5. **Rough Keyword Match** \u2014 Splits the question into words, scores every KB entry by keyword overlap, returns the top 2. Intentionally simple \u2014 works well for small-to-medium KBs (up to a few hundred entries). No embedding model, no vector math, zero extra cost.\n6. **LLM Call (Qwen 3 via OpenRouter)** \u2014 Sends matched context + question to the model. Prompt instructs it to answer strictly from context. If nothing relevant is found, the model says so instead of guessing.\n7. **Output Cleanup** \u2014 Strips Qwen 3 thinking tags and any leftover XML. Falls back to a friendly message if the model returns empty.\n8. **Telegram Reply** \u2014 Sends the answer as a reply to the original message. Enforces Telegram 4000-char limit. Appends a branded footer.\n\n### Setup (5\u201310 min)\n\n- [ ] Create a Telegram Bot via @BotFather. Copy the token.\n- [ ] Create a GitHub Fine-grained PAT: Settings \u2192 Developer settings \u2192 Fine-grained tokens. Scope: read-only, select the repo that holds your KB file.\n- [ ] In n8n, add credentials: Telegram Bot API + GitHub API + OpenRouter (or OpenAI-compatible endpoint).\n- [ ] Edit the \"Fetch GitHub File\" node: set owner, repository, and filePath to match your repo.\n- [ ] Prepare your KB as a JSON array:\n```json\n[\n  { \"text\": \"your knowledge entry here\" },\n  { \"text\": \"another entry\" }\n]\n```\n- [ ] Activate the workflow. Send /ask <question> to your bot.\n\n### Customization\n\n- **Swap the LLM**: Change the model in the \"OpenAI Qwen Model\" node to any OpenRouter-supported model (GPT-4o, Claude, Gemini, etc.) or point to a self-hosted model by changing the base URL.\n- **More context**: Edit \"Perform Rough Match\" to return top 3 or top 5 chunks instead of 2. More chunks = better answers but higher token cost.\n- **Live updates**: Edit kb.json on GitHub. The workflow fetches fresh data on every request \u2014 no redeploy needed.\n- **Multi-language**: Works with any language in the KB. The LLM responds in the same language as the question.\n\n### What's next\n\nThis is a foundation. Here's where it can grow:\n- **Vector search** \u2014 Replace keyword match with embedding retrieval (OpenAI embeddings + Qdrant/Pinecone) for larger KBs.\n- **Multi-source** \u2014 Pull from multiple GitHub files, Notion DB, or Google Sheets.\n- **Memory** \u2014 Add a short-term conversation buffer so the bot remembers the last few messages.\n- **Web chat** \u2014 Add a Webhook trigger alongside Telegram to serve a chat widget on any website.\n- **Auto-sync** \u2014 Watch the GitHub file for changes and rebuild the index instead of fetching on every request.\n\nSimple means it runs cheap, breaks rarely, and is easy to debug. Complexity can be added when the use case demands it."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "90513a58-dc86-4271-8cfd-f7af0f598219",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            368,
+            -736
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 256,
+            "height": 448,
+            "content": "## Telegram Input\n\nWatches for any message that starts with /ask. The filter is set in the trigger conditions \u2014 only matching messages enter the workflow. Everything else is ignored silently.\n\nCredential needed: Telegram Bot API (same token across all Telegram nodes in this workflow)."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "754968f4-4054-4447-8410-e8a93bed3242",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            688,
+            -736
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 256,
+            "height": 448,
+            "content": "## Fetch GitHub File\n\nPulls kb.json from the configured repo using a Fine-grained Personal Access Token (read-only, scoped to this repo only).\n\nSet these fields:\n- **Owner**: your GitHub username (e.g. dothanhvinh17)\n- **Repository**: repo name (e.g. rag-kb)\n- **File Path**: kb.json (or path/to/kb.json if nested)\n\nThe node outputs binary data. If the file doesn't exist or the token is invalid, the error branch fires and the user gets a clear message instead of a silent failure."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "b2437c0c-18f7-41d7-a40d-a1bdd34064f7",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            720,
+            384
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 288,
+            "height": 336,
+            "content": "## Handle GitHub Errors\n\nWhen the GitHub node fails (token expired, file not found, repo deleted, network timeout), this branch catches it.\n\n\"Handle GitHub Error\" builds a user-friendly message with the chat ID and reply-to ID. \"Send GitHub Error\" delivers it to Telegram. The user always gets a response \u2014 never a silent crash."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "54f27d52-4c96-42a9-b1a8-a97dadd259bb",
+          "name": "Sticky Note4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            976,
+            -736
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 816,
+            "height": 320,
+            "content": "## Prepare AI Input\n\nTwo code nodes that turn raw GitHub binary into something the LLM can work with.\n\n**Initialize Variables** \u2014 Reads the binary output from GitHub, decodes it to UTF-8, parses the JSON array, and extracts the user's question from the Telegram message. If decoding or parsing fails, returns an error object so the user gets a message instead of a crash.\n\n**Perform Rough Match** \u2014 Splits the question into words, scores every KB entry by counting keyword overlap, sorts by score, and returns the top 2 matches as a single context string. Words shorter than 3 characters are skipped (filters out \"is\", \"a\", \"the\", etc.). This is a cheap retrieval method \u2014 no embeddings, no vector DB, no extra API calls. Works well for focused KBs under a few hundred entries."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "aa507b64-2b03-4acf-af13-d2a71539e0a9",
+          "name": "Sticky Note5",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1872,
+            -608
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 560,
+            "height": 272,
+            "content": "## Clean AI Output\n\nThree nodes between the LLM call and the final Telegram send.\n\n**Format AI Output** \u2014 Strips Qwen 3 thinking tags ( &lt;think&gt;...&lt;/think&gt; ), removes any leftover XML-like tags, and falls back to a friendly message if the model returned nothing.\n\n**Check AI Output** \u2014 IF node. If the cleaned output is not empty \u2192 proceed to formatting. If empty \u2192 send an error message to the user via Telegram.\n\n**Send Telegram Error** \u2014 Delivers error messages from multiple failure points (LLM empty response, input too short). All error paths converge here so the user always gets feedback."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "058fa8b4-013d-4117-a465-d7cceb345c72",
+          "name": "Sticky Note6",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            2480,
+            -608
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 432,
+            "height": 272,
+            "content": "## Format & Send to Telegram\n\n**Build Telegram Message** \u2014 Takes the cleaned AI output, enforces the 3800-character limit (Telegram caps at 4096, buffer keeps it safe), capitalizes the first letter, and appends a branded footer.\n\n**Send Telegram Message** \u2014 Delivers the final answer as a reply to the user's original message so conversations stay threaded. appendAttribution is turned off to keep the message clean."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "68e40c61-7ab1-451c-b2b4-c34f201788ee",
+          "name": "When Message Received",
+          "type": "n8n-nodes-base.telegramTrigger",
+          "position": [
+            384,
+            -272
+          ],
+          "webhookId": "0f54e0d9-26f9-4438-bb5c-a31db97362d1",
+          "parameters": {
+            "updates": [
+              {
+                "trigger": "message",
+                "conditions": {
+                  "string": [
+                    {
+                      "value1": "/ask",
+                      "operation": "startsWith"
+                    }
+                  ]
+                }
+              }
+            ],
+            "additionalFields": {}
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "1ab24334-d04c-49e3-a1f1-9bb0731e0692",
+          "name": "Validate Input",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            560,
+            -272
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "check_len",
+                  "operator": {
+                    "type": "number",
+                    "operation": "largerThan"
+                  },
+                  "leftValue": "={{ $('When Message Received').item.json.message.text.length }}",
+                  "rightValue": 6
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "8dbd71ef-22be-403f-b3bd-a69a348bcd3d",
+          "name": "Send Telegram Error",
+          "type": "n8n-nodes-base.telegram",
+          "position": [
+            1008,
+            0
+          ],
+          "webhookId": "9880ec87-d953-403f-8a4c-8ad51826468a",
+          "parameters": {
+            "text": "\u26a0\ufe0f Please use: /ask <your question>",
+            "chatId": "={{ $('When Message Received').item.json.message.chat.id }}",
+            "additionalFields": {}
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "b48bf05d-8b67-4f14-a281-f886b3365768",
+          "name": "Handle GitHub Error",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            752,
+            208
+          ],
+          "parameters": {
+            "jsCode": "let msg = 'Sorry, I could not load the knowledge base right now. Please try again later.';\nlet chatId = $('When Message Received').item.json.message.chat.id;\nlet replyTo = $('When Message Received').item.json.message.message_id;\nreturn [{ json: { err_msg: msg, chatId: chatId, replyTo: replyTo } }];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "b22b4dec-ae21-4590-a438-5d23505814c8",
+          "name": "Send GitHub Error",
+          "type": "n8n-nodes-base.telegram",
+          "position": [
+            1008,
+            208
+          ],
+          "webhookId": "44c78ebb-d394-4064-9129-6a2c2ba4a784",
+          "parameters": {
+            "text": "={{ $json.err_msg }}",
+            "chatId": "={{ $json.chatId }}",
+            "additionalFields": {}
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "cffd7406-b00a-4292-bb6d-53d9b60dc55b",
+          "name": "Fetch GitHub File",
+          "type": "n8n-nodes-base.github",
+          "onError": "continueErrorOutput",
+          "position": [
+            768,
+            -272
+          ],
+          "webhookId": "30fb9bc1-7a24-4551-9d64-ac43ae2bd1c5",
+          "parameters": {
+            "owner": {
+              "__rl": true,
+              "mode": "list",
+              "value": "YOUR_GITHUB_USERNAME"
+            },
+            "filePath": "kb.json",
+            "resource": "file",
+            "operation": "get",
+            "repository": {
+              "__rl": true,
+              "mode": "list",
+              "value": "rag-kb"
+            },
+            "additionalParameters": {}
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "56598892-6cfc-4133-a08c-dc05bfa2cdd6",
+          "name": "Initialize Variables",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1088,
+            -400
+          ],
+          "parameters": {
+            "jsCode": "const item = $input.first();\nlet content = '';\n\ntry {\n  const buf = await this.helpers.getBinaryDataBuffer(0, 'data');\n  content = buf.toString('utf8');\n} catch(e) {\n  return [{ json: { err_msg: 'binary read fail: ' + e.message } }];\n}\n\nlet kbArr = [];\ntry {\n  const parsed = JSON.parse(content);\n  kbArr = Array.isArray(parsed) ? parsed : [];\n} catch(e) {\n  return [{ json: { err_msg: 'json parse fail: ' + e.message } }];\n}\n\nconst rawText = $('When Message Received').item.json.message.text || '';\nconst question = rawText.replace('/ask ', '').trim();\n\nreturn [{ json: { kb_data: kbArr, question: question } }];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "22056c04-8ed8-42e9-9b85-1816c1827c82",
+          "name": "Perform Rough Match",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1280,
+            -400
+          ],
+          "parameters": {
+            "jsCode": "const input = $input.first().json;\n\nif (!input.question || !input.kb_data) {\n  return [{ json: { context: 'no data available', question: '' } }];\n}\n\nconst q = input.question.toLowerCase().split(' ');\nconst kb = input.kb_data;\n\nif (!Array.isArray(kb) || kb.length === 0) {\n  return [{ json: { context: 'empty db', question: input.question } }];\n}\n\nlet scored = kb.map(chunk => {\n  let score = 0;\n  let txt = (chunk.text || chunk.content || '').toLowerCase();\n\n  q.forEach(word => {\n    if (txt.includes(word) && word.length > 2) score++;\n  });\n\n  return { txt: txt, score: score };\n});\n\nscored.sort((a, b) => b.score - a.score);\n\nlet top = scored.slice(0, 2).map(s => s.txt).join('\\n---\\n');\n\nif (!top) top = 'no match';\n\nreturn [{ json: { context: top, question: input.question } }];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "79885bca-4d82-465e-986d-8a3444dfbabd",
+          "name": "OpenAI Qwen Model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "position": [
+            1488,
+            -64
+          ],
+          "parameters": {
+            "model": {
+              "__rl": true,
+              "mode": "list",
+              "value": "qwen/qwen3-235b-a22b-2507",
+              "cachedResultName": "qwen3-235b"
+            },
+            "options": {},
+            "builtInTools": {}
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "767f32b2-51f1-41c9-bfcd-e34db31c9546",
+          "name": "Request AI Assistance",
+          "type": "@n8n/n8n-nodes-langchain.chainLlm",
+          "onError": "continueErrorOutput",
+          "position": [
+            1488,
+            -400
+          ],
+          "parameters": {
+            "text": "=Answer the question using the context below. Be direct and concise. If the context has relevant information, use it.\n\nContext:\n{{ $json.context }}\n\nQuestion: {{ $json.question }}\n\nAnswer:",
+            "batching": {},
+            "promptType": "define"
+          },
+          "typeVersion": 1.9
+        },
+        {
+          "id": "bae0e721-3a55-4baa-a2a4-b3abcb46f22f",
+          "name": "Format AI Output",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1984,
+            -304
+          ],
+          "parameters": {
+            "jsCode": "let output = '';\n\ntry {\n  output = $input.first().json.output || $input.first().json.text || '';\n} catch(e) {\n  output = '';\n}\n\noutput = output.replace(/&lt;think&gt;[\\s\\S]*?<\\/think>/gi, '').trim();\noutput = output.replace(/<[^>]+>/g, '').trim();\n\nif (!output) {\n  output = 'I could not generate an answer. Please try rephrasing your question.';\n}\n\nreturn [{ json: { output: output } }];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "f3a14f44-66c8-4e99-8878-0409e9a7e33b",
+          "name": "Check AI Output",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            2192,
+            -304
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "check_null",
+                  "operator": {
+                    "type": "string",
+                    "operation": "notEmpty"
+                  },
+                  "leftValue": "={{ $json.output }}",
+                  "rightValue": ""
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "0b58d18e-35cf-4295-b738-1727935bd9e9",
+          "name": "Build Telegram Message",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            2512,
+            -320
+          ],
+          "parameters": {
+            "jsCode": "let txt = $input.first().json.output || '';\ntxt = txt.replace(/<thinking>[\\s\\S]*?<\\/thinking>/gi, '').trim();\ntxt = txt.replace(/<\\/?[^>]+(>|$)/g, '').trim();\n\nif (txt.length > 3800) {\n  txt = txt.substring(0, 3797) + '...';\n}\n\nif (txt.length > 0) {\n  txt = txt.charAt(0).toUpperCase() + txt.slice(1);\n}\n\ntxt += '\\n\\n\u2014\\nPowered by Vinh Automation | vinhautomation.com/en';\n\nreturn [{ json: { final_text: txt } }];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "7f4cb898-c121-497c-8312-7d0d6531fb07",
+          "name": "Send Telegram Message",
+          "type": "n8n-nodes-base.telegram",
+          "position": [
+            2752,
+            -320
+          ],
+          "webhookId": "57c30e2b-9c59-484a-a99a-4284bef7518c",
+          "parameters": {
+            "text": "={{ $json.final_text }}",
+            "chatId": "={{ $('When Message Received').item.json.message.chat.id }}",
+            "additionalFields": {
+              "appendAttribution": false
+            }
+          },
+          "typeVersion": 1.2
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "",
+      "connections": {
+        "Validate Input": {
+          "main": [
+            [
+              {
+                "node": "Fetch GitHub File",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Send Telegram Error",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Check AI Output": {
+          "main": [
+            [
+              {
+                "node": "Build Telegram Message",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Send Telegram Error",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Format AI Output": {
+          "main": [
+            [
+              {
+                "node": "Check AI Output",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch GitHub File": {
+          "main": [
+            [
+              {
+                "node": "Initialize Variables",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Handle GitHub Error",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenAI Qwen Model": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "Request AI Assistance",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Handle GitHub Error": {
+          "main": [
+            [
+              {
+                "node": "Send GitHub Error",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Perform Rough Match": {
+          "main": [
+            [
+              {
+                "node": "Request AI Assistance",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Initialize Variables": {
+          "main": [
+            [
+              {
+                "node": "Perform Rough Match",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Request AI Assistance": {
+          "main": [
+            [
+              {
+                "node": "Format AI Output",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Send Telegram Error",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "When Message Received": {
+          "main": [
+            [
+              {
+                "node": "Validate Input",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Telegram Message": {
+          "main": [
+            [
+              {
+                "node": "Send Telegram Message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 21,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 2
+        },
+        "n8n-nodes-base.code": {
+          "count": 5
+        },
+        "n8n-nodes-base.github": {
+          "count": 1
+        },
+        "n8n-nodes-base.telegram": {
+          "count": 3
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 7
+        },
+        "n8n-nodes-base.telegramTrigger": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.chainLlm": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.lmChatOpenAi": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "\u0110\u1ed7 Th\u00e0nh Vinh (Kevin Do)",
+      "username": "dothanhvinh",
+      "bio": "Automation Architect for SMEs | ex-Retail & Real Estate Executive.\nI help businesses transition from manual chaos to systematic efficiency using n8n and AI. Specializing in AI-scoring workflows, cross-platform data sync, and operational dashboards. 15+ years of (real-world) management experience packed into scalable workflows.",
+      "verified": false,
+      "links": [
+        "https://www.vinhautomation.com/en"
+      ],
+      "avatar": "https://gravatar.com/avatar/453f095a453d8910aff6063bc0d4d98d440c6b1772d28aab97d4ffb1755229ad?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 16,
+        "icon": "file:github.svg",
+        "name": "n8n-nodes-base.github",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.github/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/github/"
+                }
+              ]
+            },
+            "categories": [
+              "Development"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "GitHub"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0yMC4wMTY1IDBDOC45NDc5MSAwIDAgOS4wMTM4OCAwIDIwLjE2NTNDMCAyOS4wNzkyIDUuNzMzMjQgMzYuNjI0NiAxMy42ODY4IDM5LjI5NTJDMTQuNjgxMiAzOS40OTYgMTUuMDQ1NCAzOC44NjEzIDE1LjA0NTQgMzguMzI3NEMxNS4wNDU0IDM3Ljg1OTkgMTUuMDEyNiAzNi4yNTc1IDE1LjAxMjYgMzQuNTg3OUM5LjQ0NDUgMzUuNzkgOC4yODQ5OCAzMi4xODQxIDguMjg0OTggMzIuMTg0MUM3LjM5MDE1IDI5Ljg0NyA2LjA2NDI5IDI5LjI0NjMgNi4wNjQyOSAyOS4yNDYzQzQuMjQxODUgMjguMDExIDYuMTk3MDQgMjguMDExIDYuMTk3MDQgMjguMDExQzguMjE4NjEgMjguMTQ0NiA5LjI3OTM4IDMwLjA4MSA5LjI3OTM4IDMwLjA4MUMxMS4wNjg2IDMzLjE1MjIgMTMuOTUxOCAzMi4yODQ0IDE1LjExMTggMzEuNzUwMkMxNS4yNzczIDMwLjQ0ODEgMTUuODA3OSAyOS41NDY3IDE2LjM3MTMgMjkuMDQ2QzExLjkzMDMgMjguNTc4NSA3LjI1NzgxIDI2Ljg0MjUgNy4yNTc4MSAxOS4wOTY3QzcuMjU3ODEgMTYuODkzMiA4LjA1MjY3IDE1LjA5MDUgOS4zMTIxNiAxMy42ODg0QzkuMTEzNDQgMTMuMTg3NyA4LjQxNzMyIDExLjExNzQgOS41MTEyOCA4LjM0NjQ0QzkuNTExMjggOC4zNDY0NCAxMS4yMDE0IDcuODEyMTcgMTUuMDEyMiAxMC40MTY0QzE2LjY0MzggOS45NzQ5NSAxOC4zMjYzIDkuNzUwNCAyMC4wMTY1IDkuNzQ4NTFDMjEuNzA2NyA5Ljc0ODUxIDIzLjQyOTUgOS45ODI0NiAyNS4wMjA1IDEwLjQxNjRDMjguODMxNyA3LjgxMjE3IDMwLjUyMTggOC4zNDY0NCAzMC41MjE4IDguMzQ2NDRDMzEuNjE1OCAxMS4xMTc0IDMwLjkxOTIgMTMuMTg3NyAzMC43MjA1IDEzLjY4ODRDMzIuMDEzMiAxNS4wOTA1IDMyLjc3NTMgMTYuODkzMiAzMi43NzUzIDE5LjA5NjdDMzIuNzc1MyAyNi44NDI1IDI4LjEwMjggMjguNTQ0OSAyMy42Mjg3IDI5LjA0NkMyNC4zNTggMjkuNjgwMiAyNC45ODczIDMwLjg4MiAyNC45ODczIDMyLjc4NTFDMjQuOTg3MyAzNS40ODkzIDI0Ljk1NDUgMzcuNjU5NiAyNC45NTQ1IDM4LjMyN0MyNC45NTQ1IDM4Ljg2MTMgMjUuMzE5MiAzOS40OTYgMjYuMzEzMiAzOS4yOTU2QzM0LjI2NjcgMzYuNjI0MiAzOS45OTk5IDI5LjA3OTIgMzkuOTk5OSAyMC4xNjUzQzQwLjAzMjcgOS4wMTM4OCAzMS4wNTIgMCAyMC4wMTY1IDBaIiBmaWxsPSIjMjQyOTJGIi8+Cjwvc3ZnPgo="
+        },
+        "displayName": "GitHub",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 49,
+        "icon": "file:telegram.svg",
+        "name": "n8n-nodes-base.telegram",
+        "codex": {
+          "data": {
+            "alias": [
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/using-automation-to-boost-productivity-in-the-workplace/",
+                  "icon": "\ud83d\udcaa",
+                  "label": "Using Automation to Boost Productivity in the Workplace"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-telegram-bots-with-n8n-a-no-code-platform/",
+                  "icon": "\ud83d\udcac",
+                  "label": "Creating Telegram Bots with n8n, a No-Code Platform"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.telegram/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/telegram/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "Telegram"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgNjYgNjYiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48ZyBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSI+PHBhdGggZmlsbD0iIzM3YWVlMiIgZD0iTTAgMzJjMCAxNy42NzMgMTQuMzI3IDMyIDMyIDMyczMyLTE0LjMyNyAzMi0zMlM0OS42NzMgMCAzMiAwIDAgMTQuMzI3IDAgMzIiLz48cGF0aCBmaWxsPSIjYzhkYWVhIiBkPSJtMjEuNjYxIDM0LjMzOCAzLjc5NyAxMC41MDhzLjQ3NS45ODMuOTgzLjk4MyA4LjA2OC03Ljg2NCA4LjA2OC03Ljg2NGw4LjQwNy0xNi4yMzctMjEuMTE5IDkuODk4eiIvPjxwYXRoIGZpbGw9IiNhOWM2ZDgiIGQ9Im0yNi42OTUgMzcuMDM0LS43MjkgNy43NDZzLS4zMDUgMi4zNzMgMi4wNjggMGw0LjY0NC00LjIwMyIvPjxwYXRoIGQ9Im0yMS43MyAzNC43MTItNy44MDktMi41NDVzLS45MzItLjM3OC0uNjMzLTEuMjM3Yy4wNjItLjE3Ny4xODYtLjMyOC41NTktLjU4OCAxLjczMS0xLjIwNiAzMi4wMjgtMTIuMDk2IDMyLjAyOC0xMi4wOTZzLjg1Ni0uMjg4IDEuMzYxLS4wOTdjLjIzMS4wODguMzc4LjE4Ny41MDMuNTQ4LjA0NS4xMzIuMDcxLjQxMS4wNjguNjg5LS4wMDMuMjAxLS4wMjcuMzg2LS4wNDUuNjc4LS4xODQgMi45NzgtNS43MDYgMjUuMTk4LTUuNzA2IDI1LjE5OHMtLjMzIDEuMy0xLjUxNCAxLjM0NWMtLjQzMi4wMTYtLjk1Ni0uMDcxLTEuNTgyLS42MS0yLjMyMy0xLjk5OC0xMC4zNTItNy4zOTQtMTIuMTI2LTguNThhLjM0LjM0IDAgMCAxLS4xNDYtLjIzOWMtLjAyNS0uMTI1LjEwOC0uMjguMTA4LS4yOHMxMy45OC0xMi40MjcgMTQuMzUyLTEzLjczMWMuMDI5LS4xMDEtLjA3OS0uMTUxLS4yMjYtLjEwNy0uOTI5LjM0Mi0xNy4wMjUgMTAuNTA2LTE4LjgwMSAxMS42MjktLjEwNC4wNjYtLjM5NS4wMjMtLjM5NS4wMjMiLz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Telegram",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 50,
+        "icon": "file:telegram.svg",
+        "name": "n8n-nodes-base.telegramTrigger",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-telegram-bots-with-n8n-a-no-code-platform/",
+                  "icon": "\ud83d\udcac",
+                  "label": "Creating Telegram Bots with n8n, a No-Code Platform"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/trigger-nodes/n8n-nodes-base.telegramtrigger/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/telegram/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Telegram Trigger"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgNjYgNjYiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48ZyBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSI+PHBhdGggZmlsbD0iIzM3YWVlMiIgZD0iTTAgMzJjMCAxNy42NzMgMTQuMzI3IDMyIDMyIDMyczMyLTE0LjMyNyAzMi0zMlM0OS42NzMgMCAzMiAwIDAgMTQuMzI3IDAgMzIiLz48cGF0aCBmaWxsPSIjYzhkYWVhIiBkPSJtMjEuNjYxIDM0LjMzOCAzLjc5NyAxMC41MDhzLjQ3NS45ODMuOTgzLjk4MyA4LjA2OC03Ljg2NCA4LjA2OC03Ljg2NGw4LjQwNy0xNi4yMzctMjEuMTE5IDkuODk4eiIvPjxwYXRoIGZpbGw9IiNhOWM2ZDgiIGQ9Im0yNi42OTUgMzcuMDM0LS43MjkgNy43NDZzLS4zMDUgMi4zNzMgMi4wNjggMGw0LjY0NC00LjIwMyIvPjxwYXRoIGQ9Im0yMS43MyAzNC43MTItNy44MDktMi41NDVzLS45MzItLjM3OC0uNjMzLTEuMjM3Yy4wNjItLjE3Ny4xODYtLjMyOC41NTktLjU4OCAxLjczMS0xLjIwNiAzMi4wMjgtMTIuMDk2IDMyLjAyOC0xMi4wOTZzLjg1Ni0uMjg4IDEuMzYxLS4wOTdjLjIzMS4wODguMzc4LjE4Ny41MDMuNTQ4LjA0NS4xMzIuMDcxLjQxMS4wNjguNjg5LS4wMDMuMjAxLS4wMjcuMzg2LS4wNDUuNjc4LS4xODQgMi45NzgtNS43MDYgMjUuMTk4LTUuNzA2IDI1LjE5OHMtLjMzIDEuMy0xLjUxNCAxLjM0NWMtLjQzMi4wMTYtLjk1Ni0uMDcxLTEuNTgyLS42MS0yLjMyMy0xLjk5OC0xMC4zNTItNy4zOTQtMTIuMTI2LTguNThhLjM0LjM0IDAgMCAxLS4xNDYtLjIzOWMtLjAyNS0uMTI1LjEwOC0uMjguMTA4LS4yOHMxMy45OC0xMi40MjcgMTQuMzUyLTEzLjczMWMuMDI5LS4xMDEtLjA3OS0uMTUxLS4yMjYtLjEwNy0uOTI5LjM0Mi0xNy4wMjUgMTAuNTA2LTE4LjgwMSAxMS42MjktLjEwNC4wNjYtLjM5NS4wMjMtLjM5NS4wMjMiLz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Telegram Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1123,
+        "icon": "fa:link",
+        "name": "@n8n/n8n-nodes-langchain.chainLlm",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.chainllm/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Chains",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Basic LLM Chain",
+          "color": "#909298"
+        },
+        "iconData": {
+          "icon": "link",
+          "type": "icon"
+        },
+        "displayName": "Basic LLM Chain",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1153,
+        "icon": "file:openAiLight.svg",
+        "name": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmchatopenai/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Language Models",
+                "Root Nodes"
+              ],
+              "Language Models": [
+                "Chat Models (Recommended)"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "OpenAI Chat Model"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTM2Ljg2NzEgMTYuMzcxOEMzNy43NzQ2IDEzLjY0OCAzNy40NjIxIDEwLjY2NDIgMzYuMDEwOCA4LjE4NjYxQzMzLjgyODIgNC4zODY1MyAyOS40NDA3IDIuNDMxNDkgMjUuMTU1NiAzLjM1MTUxQzIzLjI0OTMgMS4yMDM5NiAyMC41MTA1IC0wLjAxNzMxNDggMTcuNjM5MiAwLjAwMDE4NTUzM0MxMy4yNTkxIC0wLjAwOTgxNDY4IDkuMzcyNzMgMi44MTAyNSA4LjAyNTIgNi45Nzc4M0M1LjIxMTM5IDcuNTU0MSAyLjc4MjU4IDkuMzE1MzggMS4zNjEzIDExLjgxMTdDLTAuODM3NDkzIDE1LjYwMTggLTAuMzM2MjMyIDIwLjM3OTQgMi42MDEzMyAyMy42Mjk0QzEuNjkzODEgMjYuMzUzMiAyLjAwNjMyIDI5LjMzNzEgMy40NTc2IDMxLjgxNDZDNS42NDAxNSAzNS42MTQ3IDEwLjAyNzcgMzcuNTY5NyAxNC4zMTI4IDM2LjY0OTdDMTYuMjE3OSAzOC43OTczIDE4Ljk1NzkgNDAuMDE4NSAyMS44MjkyIDM5Ljk5OThDMjYuMjExOCA0MC4wMTEgMzAuMDk5NCAzNy4xODg1IDMxLjQ0NjkgMzMuMDE3MUMzNC4yNjA4IDMyLjQ0MDkgMzYuNjg5NiAzMC42Nzk2IDM4LjExMDggMjguMTgzM0M0MC4zMDcxIDI0LjM5MzIgMzkuODA0NiAxOS42MTk0IDM2Ljg2ODMgMTYuMzY5M0wzNi44NjcxIDE2LjM3MThaTTIxLjgzMTcgMzcuMzg2QzIwLjA3OCAzNy4zODg1IDE4LjM3OTIgMzYuNzc0NyAxNy4wMzI5IDM1LjY1MDlDMTcuMDk0MSAzNS42MTg0IDE3LjIwMDQgMzUuNTU5NyAxNy4yNjkxIDM1LjUxNzJMMjUuMjM0MyAzMC45MTcxQzI1LjY0MTggMzAuNjg1OCAyNS44OTE4IDMwLjI1MjEgMjUuODg5MyAyOS43ODMzVjE4LjU1NDNMMjkuMjU1NyAyMC40OTgxQzI5LjI5MTkgMjAuNTE1NiAyOS4zMTU3IDIwLjU1MDYgMjkuMzIwNyAyMC41OTA2VjI5Ljg4OTZDMjkuMzE1NyAzNC4wMjQ3IDI1Ljk2NjggMzcuMzc3MiAyMS44MzE3IDM3LjM4NlpNNS43MjY0IDMwLjUwNzFDNC44NDc2MyAyOC45ODk2IDQuNTMxMzcgMjcuMjEwOCA0LjgzMjYzIDI1LjQ4NDVDNC44OTEzOCAyNS41MTk1IDQuOTk1MTMgMjUuNTgzMiA1LjA2ODg4IDI1LjYyNTdMMTMuMDM0MSAzMC4yMjU4QzEzLjQzNzggMzAuNDYyMSAxMy45Mzc4IDMwLjQ2MjEgMTQuMzQyOCAzMC4yMjU4TDI0LjA2NjggMjQuNjEwN1YyOC40OTgzQzI0LjA2OTMgMjguNTM4MyAyNC4wNTA1IDI4LjU3NyAyNC4wMTkzIDI4LjYwMkwxNS45Njc5IDMzLjI1MDlDMTIuMzgxNSAzNS4zMTU5IDcuODAxNDQgMzQuMDg4NCA1LjcyNzY1IDMwLjUwNzFINS43MjY0Wk0zLjYzMDEgMTMuMTIwNUM0LjUwNTEyIDExLjYwMDQgNS44ODY0IDEwLjQzNzkgNy41MzE0NCA5LjgzNDE1QzcuNTMxNDQgOS45MDI5IDcuNTI3NjkgMTAuMDI0MiA3LjUyNzY5IDEwLjEwOTJWMTkuMzEwNkM3LjUyNTE5IDE5Ljc3ODEgNy43NzUxOSAyMC4yMTE5IDguMTgxNDUgMjAuNDQzMUwxNy45MDU0IDI2LjA1N0wxNC41MzkxIDI4LjAwMDhDMTQuNTA1MyAyOC4wMjMzIDE0LjQ2MjggMjguMDI3IDE0LjQyNTMgMjguMDEwOEw2LjM3MjY2IDIzLjM1ODJDMi43OTM4MyAyMS4yODU2IDEuNTY2MzEgMTYuNzA2OCAzLjYyODg1IDEzLjEyMTdMMy42MzAxIDEzLjEyMDVaTTMxLjI4ODIgMTkuNTU2OUwyMS41NjQyIDEzLjk0MTdMMjQuOTMwNiAxMS45OTkyQzI0Ljk2NDMgMTEuOTc2NyAyNS4wMDY4IDExLjk3MjkgMjUuMDQ0MyAxMS45ODkyTDMzLjA5NyAxNi42MzhDMzYuNjgyMSAxOC43MDkzIDM3LjkxMDggMjMuMjk1NyAzNS44Mzk1IDI2Ljg4MDhDMzQuOTYzMyAyOC4zOTgzIDMzLjU4MzIgMjkuNTYwOCAzMS45Mzk1IDMwLjE2NThWMjAuNjg5NEMzMS45NDMyIDIwLjIyMTkgMzEuNjk0NSAxOS43ODk0IDMxLjI4OTQgMTkuNTU2OUgzMS4yODgyWk0zNC42MzgzIDE0LjUxNDJDMzQuNTc5NSAxNC40NzggMzQuNDc1OCAxNC40MTU1IDM0LjQwMiAxNC4zNzNMMjYuNDM2OCA5Ljc3Mjg5QzI2LjAzMzEgOS41MzY2NCAyNS41MzMxIDkuNTM2NjQgMjUuMTI4MSA5Ljc3Mjg5TDE1LjQwNDEgMTUuMzg4VjExLjUwMDRDMTUuNDAxNiAxMS40NjA0IDE1LjQyMDQgMTEuNDIxNyAxNS40NTE2IDExLjM5NjdMMjMuNTAzIDYuNzUxNThDMjcuMDg5NCA0LjY4Mjc5IDMxLjY3NDUgNS45MTQwNiAzMy43NDIgOS41MDE2NEMzNC42MTU4IDExLjAxNjcgMzQuOTMyIDEyLjc5MDUgMzQuNjM1OCAxNC41MTQySDM0LjYzODNaTTEzLjU3NDEgMjEuNDQzMUwxMC4yMDY1IDE5LjQ5OTRDMTAuMTcwMiAxOS40ODE5IDEwLjE0NjUgMTkuNDQ2OCAxMC4xNDE1IDE5LjQwNjhWMTAuMTA3OUMxMC4xNDQgNS45Njc4MSAxMy41MDI4IDIuNjEyNzQgMTcuNjQyOSAyLjYxNTI0QzE5LjM5NDIgMi42MTUyNCAyMS4wODkyIDMuMjMwMjUgMjIuNDM1NSA0LjM1MDI4QzIyLjM3NDMgNC4zODI3OCAyMi4yNjkzIDQuNDQxNTMgMjIuMTk5MiA0LjQ4NDAzTDE0LjIzNDEgOS4wODQxM0MxMy44MjY2IDkuMzE1MzggMTMuNTc2NiA5Ljc0Nzg5IDEzLjU3OTEgMTAuMjE2N0wxMy41NzQxIDIxLjQ0MDZWMjEuNDQzMVpNMTUuNDAyOSAxNy41MDA2TDE5LjczNDIgMTQuOTk5M0wyNC4wNjU1IDE3LjQ5OTNWMjIuNTAwN0wxOS43MzQyIDI1LjAwMDdMMTUuNDAyOSAyMi41MDA3VjE3LjUwMDZaIiBmaWxsPSIjN0Q3RDg3Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "OpenAI Chat Model",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 42,
+        "name": "Internal Wiki"
+      },
+      {
+        "id": 48,
+        "name": "AI RAG"
+      }
+    ],
+    "image": [
+      {
+        "id": 6175,
+        "url": "https://n8niostorageaccount.blob.core.windows.net/n8nio-strapi-blobs-prod/assets/Git_Hub_Knowledge_Base_to_Telegram_Bot_5c311a557b.png"
+      }
+    ]
+  }
+}

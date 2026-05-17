@@ -1,0 +1,1449 @@
+{
+  "workflow": {
+    "id": 15609,
+    "name": "Send daily price-drop digest emails for Amazon, Walmart and Google via ScraperAPI",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-11T09:38:13.359Z",
+    "description": "Track your product wishlist across Amazon, Walmart, and Google and get an email the moment a price drops.\n\u00a0\n## **How it works**\n- Every morning, reads your products from a Data Table and pulls fresh prices from Amazon, Walmart, and Google Shopping via ScraperAPI.\n- Logs every check to a *price_history* table for trend analysis.\n- Sends a single HTML digest email, only when something actually dropped.\n\n## **Set up steps**\n\nAbout 5 minutes:\n- Connect your ScraperAPI credential and SMTP or Gmail credential.\n- Click \u25ba on Run Setup once to create the tables and seed sample products.\n- Add your own products, test, then toggle Active.",
+    "workflow": {
+      "nodes": [
+        {
+          "id": "d18bd12f-e041-449a-8bca-a8906a2e71cd",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -1696,
+            112
+          ],
+          "parameters": {
+            "width": 480,
+            "height": 896,
+            "content": "## Email daily price-drop digests from Amazon, Walmart and Google via ScraperAPI\n\n### How it works\n\n1. Triggers the workflow every morning at 8 am or manually during setup.\n2. Initializes or reads product and price tables.\n3. Loops through each product to fetch current product data from various sources.\n4. Compares fetched data and updates product prices.\n5. Checks for price drops, compiles a digest, and sends an email.\n6. Provides an option to send Gmail digest emails.\n\n### Setup steps\n\n- [ ] Set up and verify scheduler trigger timing\n- [ ] Configure database credentials\n- [ ] Set API keys for Amazon, Walmart, Google Shopping\n- [ ] Link an email service provider or SMTP\n- [ ] Ensure that the Gmail module is authenticated\n\n### Customization\n\nYou can customize the schedule to a different time and modify data sources or email templates."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "a4648c97-6bbd-4dec-a84b-808032d6e46d",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -1136,
+            608
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 416,
+            "height": 304,
+            "content": "## Morning trigger setup\n\nTriggers the workflow every morning at 8 am."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "fe082e45-1237-44e0-91e8-85d220940959",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            0,
+            0
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1088,
+            "height": 272,
+            "content": "## Manual setup and table initialization\n\nManual trigger to set up product and price history tables."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "f170729a-c66e-42cf-bb59-ced6db967535",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -688,
+            608
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1536,
+            "height": 320,
+            "content": "## Fetch and iterate products\n\nFetches all products and prepares for individual product processing."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "5a425a67-d3db-40d2-9b26-60e9efb40a30",
+          "name": "Sticky Note4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -464,
+            304
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 864,
+            "height": 272,
+            "content": "## Parse and fetch product data\n\nParses product URLs and fetches data from Amazon, Walmart, and Google Shopping APIs."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "51e1d161-93c1-488b-b642-7309a7a9f949",
+          "name": "Sticky Note5",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            432,
+            304
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 640,
+            "height": 272,
+            "content": "## Process and compare product data\n\nCompares fetched product data and updates the database with new prices."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "bf40277a-85a9-4921-8e8d-c13f0f02d0b3",
+          "name": "Sticky Note6",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            448,
+            1072
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 640,
+            "height": 272,
+            "content": "## Price drop analysis and email\n\nFetches today's price drops, creates a digest, and sends out an email notification."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "b8bdcf9d-8b4f-47d0-9de6-5a2c780793ad",
+          "name": "Sticky Note7",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            896,
+            1376
+          ],
+          "parameters": {
+            "color": 7,
+            "height": 304,
+            "content": "## Standalone Gmail email\n\nHandles sending the digest email via Gmail independently."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "daily-trigger",
+          "name": "Morning Schedule Trigger",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "position": [
+            -1088,
+            720
+          ],
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "cronExpression",
+                  "expression": "0 8 * * *"
+                }
+              ]
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "setup-trigger",
+          "name": "Manual Trigger Setup",
+          "type": "n8n-nodes-base.manualTrigger",
+          "position": [
+            48,
+            112
+          ],
+          "parameters": {},
+          "typeVersion": 1
+        },
+        {
+          "id": "create-products-table",
+          "name": "Initialize Products Table",
+          "type": "n8n-nodes-base.dataTable",
+          "position": [
+            240,
+            112
+          ],
+          "parameters": {
+            "columns": {
+              "column": [
+                {
+                  "name": "name",
+                  "type": "string"
+                },
+                {
+                  "name": "amazon_url",
+                  "type": "string"
+                },
+                {
+                  "name": "walmart_url",
+                  "type": "string"
+                },
+                {
+                  "name": "track_google_shopping",
+                  "type": "boolean"
+                },
+                {
+                  "name": "target_price",
+                  "type": "number"
+                },
+                {
+                  "name": "last_amazon_price",
+                  "type": "number"
+                },
+                {
+                  "name": "last_walmart_price",
+                  "type": "number"
+                },
+                {
+                  "name": "last_google_min_price",
+                  "type": "number"
+                }
+              ]
+            },
+            "options": {
+              "createIfNotExists": true
+            },
+            "resource": "table",
+            "operation": "create",
+            "tableName": "products"
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "create-history-table",
+          "name": "Initialize History Table",
+          "type": "n8n-nodes-base.dataTable",
+          "position": [
+            416,
+            112
+          ],
+          "parameters": {
+            "columns": {
+              "column": [
+                {
+                  "name": "timestamp",
+                  "type": "string"
+                },
+                {
+                  "name": "product_name",
+                  "type": "string"
+                },
+                {
+                  "name": "platform",
+                  "type": "string"
+                },
+                {
+                  "name": "current_price",
+                  "type": "number"
+                },
+                {
+                  "name": "previous_price",
+                  "type": "number"
+                },
+                {
+                  "name": "dropped",
+                  "type": "boolean"
+                },
+                {
+                  "name": "pct_drop",
+                  "type": "number"
+                },
+                {
+                  "name": "error",
+                  "type": "string"
+                }
+              ]
+            },
+            "options": {
+              "createIfNotExists": true
+            },
+            "resource": "table",
+            "operation": "create",
+            "tableName": "price_history"
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "read-existing-products",
+          "name": "Read Existing Products",
+          "type": "n8n-nodes-base.dataTable",
+          "position": [
+            592,
+            112
+          ],
+          "parameters": {
+            "filters": {
+              "conditions": []
+            },
+            "resource": "row",
+            "matchType": "anyCondition",
+            "operation": "get",
+            "returnAll": true,
+            "dataTableId": {
+              "__rl": true,
+              "mode": "name",
+              "value": "products"
+            }
+          },
+          "typeVersion": 1.1,
+          "alwaysOutputData": true
+        },
+        {
+          "id": "seed-sample-products",
+          "name": "Generate Sample Products",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            768,
+            112
+          ],
+          "parameters": {
+            "jsCode": "const existingNames = new Set(\n  $input.all()\n    .map(i => (i.json && i.json.name ? String(i.json.name).trim().toLowerCase() : ''))\n    .filter(Boolean)\n);\n\nconst samples = [\n  {\n    name: 'Samsung Galaxy Watch Ultra',\n    amazon_url: 'https://www.amazon.com/dp/B0F7Q4L81N?th=1',\n    walmart_url: 'https://www.walmart.com/ip/Samsung-Galaxy-Watch-Ultra-47mm-2025-Edition-Bluetooth-Wi-Fi-4GLTE-Smart-Fitness-Watch-International-Version-Titanium-Blue/17452806183',\n    track_google_shopping: true,\n    target_price: null,\n    last_amazon_price: null,\n    last_walmart_price: null,\n    last_google_min_price: null,\n  },\n  {\n    name: 'Apple Watch Series 11',\n    amazon_url: 'https://www.amazon.com/dp/B0FQFL8PZ5?th=1',\n    walmart_url: 'https://www.walmart.com/ip/Apple-Watch-Series-11-GPS-Cellular-42mm-Gold-Titanium-Case-with-Gold-Milanese-Loop/17828855921',\n    track_google_shopping: true,\n    target_price: null,\n    last_amazon_price: null,\n    last_walmart_price: null,\n    last_google_min_price: null,\n  },\n  {\n    name: 'XIAOMI Redmi Watch 5',\n    amazon_url: 'https://www.amazon.com/dp/B0DFZPR9Z4?th=1',\n    walmart_url: 'https://www.walmart.com/ip/Redmi-Watch-5-Active-Midnight-Black-18-Day-Battery-Life-2-Inch-Display-5ATM-Waterproof-Bluetooth-Calling-Alexa-Built-In/15893513091',\n    track_google_shopping: true,\n    target_price: null,\n    last_amazon_price: null,\n    last_walmart_price: null,\n    last_google_min_price: null,\n  },\n];\n\nreturn samples\n  .filter(s => !existingNames.has(s.name.toLowerCase()))\n  .map(s => ({ json: s }));\n",
+            "language": "javaScript"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "insert-sample-products",
+          "name": "Add Samples to Products Table",
+          "type": "n8n-nodes-base.dataTable",
+          "position": [
+            944,
+            112
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "name": "={{ $json.name }}",
+                "amazon_url": "={{ $json.amazon_url }}",
+                "walmart_url": "={{ $json.walmart_url }}",
+                "target_price": "={{ $json.target_price }}",
+                "last_amazon_price": "={{ $json.last_amazon_price }}",
+                "last_walmart_price": "={{ $json.last_walmart_price }}",
+                "last_google_min_price": "={{ $json.last_google_min_price }}",
+                "track_google_shopping": "={{ $json.track_google_shopping }}"
+              },
+              "mappingMode": "defineBelow"
+            },
+            "options": {},
+            "resource": "row",
+            "operation": "insert",
+            "dataTableId": {
+              "__rl": true,
+              "mode": "name",
+              "value": "products"
+            }
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "read-products",
+          "name": "Fetch Products Data",
+          "type": "n8n-nodes-base.dataTable",
+          "position": [
+            -864,
+            720
+          ],
+          "parameters": {
+            "filters": {
+              "conditions": []
+            },
+            "resource": "row",
+            "matchType": "anyCondition",
+            "operation": "get",
+            "returnAll": true,
+            "dataTableId": {
+              "__rl": true,
+              "mode": "name",
+              "value": "products"
+            }
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "per-product-loop",
+          "name": "Iterate Products Batch",
+          "type": "n8n-nodes-base.splitInBatches",
+          "position": [
+            -544,
+            720
+          ],
+          "parameters": {
+            "options": {},
+            "batchSize": 1
+          },
+          "typeVersion": 3
+        },
+        {
+          "id": "parse-urls",
+          "name": "Extract Product URLs",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            -416,
+            416
+          ],
+          "parameters": {
+            "jsCode": "const row = $input.first().json;\n\nconst stripQs = (u) => (u || '').split(/[?#]/)[0];\nconst amazonUrl = stripQs(row.amazon_url);\nconst walmartUrl = stripQs(row.walmart_url);\n\nconst asinMatch = amazonUrl.match(/\\/(?:dp|gp\\/product)\\/([A-Z0-9]{10})/i);\nconst walmartMatch = walmartUrl.match(/walmart\\.com\\/ip\\/(?:[^/]+\\/)?(\\d+)/i);\n\nconst trackGoogle = row.track_google_shopping === true || row.track_google_shopping === 'true' || row.track_google_shopping === 1;\n\nreturn [{\n  json: {\n    id: row.id,\n    name: row.name || '',\n    amazon_asin: asinMatch ? asinMatch[1].toUpperCase() : '',\n    walmart_product_id: walmartMatch ? walmartMatch[1] : '',\n    google_query: trackGoogle ? (row.name || '') : '',\n    target_price: row.target_price ?? null,\n    last_amazon_price: row.last_amazon_price ?? null,\n    last_walmart_price: row.last_walmart_price ?? null,\n    last_google_min_price: row.last_google_min_price ?? null,\n  },\n}];\n",
+            "language": "javaScript"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "amazon-sde",
+          "name": "Scrape Amazon Data",
+          "type": "n8n-nodes-scraperapi-official.scraperApi",
+          "maxTries": 2,
+          "position": [
+            -192,
+            416
+          ],
+          "parameters": {
+            "sdeAsin": "={{ $('Extract Product URLs').item.json.amazon_asin }}",
+            "resource": "sde",
+            "operation": "amazonProduct",
+            "sdePlatform": "amazon",
+            "sdeAmazonOptions": {}
+          },
+          "retryOnFail": true,
+          "typeVersion": 1,
+          "continueOnFail": true,
+          "waitBetweenTries": 2000
+        },
+        {
+          "id": "walmart-sde",
+          "name": "Scrape Walmart Data",
+          "type": "n8n-nodes-scraperapi-official.scraperApi",
+          "maxTries": 2,
+          "position": [
+            32,
+            416
+          ],
+          "parameters": {
+            "resource": "sde",
+            "operation": "walmartProduct",
+            "sdePlatform": "walmart",
+            "sdeProductId": "={{ $('Extract Product URLs').item.json.walmart_product_id }}",
+            "sdeWalmartOptions": {}
+          },
+          "retryOnFail": true,
+          "typeVersion": 1,
+          "continueOnFail": true,
+          "waitBetweenTries": 2000
+        },
+        {
+          "id": "google-shopping-sde",
+          "name": "Scrape Google Shopping Data",
+          "type": "n8n-nodes-scraperapi-official.scraperApi",
+          "maxTries": 2,
+          "position": [
+            256,
+            416
+          ],
+          "parameters": {
+            "resource": "sde",
+            "sdeQuery": "={{ $('Extract Product URLs').item.json.google_query }}",
+            "operation": "googleShopping",
+            "sdePlatform": "google",
+            "sdeGoogleOptions": {}
+          },
+          "retryOnFail": true,
+          "typeVersion": 1,
+          "continueOnFail": true,
+          "waitBetweenTries": 2000
+        },
+        {
+          "id": "compare-results",
+          "name": "Analyze Product Data",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            480,
+            416
+          ],
+          "parameters": {
+            "jsCode": "const parsed = $('Extract Product URLs').item.json;\n\nconst numOrNull = (v) => {\n  if (v === null || v === undefined || v === '') return null;\n  const s = typeof v === 'string' ? v.replace(/[^0-9.]/g, '') : v;\n  const n = parseFloat(s);\n  return Number.isFinite(n) ? n : null;\n};\n\nconst getBody = (item) => (item && item.response && item.response.body) || (item && item.body) || item;\n\nconst readPrice = (nodeName, paths) => {\n  try {\n    const item = $(nodeName).item.json;\n    if (!item) return { price: null, error: null };\n    if (item.error) {\n      const msg = (item.error && (item.error.message || item.error.description)) || String(item.error);\n      return { price: null, error: msg };\n    }\n    const body = getBody(item);\n    for (const path of paths) {\n      const parts = path.split('.');\n      let cur = body;\n      for (const p of parts) cur = cur == null ? cur : cur[p];\n      const n = numOrNull(cur);\n      if (n !== null) return { price: n, error: null };\n    }\n    return { price: null, error: null };\n  } catch (e) {\n    return { price: null, error: e.message };\n  }\n};\n\nconst amazon = readPrice('Amazon Product', ['pricing', 'list_price', 'price']);\nconst walmart = readPrice('Walmart Product', ['price', 'current_price.price', 'pricing']);\n\nlet google = { price: null, error: null };\ntry {\n  const g = $('Scrape Google Shopping Data').item.json;\n  if (g && g.error) {\n    google.error = (g.error && (g.error.message || g.error.description)) || String(g.error);\n  } else if (g) {\n    const body = getBody(g);\n    const items = body.shopping_results || body.results || [];\n    const prices = items\n      .map(it => numOrNull(it && (it.extracted_price !== undefined ? it.extracted_price : it.price)))\n      .filter(p => p !== null);\n    google.price = prices.length ? Math.min(...prices) : null;\n  }\n} catch (e) {\n  google.error = e.message;\n}\n\nconst ts = new Date().toISOString();\nconst target = parsed.target_price;\n\nconst evaluate = (platform, current, previous, error) => {\n  const dropped = current !== null && previous !== null && previous > 0 && current < previous;\n  const pct_drop = dropped ? Number((((previous - current) / previous) * 100).toFixed(2)) : 0;\n  const crossed_target = Number.isFinite(target) && Number.isFinite(current) && Number.isFinite(previous) && previous > target && current <= target;\n  return {\n    timestamp: ts,\n    product_name: parsed.name,\n    platform,\n    current_price: current,\n    previous_price: previous,\n    dropped: dropped || crossed_target,\n    pct_drop,\n    error: error || '',\n  };\n};\n\nconst results = [];\nif (parsed.amazon_asin) results.push(evaluate('amazon', amazon.price, parsed.last_amazon_price, amazon.error));\nif (parsed.walmart_product_id) results.push(evaluate('walmart', walmart.price, parsed.last_walmart_price, walmart.error));\nif (parsed.google_query) results.push(evaluate('google_shopping', google.price, parsed.last_google_min_price, google.error));\n\nconst update = {\n  id: parsed.id,\n  last_amazon_price: amazon.price !== null ? amazon.price : (parsed.last_amazon_price != null ? parsed.last_amazon_price : null),\n  last_walmart_price: walmart.price !== null ? walmart.price : (parsed.last_walmart_price != null ? parsed.last_walmart_price : null),\n  last_google_min_price: google.price !== null ? google.price : (parsed.last_google_min_price != null ? parsed.last_google_min_price : null),\n};\n\nreturn [{ json: { results, update } }];\n",
+            "language": "javaScript"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "split-history",
+          "name": "Divide History Results",
+          "type": "n8n-nodes-base.splitOut",
+          "position": [
+            704,
+            416
+          ],
+          "parameters": {
+            "include": "noOtherFields",
+            "options": {},
+            "fieldToSplitOut": "results"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "append-history",
+          "name": "Add to Price History",
+          "type": "n8n-nodes-base.dataTable",
+          "position": [
+            928,
+            416
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "error": "={{ $json.error }}",
+                "dropped": "={{ $json.dropped }}",
+                "pct_drop": "={{ $json.pct_drop }}",
+                "platform": "={{ $json.platform }}",
+                "timestamp": "={{ $json.timestamp }}",
+                "product_name": "={{ $json.product_name }}",
+                "current_price": "={{ $json.current_price }}",
+                "previous_price": "={{ $json.previous_price }}"
+              },
+              "mappingMode": "defineBelow"
+            },
+            "options": {},
+            "resource": "row",
+            "operation": "insert",
+            "dataTableId": {
+              "__rl": true,
+              "mode": "name",
+              "value": "price_history"
+            }
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "update-products",
+          "name": "Refresh Product Prices",
+          "type": "n8n-nodes-base.dataTable",
+          "position": [
+            608,
+            720
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "last_amazon_price": "={{ $json.update.last_amazon_price }}",
+                "last_walmart_price": "={{ $json.update.last_walmart_price }}",
+                "last_google_min_price": "={{ $json.update.last_google_min_price }}"
+              },
+              "mappingMode": "defineBelow"
+            },
+            "filters": {
+              "conditions": [
+                {
+                  "keyName": "id",
+                  "keyValue": "={{ $json.update.id }}",
+                  "condition": "eq"
+                }
+              ]
+            },
+            "options": {},
+            "resource": "row",
+            "matchType": "allConditions",
+            "operation": "update",
+            "dataTableId": {
+              "__rl": true,
+              "mode": "name",
+              "value": "products"
+            }
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "read-todays-drops",
+          "name": "Retrieve Today's Price Drops",
+          "type": "n8n-nodes-base.dataTable",
+          "position": [
+            496,
+            1184
+          ],
+          "parameters": {
+            "filters": {
+              "conditions": [
+                {
+                  "keyName": "dropped",
+                  "keyValue": "true",
+                  "condition": "eq"
+                },
+                {
+                  "keyName": "timestamp",
+                  "keyValue": "={{ $now.startOf('day').toISO() }}",
+                  "condition": "gte"
+                }
+              ]
+            },
+            "resource": "row",
+            "matchType": "allConditions",
+            "operation": "get",
+            "returnAll": true,
+            "dataTableId": {
+              "__rl": true,
+              "mode": "name",
+              "value": "price_history"
+            }
+          },
+          "executeOnce": true,
+          "typeVersion": 1.1
+        },
+        {
+          "id": "build-digest",
+          "name": "Compile Price Drop Digest",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            720,
+            1184
+          ],
+          "parameters": {
+            "jsCode": "const drops = $input.all().map(i => i.json);\nif (drops.length === 0) return [];\n\ndrops.sort((a, b) => (b.pct_drop || 0) - (a.pct_drop || 0));\n\nconst esc = (s) => String(s == null ? '' : s).replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));\nconst fmt = (n) => n == null || n === '' ? '\u2014' : '$' + Number(n).toFixed(2);\n\nconst rowsHtml = drops.map(d => `<tr>\n  <td>${esc(d.product_name)}</td>\n  <td>${esc(d.platform)}</td>\n  <td style=\"text-align:right;\">${fmt(d.previous_price)}</td>\n  <td style=\"text-align:right;color:#0a7d27;font-weight:600;\">${fmt(d.current_price)}</td>\n  <td style=\"text-align:right;\">${d.pct_drop ? d.pct_drop + '%' : '\u2014'}</td>\n</tr>`).join('');\n\nconst subject = `Price drop alert \u2014 ${drops.length} product${drops.length === 1 ? '' : 's'} dropped today`;\nconst html = `<div style=\"font-family:-apple-system,Segoe UI,sans-serif;max-width:680px;\">\n  <h2 style=\"margin:0 0 12px;\">${subject}</h2>\n  <p style=\"color:#555;margin:0 0 16px;\">Fresh prices from Amazon, Walmart, and Google Shopping \u2014 collected on autopilot by ScraperAPI.</p>\n  <table cellpadding=\"8\" cellspacing=\"0\" style=\"border-collapse:collapse;width:100%;font-size:14px;\">\n    <thead><tr style=\"background:#f4f4f6;text-align:left;\">\n      <th>Product</th><th>Marketplace</th><th style=\"text-align:right;\">Was</th><th style=\"text-align:right;\">Now</th><th style=\"text-align:right;\">Drop</th>\n    </tr></thead>\n    <tbody>${rowsHtml}</tbody>\n  </table>\n</div>`;\n\nreturn [{ json: { count: drops.length, subject, html } }];\n",
+            "language": "javaScript"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "send-email",
+          "name": "Email Price Drop Notice",
+          "type": "n8n-nodes-base.emailSend",
+          "position": [
+            944,
+            1184
+          ],
+          "parameters": {
+            "html": "={{ $json.html }}",
+            "options": {},
+            "subject": "={{ $json.subject }}",
+            "toEmail": "",
+            "fromEmail": "",
+            "emailFormat": "html"
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "send-email-gmail",
+          "name": "Send Digest via Gmail",
+          "type": "n8n-nodes-base.gmail",
+          "position": [
+            944,
+            1504
+          ],
+          "parameters": {
+            "sendTo": "",
+            "message": "={{ $json.html }}",
+            "options": {},
+            "subject": "={{ $json.subject }}",
+            "emailType": "html"
+          },
+          "typeVersion": 2.1
+        }
+      ],
+      "connections": {
+        "Scrape Amazon Data": {
+          "main": [
+            [
+              {
+                "node": "Scrape Walmart Data",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch Products Data": {
+          "main": [
+            [
+              {
+                "node": "Iterate Products Batch",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Scrape Walmart Data": {
+          "main": [
+            [
+              {
+                "node": "Scrape Google Shopping Data",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Analyze Product Data": {
+          "main": [
+            [
+              {
+                "node": "Divide History Results",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Refresh Product Prices",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Extract Product URLs": {
+          "main": [
+            [
+              {
+                "node": "Scrape Amazon Data",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Manual Trigger Setup": {
+          "main": [
+            [
+              {
+                "node": "Initialize Products Table",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Divide History Results": {
+          "main": [
+            [
+              {
+                "node": "Add to Price History",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Iterate Products Batch": {
+          "main": [
+            [
+              {
+                "node": "Retrieve Today's Price Drops",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Extract Product URLs",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Read Existing Products": {
+          "main": [
+            [
+              {
+                "node": "Generate Sample Products",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Refresh Product Prices": {
+          "main": [
+            [
+              {
+                "node": "Iterate Products Batch",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Generate Sample Products": {
+          "main": [
+            [
+              {
+                "node": "Add Samples to Products Table",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Initialize History Table": {
+          "main": [
+            [
+              {
+                "node": "Read Existing Products",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Morning Schedule Trigger": {
+          "main": [
+            [
+              {
+                "node": "Fetch Products Data",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Compile Price Drop Digest": {
+          "main": [
+            [
+              {
+                "node": "Email Price Drop Notice",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Initialize Products Table": {
+          "main": [
+            [
+              {
+                "node": "Initialize History Table",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Scrape Google Shopping Data": {
+          "main": [
+            [
+              {
+                "node": "Analyze Product Data",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Retrieve Today's Price Drops": {
+          "main": [
+            [
+              {
+                "node": "Compile Price Drop Digest",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 29,
+      "nodeTypes": {
+        "n8n-nodes-base.code": {
+          "count": 4
+        },
+        "n8n-nodes-base.gmail": {
+          "count": 1
+        },
+        "n8n-nodes-base.splitOut": {
+          "count": 1
+        },
+        "n8n-nodes-base.dataTable": {
+          "count": 8
+        },
+        "n8n-nodes-base.emailSend": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 8
+        },
+        "n8n-nodes-base.manualTrigger": {
+          "count": 1
+        },
+        "n8n-nodes-base.splitInBatches": {
+          "count": 1
+        },
+        "n8n-nodes-base.scheduleTrigger": {
+          "count": 1
+        },
+        "n8n-nodes-scraperapi-official.scraperApi": {
+          "count": 3
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "ScraperAPI",
+      "username": "scraperapi",
+      "bio": "Collect data from any public website with our web scraping API, without worrying about proxies, browsers, or CAPTCHA handling.",
+      "verified": false,
+      "links": [
+        "https://www.scraperapi.com"
+      ],
+      "avatar": "https://gravatar.com/avatar/89b362d9964fc9d2a23e8c2c30c5465a53788d2c23ff88e7299b81388e8629a6?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 11,
+        "icon": "fa:envelope",
+        "name": "n8n-nodes-base.emailSend",
+        "codex": {
+          "data": {
+            "alias": [
+              "SMTP",
+              "email",
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.sendemail/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/sendemail/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "Send Email",
+          "color": "#00bb88"
+        },
+        "iconData": {
+          "icon": "envelope",
+          "type": "icon"
+        },
+        "displayName": "Send Email",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 39,
+        "icon": "fa:sync",
+        "name": "n8n-nodes-base.splitInBatches",
+        "codex": {
+          "data": {
+            "alias": [
+              "Loop",
+              "Concatenate",
+              "Batch",
+              "Split",
+              "Split In Batches"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Loop Over Items",
+          "color": "#007755"
+        },
+        "iconData": {
+          "icon": "sync",
+          "type": "icon"
+        },
+        "displayName": "Loop Over Items (Split in Batches)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 356,
+        "icon": "file:gmail.svg",
+        "name": "n8n-nodes-base.gmail",
+        "codex": {
+          "data": {
+            "alias": [
+              "email",
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/using-automation-to-boost-productivity-in-the-workplace/",
+                  "icon": "\ud83d\udcaa",
+                  "label": "Using Automation to Boost Productivity in the Workplace"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.gmail/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Gmail"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMTkzIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCI+PHBhdGggZmlsbD0iIzQyODVGNCIgZD0iTTU4LjE4MiAxOTIuMDVWOTMuMTRMMjcuNTA3IDY1LjA3NyAwIDQ5LjUwNHYxMjUuMDkxYzAgOS42NTggNy44MjUgMTcuNDU1IDE3LjQ1NSAxNy40NTV6Ii8+PHBhdGggZmlsbD0iIzM0QTg1MyIgZD0iTTE5Ny44MTggMTkyLjA1aDQwLjcyN2M5LjY1OSAwIDE3LjQ1NS03LjgyNiAxNy40NTUtMTcuNDU1VjQ5LjUwNWwtMzEuMTU2IDE3LjgzNy0yNy4wMjYgMjUuNzk4eiIvPjxwYXRoIGZpbGw9IiNFQTQzMzUiIGQ9Im01OC4xODIgOTMuMTQtNC4xNzQtMzguNjQ3IDQuMTc0LTM2Ljk4OUwxMjggNjkuODY4bDY5LjgxOC01Mi4zNjQgNC42NyAzNC45OTItNC42NyA0MC42NDRMMTI4IDE0NS41MDR6Ii8+PHBhdGggZmlsbD0iI0ZCQkMwNCIgZD0iTTE5Ny44MTggMTcuNTA0VjkzLjE0TDI1NiA0OS41MDRWMjYuMjMxYzAtMjEuNTg1LTI0LjY0LTMzLjg5LTQxLjg5LTIwLjk0NXoiLz48cGF0aCBmaWxsPSIjQzUyMjFGIiBkPSJtMCA0OS41MDQgMjYuNzU5IDIwLjA3TDU4LjE4MiA5My4xNFYxNy41MDRMNDEuODkgNS4yODZDMjQuNjEtNy42NiAwIDQuNjQ2IDAgMjYuMjN6Ii8+PC9zdmc+"
+        },
+        "displayName": "Gmail",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 838,
+        "icon": "fa:mouse-pointer",
+        "name": "n8n-nodes-base.manualTrigger",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.manualworkflowtrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "When clicking \u2018Execute workflow\u2019",
+          "color": "#909298"
+        },
+        "iconData": {
+          "icon": "mouse-pointer",
+          "type": "icon"
+        },
+        "displayName": "Manual Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 839,
+        "icon": "fa:clock",
+        "name": "n8n-nodes-base.scheduleTrigger",
+        "codex": {
+          "data": {
+            "alias": [
+              "Time",
+              "Scheduler",
+              "Polling",
+              "Cron",
+              "Interval"
+            ],
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\",\"schedule\"]",
+        "defaults": {
+          "name": "Schedule Trigger",
+          "color": "#31C49F"
+        },
+        "iconData": {
+          "icon": "clock",
+          "type": "icon"
+        },
+        "displayName": "Schedule Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1239,
+        "icon": "file:splitOut.svg",
+        "name": "n8n-nodes-base.splitOut",
+        "codex": {
+          "data": {
+            "alias": [
+              "Split",
+              "Nested",
+              "Transform",
+              "Array",
+              "List",
+              "Item"
+            ],
+            "details": "",
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.splitout/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Split Out"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJub25lIj48ZyBmaWxsPSIjOUI2REQ1IiBjbGlwLXBhdGg9InVybCgjYSkiPjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTQ4MCAxNDhjMC02LjYyNy01LjM3My0xMi0xMi0xMkgzMjJjLTYuNjI3IDAtMTIgNS4zNzMtMTIgMTJ2MjRjMCA2LjYyNyA1LjM3MyAxMiAxMiAxMmgxNDZjNi42MjcgMCAxMi01LjM3MyAxMi0xMnptMCA5NmMwLTYuNjI3LTUuMzczLTEyLTEyLTEySDMyMmMtNi42MjcgMC0xMiA1LjM3My0xMiAxMnYyNGMwIDYuNjI3IDUuMzczIDEyIDEyIDEyaDE0NmM2LjYyNyAwIDEyLTUuMzczIDEyLTEyem0wIDk2YzAtNi42MjctNS4zNzMtMTItMTItMTJIMzIyYy02LjYyNyAwLTEyIDUuMzczLTEyIDEydjI0YzAgNi42MjcgNS4zNzMgMTIgMTIgMTJoMTQ2YzYuNjI3IDAgMTItNS4zNzMgMTItMTJ6IiBjbGlwLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNNDM4IDc2YzAgNi42MjctNS4zNzMgMTItMTIgMTJIMzA5Ljc4M2MtMTcuNjczIDAtMzIgMTQuMzI3LTMyIDMydjU2YzAgMjYuOTc4LTEwLjI3MiA1MS41NTctMjcuMTE5IDcwLjAzOS01LjA1NSA1LjU0NS01LjA1NSAxNC4zNzcgMCAxOS45MjIgMTYuODQ3IDE4LjQ4MiAyNy4xMTkgNDMuMDYxIDI3LjExOSA3MC4wMzl2NTZjMCAxNy42NzMgMTQuMzI3IDMyIDMyIDMySDQyNmM2LjYyNyAwIDEyIDUuMzczIDEyIDEydjI0YzAgNi42MjctNS4zNzMgMTItMTIgMTJIMzA5Ljc4M2MtNDQuMTgzIDAtODAtMzUuODE3LTgwLTgwdi01NmMwLTMwLjkyOC0yNS4wNzItNTYtNTYtNTZhNS43ODMgNS43ODMgMCAwIDEtNS43ODMtNS43ODN2LTM2LjQzNGE1Ljc4MyA1Ljc4MyAwIDAgMSA1Ljc4My01Ljc4M2MzMC45MjggMCA1Ni0yNS4wNzIgNTYtNTZ2LTU2YzAtNDQuMTgzIDM1LjgxNy04MCA4MC04MEg0MjZjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnoiLz48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMzYgMjQ0YzAtNi42MjctNS4zNzMtMTItMTItMTJIMTJjLTYuNjI3IDAtMTIgNS4zNzMtMTIgMTJ2MjRjMCA2LjYyNyA1LjM3MyAxMiAxMiAxMmgxMTJjNi42MjcgMCAxMi01LjM3MyAxMi0xMnoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvZz48ZGVmcz48Y2xpcFBhdGggaWQ9ImEiPjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik01MTIgMEgwdjUxMmg1MTJ6Ii8+PC9jbGlwUGF0aD48L2RlZnM+PC9zdmc+"
+        },
+        "displayName": "Split Out",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1315,
+        "icon": "fa:table",
+        "name": "n8n-nodes-base.dataTable",
+        "codex": {
+          "data": {
+            "alias": [
+              "data",
+              "table",
+              "knowledge",
+              "data table",
+              "table",
+              "sheet",
+              "database",
+              "data base",
+              "mysql",
+              "postgres",
+              "postgresql",
+              "airtable",
+              "supabase",
+              "noco",
+              "notion"
+            ],
+            "details": "Data table",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.datatable/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes",
+              "Development"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\",\"transform\"]",
+        "defaults": {
+          "name": "Data table"
+        },
+        "iconData": {
+          "icon": "table",
+          "type": "icon"
+        },
+        "displayName": "Data table",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 44,
+        "name": "Crypto Trading"
+      }
+    ],
+    "image": []
+  }
+}

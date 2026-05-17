@@ -1,0 +1,1473 @@
+{
+  "workflow": {
+    "id": 15300,
+    "name": "Handle Tamil real estate voice inquiries with OpenAI, Sarvam AI and Google Sheets",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-04-26T16:57:45.742Z",
+    "description": "## Description\nThis workflow builds a Tamil voice AI assistant for real estate inquiries. It handles incoming calls or messages, converts speech to text, generates AI responses, converts them back to speech, and logs lead data into Google Sheets.\n\n## What this template demonstrates\n- Voice-based AI assistant using STT and TTS  \n- Conversation handling with memory  \n- AI response generation with structured prompts  \n- Lead capture and logging  \n- Escalation to human agents  \n\n## Use cases\n- Real estate enquiry automation  \n- Voice-based customer support  \n- Lead qualification systems  \n- AI call assistant for small businesses  \n\n## How it works\n\u2022 Receives input via webhook  \n\u2022 Converts audio to text using STT  \n\u2022 Detects intent and escalation conditions  \n\u2022 Generates response using AI  \n\u2022 Converts response to speech and returns it  \n\u2022 Logs lead data into Google Sheets  \n\n## How to use\n- Deploy the workflow  \n- Configure webhook endpoint  \n- Connect OpenAI, Sarvam STT/TTS, and Google Sheets  \n- Send audio or text requests to the webhook  \n\n## Requirements\n- OpenAI API access  \n- Sarvam STT and TTS API access  \n- Google Sheets account  \n- Public webhook endpoint  \n\n## Customising this workflow\n- Modify AI prompt for different industries  \n- Add CRM integration instead of Google Sheets  \n- Adjust escalation rules  \n- Support multiple languages  \n- Use this [Voice Call HTML File For Testing](https://drive.google.com/drive/u/1/folders/18LoW0wVI6TFJiBb6mV1e85DbrxoZuYsG), Download it and test the agent by live conversation.\n\n## Good to know\n- Handles both audio and text input  \n- Includes fallback for failed speech recognition  \n- Maintains conversation history  \n- Supports real-time response generation  \n\n## Who this is for\n- Automation engineers  \n- Real estate agencies  \n- AI chatbot builders  \n- Businesses needing voice assistants  ",
+    "workflow": {
+      "meta": {
+        "instanceId": "REDACTED_INSTANCE_ID",
+        "templateCredsSetupCompleted": true
+      },
+      "nodes": [
+        {
+          "id": "279428be-dbfb-44d8-8a3b-fe215e815ab2",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -1280,
+            80
+          ],
+          "parameters": {
+            "width": 480,
+            "height": 896,
+            "content": "## Untitled workflow\n\n### How it works\n\n1. Receives incoming data via a webhook.\n2. Parses and determines if the message is a first-time interaction.\n3. Processes the message using speech-to-text if necessary.\n4. Determines if escalation to a human agent is needed or handles the request with AI.\n5. Transforms responses back to text and logs lead information in Google Sheets.\n\n### Setup steps\n\n- [ ] Configure OpenAI API credentials for AI responses.\n- [ ] Set up the Webhook endpoint and ensure it is reachable.\n- [ ] Configure API access for Sarvam STT and TTS services.\n- [ ] Connect and authorize Google Sheets access for logging leads.\n"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "5760d85a-4a13-4b64-a18f-a76d3c4084c9",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -720,
+            256
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 416,
+            "height": 304,
+            "content": "## Receive and parse input\n\nHandles the receipt of incoming data through a webhook and parses it."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "d3be253b-2cf4-41b7-8863-383e776f9f6f",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -272,
+            80
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 400,
+            "height": 608,
+            "content": "## Determine interaction type\n\nChecks if the interaction is a first-time interaction and directs flow based on condition."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "5b28d55f-e5b8-4fc7-9c72-4bd5e976acc4",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            160,
+            144
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 624,
+            "height": 688,
+            "content": "## Speech-to-text processing\n\nProcesses speech-to-text conversion and evaluates if escalation is necessary."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "f9818865-a8a1-4bef-b315-aa010ba9766a",
+          "name": "Sticky Note4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            832,
+            288
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 880,
+            "height": 384,
+            "content": "## Merge and respond\n\nMerges different response paths and sends final response back to the requester."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "4a08a3f8-4062-4c2e-a704-c7400470d7af",
+          "name": "Sticky Note5",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1488,
+            704
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 432,
+            "height": 304,
+            "content": "## Log lead information\n\nPrepares and logs lead information into Google Sheets."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "4784272f-1142-42e8-876f-fbc2e75abed3",
+          "name": "OpenAI Model Message",
+          "type": "@n8n/n8n-nodes-langchain.openAi",
+          "position": [
+            592,
+            656
+          ],
+          "parameters": {
+            "modelId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gpt-4o",
+              "cachedResultName": "GPT-4O"
+            },
+            "options": {
+              "maxTokens": 400
+            },
+            "responses": {
+              "values": [
+                {
+                  "role": "system",
+                  "content": "=\u0ba8\u0bc0 Kavya. \u0ba8\u0bc0 \u0b92\u0bb0\u0bc1 friendly real estate assistant.\n\n== \u0b89\u0ba9\u0bcd \u0baa\u0bc7\u0b9a\u0bcd\u0b9a\u0bc1 style ==\n- \u0b8e\u0baa\u0bcd\u0baa\u0bcb\u0ba4\u0bc1\u0bae\u0bcd simple, friendly Tamil-\u0bb2\u0bcd \u0baa\u0bc7\u0b9a\u0bc1.\n- \u0b92\u0bb5\u0bcd\u0bb5\u0bca\u0bb0\u0bc1 reply-\u0baf\u0bc1\u0bae\u0bcd short \u0b86\u0b95 \u0b87\u0bb0\u0bc1 (max 2 sentences).\n- Customer \u0b9a\u0bca\u0ba9\u0bcd\u0ba9\u0ba4\u0bc1\u0b95\u0bcd\u0b95\u0bc1 first \u0b92\u0bb0\u0bc1 small acknowledgment \u0b9a\u0bca\u0bb2\u0bcd\u0bb2\u0bc1.\n- \u0b85\u0baa\u0bcd\u0baa\u0bc1\u0bb1\u0bae\u0bcd \u0ba4\u0bbe\u0ba9\u0bcd next question \u0b95\u0bc7\u0bb3\u0bcd.\n- Customer \u0baa\u0bc6\u0baf\u0bb0\u0bcd \u0ba4\u0bc6\u0bb0\u0bbf\u0ba8\u0bcd\u0ba4\u0ba4\u0bc1\u0bae\u0bcd \u0b85\u0ba8\u0bcd\u0ba4 \u0baa\u0bc6\u0baf\u0bb0\u0bc8 \u0baa\u0baf\u0ba9\u0bcd\u0baa\u0b9f\u0bc1\u0ba4\u0bcd\u0ba4\u0bbf \u0baa\u0bc7\u0b9a\u0bc1.\n\n== \u0bae\u0bbf\u0b95 \u0bae\u0bc1\u0b95\u0bcd\u0b95\u0bbf\u0baf output rule ==\n- Plain text \u0bae\u0b9f\u0bcd\u0b9f\u0bc1\u0bae\u0bcd return \u0baa\u0ba3\u0bcd\u0ba3\u0bc1.\n- JSON format, code block, quotes-wrapped object \u0bae\u0bbe\u0ba4\u0bbf\u0bb0\u0bbf output \u0b95\u0bca\u0b9f\u0bc1\u0b95\u0bcd\u0b95\u0bbe\u0ba4\u0bc7.\n- \u0b89\u0ba4\u0bbe\u0bb0\u0ba3\u0bae\u0bcd: {\"role\":\"assistant\",\"content\":\"...\"} \u0bae\u0bbe\u0ba4\u0bbf\u0bb0\u0bbf \u0b92\u0bb0\u0bc1\u0baa\u0bcb\u0ba4\u0bc1\u0bae\u0bcd \u0b8e\u0bb4\u0bc1\u0ba4\u0bbe\u0ba4\u0bc7.\n\n== \u0b8e\u0baa\u0bcd\u0baa\u0b9f\u0bbf \u0baa\u0bc7\u0b9a\u0ba3\u0bc1\u0bae\u0bcd ==\n- Numbers Tamil words-\u0bb2\u0bcd \u0b8e\u0bb4\u0bc1\u0ba4\u0ba3\u0bc1\u0bae\u0bcd.\n- \u0b8e\u0ba8\u0bcd\u0ba4 symbols \u0bb5\u0bc7\u0ba3\u0bcd\u0b9f\u0bbe\u0bae\u0bcd.\n- unnecessary English short forms avoid \u0baa\u0ba3\u0bcd\u0ba3\u0bc1.\n- \"plot\" \u0b9a\u0bca\u0bb2\u0bcd\u0bb2\u0bbe\u0ba4\u0bc7; \"\u0bae\u0ba9\u0bc8\" \u0b9a\u0bca\u0bb2\u0bcd.\n- \"site visit\" \u0b9a\u0bca\u0bb2\u0bcd\u0bb2\u0bbe\u0ba4\u0bc7; \"\u0ba8\u0bc7\u0bb0\u0bbf\u0bb2\u0bcd \u0bb5\u0ba8\u0bcd\u0ba4\u0bc1 \u0baa\u0bbe\u0bb0\u0bcd\u0b95\u0bcd\u0b95\" \u0b9a\u0bca\u0bb2\u0bcd.\n- \"ready to move\" \u0b9a\u0bca\u0bb2\u0bcd\u0bb2\u0bbe\u0ba4\u0bc7; \"\u0b87\u0baa\u0bcd\u0baa\u0bcb\u0bb5\u0bc7 \u0b95\u0bc1\u0b9f\u0bbf \u0baa\u0bcb\u0b95\u0bb2\u0bbe\u0bae\u0bcd\" \u0b9a\u0bca\u0bb2\u0bcd.\n- \"under construction\" \u0b9a\u0bca\u0bb2\u0bcd\u0bb2\u0bbe\u0ba4\u0bc7; \"\u0b95\u0b9f\u0bcd\u0b9f\u0bbf \u0b95\u0bca\u0ba3\u0bcd\u0b9f\u0bbf\u0bb0\u0bc1\u0b95\u0bcd\u0b95\u0bbe\u0b99\u0bcd\u0b95\" \u0b9a\u0bca\u0bb2\u0bcd.\n\n== Properties ==\n\u0baa\u0bbf\u0bb0\u0bc6\u0bb8\u0bcd\u0b9f\u0bbf\u0b9c\u0bcd \u0b95\u0bbe\u0bb0\u0bcd\u0b9f\u0ba9\u0bcd\u0bb8\u0bcd, \u0b93. \u0b8e\u0bae\u0bcd. \u0b86\u0bb0\u0bcd.-\u0bb2\u0bcd \u0b87\u0bb0\u0bc1\u0b95\u0bcd\u0b95\u0bc1.\n\u0b87\u0bb0\u0ba3\u0bcd\u0b9f\u0bc1 \u0baa\u0bbf \u0b8e\u0b9a\u0bcd \u0b95\u0bc7 \u0b85\u0bb1\u0bc1\u0baa\u0ba4\u0bcd\u0ba4\u0bbf \u0b90\u0ba8\u0bcd\u0ba4\u0bc1 \u0bb2\u0b9f\u0bcd\u0b9a\u0bae\u0bcd.\n\u0bae\u0bc2\u0ba9\u0bcd\u0bb1\u0bc1 \u0baa\u0bbf \u0b8e\u0b9a\u0bcd \u0b95\u0bc7 \u0b8e\u0ba3\u0bcd\u0baa\u0ba4\u0bcd\u0ba4\u0bbf \u0b90\u0ba8\u0bcd\u0ba4\u0bc1 \u0bb2\u0b9f\u0bcd\u0b9a\u0bae\u0bcd.\n\u0b87\u0baa\u0bcd\u0baa\u0bcb\u0bb5\u0bc7 \u0b95\u0bc1\u0b9f\u0bbf \u0baa\u0bcb\u0b95\u0bb2\u0bbe\u0bae\u0bcd.\n\n\u0b95\u0bcb\u0bb2\u0bcd\u0b9f\u0ba9\u0bcd \u0b9a\u0bbf\u0b9f\u0bcd\u0b9f\u0bbf, \u0baa\u0bcb\u0bb0\u0bc2\u0bb0\u0bcd-\u0bb2\u0bcd \u0b87\u0bb0\u0bc1\u0b95\u0bcd\u0b95\u0bc1.\n\u0bae\u0ba9\u0bc8 \u0bb5\u0bbf\u0bb2\u0bc8 \u0bae\u0bc1\u0baa\u0bcd\u0baa\u0ba4\u0bcd\u0ba4\u0bbf \u0b90\u0ba8\u0bcd\u0ba4\u0bc1 \u0bb2\u0b9f\u0bcd\u0b9a\u0bae\u0bcd-\u0bb2\u0bcd \u0b87\u0bb0\u0bc1\u0ba8\u0bcd\u0ba4\u0bc1 \u0ba4\u0bca\u0b9f\u0b99\u0bcd\u0b95\u0bc1\u0ba4\u0bc1.\n\u0bb0\u0bc7\u0bb0\u0bbe \u0b85\u0ba9\u0bc1\u0bae\u0ba4\u0bbf \u0b95\u0bbf\u0b9f\u0bc8\u0b9a\u0bcd\u0b9a\u0bbf\u0bb0\u0bc1\u0b95\u0bcd\u0b95\u0bc1.\n\n\u0bb8\u0bcd\u0b95\u0bc8\u0bb2\u0bc8\u0ba9\u0bcd \u0b9f\u0bb5\u0bb0\u0bcd\u0bb8\u0bcd, \u0b85\u0ba3\u0bcd\u0ba3\u0bbe \u0ba8\u0b95\u0bb0\u0bcd-\u0bb2\u0bcd \u0b87\u0bb0\u0bc1\u0b95\u0bcd\u0b95\u0bc1.\n\u0b87\u0bb0\u0ba3\u0bcd\u0b9f\u0bc1 \u0baa\u0bbf \u0b8e\u0b9a\u0bcd \u0b95\u0bc7 \u0b92\u0bb0\u0bc1 \u0b95\u0bcb\u0b9f\u0bbf\u0baf\u0bc7 \u0b87\u0bb0\u0bc1\u0baa\u0ba4\u0bc1 \u0bb2\u0b9f\u0bcd\u0b9a\u0bae\u0bcd.\n\u0b95\u0b9f\u0bcd\u0b9f\u0bbf \u0b95\u0bca\u0ba3\u0bcd\u0b9f\u0bbf\u0bb0\u0bc1\u0b95\u0bcd\u0b95\u0bbe\u0b99\u0bcd\u0b95.\n\n== Office info ==\n\u0ba4\u0bbf\u0b99\u0bcd\u0b95\u0bb3\u0bcd \u0bae\u0bc1\u0ba4\u0bb2\u0bcd \u0b9a\u0ba9\u0bbf \u0bb5\u0bb0\u0bc8, \u0b95\u0bbe\u0bb2\u0bc8 \u0b92\u0ba9\u0bcd\u0baa\u0ba4\u0bc1 \u0bae\u0bc1\u0ba4\u0bb2\u0bcd \u0bae\u0bbe\u0bb2\u0bc8 \u0b8f\u0bb4\u0bc1 \u0bae\u0ba3\u0bbf \u0bb5\u0bb0\u0bc8 open.\n\u0ba4\u0bca\u0bb2\u0bc8\u0baa\u0bc7\u0b9a\u0bbf \u0b9a\u0bc0\u0bb0\u0bcb \u0ba8\u0bbe\u0ba9\u0bcd\u0b95\u0bc1 \u0ba8\u0bbe\u0ba9\u0bcd\u0b95\u0bc1 XXXX XXXX.\n\n== Conversation flow ==\nStep 1:\n\u0bae\u0bc1\u0ba4\u0bb2\u0bbf\u0bb2\u0bcd user query-\u0b95\u0bcd\u0b95\u0bc1 acknowledge \u0baa\u0ba3\u0bcd\u0ba3\u0bc1.\n\u0b85\u0ba4\u0bc1\u0b95\u0bcd\u0b95\u0baa\u0bcd\u0baa\u0bc1\u0bb1\u0bae\u0bcd only \u0b92\u0bb0\u0bc1 question \u0b95\u0bc7\u0bb3\u0bcd:\n\"\u0b8e\u0ba8\u0bcd\u0ba4 area \u0baa\u0bbe\u0bb0\u0bcd\u0b95\u0bcd\u0b95\u0bbf\u0bb1\u0bc0\u0b99\u0bcd\u0b95?\" \u0b85\u0bb2\u0bcd\u0bb2\u0ba4\u0bc1 \"\u0baa\u0b9f\u0bcd\u0b9c\u0bc6\u0b9f\u0bcd \u0b8e\u0ba9\u0bcd\u0ba9?\"\n\nStep 2:\nUser \u0baa\u0ba4\u0bbf\u0bb2\u0bcd \u0b95\u0bca\u0b9f\u0bc1\u0ba4\u0bcd\u0ba4\u0ba4\u0bc1\u0bae\u0bcd acknowledge \u0baa\u0ba3\u0bcd\u0ba3\u0bbf property suggest \u0baa\u0ba3\u0bcd\u0ba3\u0bc1:\n\"\u0b9a\u0bb0\u0bbf, [property name]-\u0bb2\u0bcd [type] \u0b87\u0bb0\u0bc1\u0b95\u0bcd\u0b95\u0bc1. \u0bb5\u0bbf\u0bb2\u0bc8 [amount]. \u0ba8\u0bc7\u0bb0\u0bbf\u0bb2\u0bcd \u0bb5\u0ba8\u0bcd\u0ba4\u0bc1 \u0baa\u0bbe\u0bb0\u0bcd\u0b95\u0bcd\u0b95\u0bb2\u0bbe\u0bae\u0bbe?\"\n\nStep 3:\nUser interest confirm \u0baa\u0ba3\u0bcd\u0ba3\u0bbf\u0ba9\u0bbe \u0b87\u0ba4\u0bc7 order strict-\u0b86 follow \u0baa\u0ba3\u0bcd\u0ba3\u0bc1:\n- \u0bae\u0bc1\u0ba4\u0bb2\u0bbf\u0bb2\u0bcd \u0baa\u0bc6\u0baf\u0bb0\u0bcd \u0b95\u0bc7\u0bb3\u0bcd\n- \u0baa\u0bc6\u0baf\u0bb0\u0bcd \u0b95\u0bbf\u0b9f\u0bc8\u0ba4\u0bcd\u0ba4\u0ba4\u0bc1\u0bae\u0bcd \u0b85\u0ba8\u0bcd\u0ba4 \u0baa\u0bc6\u0baf\u0bb0\u0bc8 \u0b9a\u0bca\u0bb2\u0bcd\u0bb2\u0bbf acknowledge \u0baa\u0ba3\u0bcd\u0ba3\u0bbf \u0ba8\u0bbe\u0bb3\u0bcd \u0b95\u0bc7\u0bb3\u0bcd\n- \u0ba8\u0bbe\u0bb3\u0bcd \u0b95\u0bbf\u0b9f\u0bc8\u0ba4\u0bcd\u0ba4\u0ba4\u0bc1\u0bae\u0bcd acknowledge \u0baa\u0ba3\u0bcd\u0ba3\u0bbf \u0ba4\u0bca\u0bb2\u0bc8\u0baa\u0bc7\u0b9a\u0bbf \u0b8e\u0ba3\u0bcd \u0b95\u0bc7\u0bb3\u0bcd\n\u0b92\u0bb0\u0bc7 reply-\u0bb2\u0bcd \u0b8e\u0bb2\u0bcd\u0bb2\u0bbe details\u0baf\u0bc1\u0bae\u0bcd \u0b95\u0bc7\u0b9f\u0bcd\u0b95\u0bbe\u0ba4\u0bc7.\n\nStep 4:\nComplex question \u0b87\u0bb0\u0bc1\u0ba8\u0bcd\u0ba4\u0bbe:\n\"\u0baa\u0bc1\u0bb0\u0bbf\u0ba8\u0bcd\u0ba4\u0ba4\u0bc1, \u0ba8\u0bbe\u0ba9\u0bcd \u0b89\u0b99\u0bcd\u0b95\u0bb3\u0bc8 \u0b8e\u0b99\u0bcd\u0b95\u0bb3\u0bcd agent-\u0b95\u0bbf\u0b9f\u0bcd\u0b9f connect \u0b9a\u0bc6\u0baf\u0bcd\u0b95\u0bbf\u0bb1\u0bc7\u0ba9\u0bcd. \u0b9a\u0bbf\u0bb2 \u0ba8\u0bbf\u0bae\u0bbf\u0b9f\u0bae\u0bcd \u0b87\u0bb0\u0bc1\u0b99\u0bcd\u0b95.\"\n\n== name capture example ==\nUser: \u0baa\u0bbe\u0bb0\u0bc1\nKavya: \u0baa\u0bbe\u0bb0\u0bc1, \u0bb0\u0bca\u0bae\u0bcd\u0baa \u0ba8\u0ba9\u0bcd\u0bb1\u0bbf. \u0b8e\u0ba8\u0bcd\u0ba4 \u0ba8\u0bbe\u0bb3\u0bcd \u0bb5\u0bb0 \u0bb5\u0b9a\u0ba4\u0bbf\u0baf\u0bbe\u0b95 \u0b87\u0bb0\u0bc1\u0b95\u0bcd\u0b95\u0bc1\u0bae\u0bcd?\n\nUser: \u0b9e\u0bbe\u0baf\u0bbf\u0bb1\u0bc1\nKavya: \u0b9a\u0bb0\u0bbf \u0baa\u0bbe\u0bb0\u0bc1, \u0b9e\u0bbe\u0baf\u0bbf\u0bb1\u0bc1 note \u0baa\u0ba3\u0bcd\u0ba3\u0bbf\u0b9f\u0bcd\u0b9f\u0bc7\u0ba9\u0bcd. \u0b89\u0b99\u0bcd\u0b95\u0bb3\u0bcd \u0ba4\u0bca\u0bb2\u0bc8\u0baa\u0bc7\u0b9a\u0bbf \u0b8e\u0ba3\u0bcd \u0b9a\u0bca\u0bb2\u0bcd\u0bb2\u0bc1\u0b99\u0bcd\u0b95?"
+                },
+                {
+                  "content": "={{ JSON.stringify($json.conversationHistory) }}"
+                }
+              ]
+            },
+            "builtInTools": {}
+          },
+          "credentials": {
+            "openAiApi": {
+              "id": "DUMMY_OPENAI_CRED_ID",
+              "name": "D OpenAi account"
+            }
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "9bdbae03-af0b-4f4e-9a82-85908236a368",
+          "name": "When POST to Tamil Agent",
+          "type": "n8n-nodes-base.webhook",
+          "onError": "continueRegularOutput",
+          "position": [
+            -672,
+            384
+          ],
+          "webhookId": "tamil-voice-agent",
+          "parameters": {
+            "path": "tamil-voice-agent-v2",
+            "options": {
+              "rawBody": true
+            },
+            "httpMethod": "POST",
+            "responseMode": "responseNode"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "cc95b62e-cf7c-403c-b539-d94fb8382a64",
+          "name": "Parse Webhook Input",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            -448,
+            384
+          ],
+          "parameters": {
+            "jsCode": "// ---------- SAFE INPUT PARSER ----------\n\nconst input = $input.first();\n\n// \u2705 FIX: preserve binary\nconst binary = input.binary || {};\n\n// Normalize browser codec MIME values (e.g. audio/webm;codecs=opus) to base types accepted by STT.\nif (binary.audio?.mimeType && typeof binary.audio.mimeType === 'string') {\n  const normalizedMime = binary.audio.mimeType.split(';')[0].trim().toLowerCase();\n  binary.audio.mimeType = normalizedMime;\n}\n\nconst body = input.json.body || input.json || {};\n\n// ---------- METADATA ----------\nconst callerPhone = body.caller_phone || body.phone || 'unknown';\nconst callSid = body.call_sid || body.session_id || `call_${Date.now()}`;\nconst callType = body.call_type || 'inbound';\n\n// ---------- CONVERSATION ----------\nlet conversationHistory = body.conversation_history || [];\n\nif (typeof conversationHistory === 'string') {\n  try {\n    conversationHistory = JSON.parse(conversationHistory);\n  } catch (e) {\n    conversationHistory = [];\n  }\n}\n\nif (!Array.isArray(conversationHistory)) {\n  conversationHistory = [];\n}\n\n// ---------- INPUT TEXT ----------\nlet inputText = body.text || body.message || null;\n\nif (!inputText && conversationHistory.length > 0) {\n  const lastMsg = conversationHistory[conversationHistory.length - 1];\n  if (lastMsg?.role === 'user') {\n    inputText = lastMsg.content;\n  }\n}\n\n// ---------- AUDIO DETECTION ----------\nconst hasBinaryAudio = !!binary.audio;\n\nlet audioBase64 = body.audio_base64 || null;\nlet audioUrl = body.audio_url || null;\n\nconst hasAudio = !!(audioBase64 || audioUrl || hasBinaryAudio);\nconst isTextOnly = !hasAudio && !!inputText;\n\n// ---------- FIRST TURN ----------\nconst hasUserInput = !!inputText || hasAudio;\nconst hasHistory = conversationHistory.length > 0;\n\nconst isFirstTurn = !hasHistory && !hasUserInput;\n\n// ---------- OUTPUT (CRITICAL FIX) ----------\nreturn {\n  json: {\n    callerPhone,\n    callSid,\n    callType,\n\n    conversationHistory,\n\n    inputText,\n    audioBase64,\n    audioUrl,\n    hasBinaryAudio,\n\n    hasAudio,\n    isTextOnly,\n    isFirstTurn,\n\n    timestamp: new Date().toISOString()\n  },\n\n  // \ud83d\udd25 THIS IS THE FIX\n  binary: binary\n};"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "7620c881-56f9-4325-8304-af91fde9179a",
+          "name": "If First Turn",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            -224,
+            384
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 1,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "check-first-turn",
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $json.isFirstTurn }}",
+                  "rightValue": true
+                }
+              ]
+            }
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "cb42a9c0-b105-47de-af39-ccfbc2be4417",
+          "name": "Generate Welcome Message",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            -16,
+            240
+          ],
+          "parameters": {
+            "jsCode": "// Generate welcome message for first turn (no STT needed)\nconst callType = $('Parse Webhook Input').first().json.callType;\nconst callerPhone = $('Parse Webhook Input').first().json.callerPhone;\n\nlet welcomeText = '';\nif (callType === 'outbound') {\n  welcomeText = '\u0bb9\u0bb2\u0bcb! \u0ba8\u0bbe\u0ba9\u0bcd \u0b89\u0b99\u0bcd\u0b95\u0bb3\u0bcd real estate assistant Kavya. \u0ba8\u0bc0\u0b99\u0bcd\u0b95\u0bb3\u0bcd property enquiry form fill \u0baa\u0ba3\u0bcd\u0ba3\u0bbf\u0bb0\u0bc1\u0ba8\u0bcd\u0ba4\u0bc0\u0b99\u0bcd\u0b95. \u0b8e\u0ba9\u0bcd\u0ba9 \u0bae\u0bbe\u0ba4\u0bbf\u0bb0\u0bbf property \u0baa\u0bbe\u0bb0\u0bcd\u0b95\u0bcd\u0b95\u0bbf\u0bb1\u0bc0\u0b99\u0bcd\u0b95?';\n} else {\n  welcomeText = '\u0bb9\u0bb2\u0bcb! \u0ba8\u0bc0\u0b99\u0bcd\u0b95\u0bb3\u0bcd \u0b8e\u0b99\u0bcd\u0b95\u0bb3\u0bcd real estate team-\u0b95\u0bcd\u0b95\u0bc1 call \u0baa\u0ba3\u0bcd\u0ba3\u0bbf\u0bb0\u0bc1\u0b95\u0bcd\u0b95\u0bc0\u0b99\u0bcd\u0b95. Property details \u0b9a\u0bca\u0bb2\u0bcd\u0bb2\u0bb2\u0bbe\u0bae\u0bcd, site visit book \u0baa\u0ba3\u0bcd\u0ba3\u0bb2\u0bbe\u0bae\u0bcd. \u0b87\u0baa\u0bcd\u0baa\u0bcb \u0b8e\u0ba9\u0bcd\u0ba9 help \u0bb5\u0bc7\u0ba3\u0bc1\u0bae\u0bcd?';\n}\n\nreturn {\n  transcribedText: null,\n  agentResponse: welcomeText,\n  isFirstTurn: true,\n  callerPhone,\n  callSid: $('Parse Webhook Input').first().json.callSid,\n  conversationHistory: [],\n  skipSTT: true\n};"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "9e695ff3-2905-44e2-b1a7-4f98f2ab4d4e",
+          "name": "Post to Sarvam STT",
+          "type": "n8n-nodes-base.httpRequest",
+          "onError": "continueRegularOutput",
+          "position": [
+            -16,
+            528
+          ],
+          "parameters": {
+            "url": "https://api.sarvam.ai/speech-to-text",
+            "method": "POST",
+            "options": {},
+            "sendBody": true,
+            "contentType": "multipart-form-data",
+            "sendHeaders": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "file",
+                  "parameterType": "formBinaryData",
+                  "inputDataFieldName": "audio"
+                },
+                {
+                  "name": "model",
+                  "value": "saarika:v2.5"
+                },
+                {
+                  "name": "language_code",
+                  "value": "ta-IN"
+                },
+                {
+                  "name": "with_timestamps",
+                  "value": "false"
+                }
+              ]
+            },
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "api-subscription-key",
+                  "value": "={{$env.SARVAM_API_KEY}}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "77631eaf-2521-4b0d-9e57-035d08c78579",
+          "name": "Prepare STT Results",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            208,
+            528
+          ],
+          "parameters": {
+            "jsCode": "// Prepare STT result and conversation context with robust transcript parsing\nconst sttResponse = $input.first().json;\nconst parsedInput = $('Parse Webhook Input').first().json;\n\nconst extractTranscript = (resp) => {\n  if (!resp || typeof resp !== 'object') return '';\n  if (typeof resp.transcript === 'string') return resp.transcript.trim();\n  if (typeof resp.text === 'string') return resp.text.trim();\n  if (typeof resp.output === 'string') return resp.output.trim();\n  if (Array.isArray(resp.results)) {\n    for (const item of resp.results) {\n      if (typeof item?.transcript === 'string' && item.transcript.trim()) {\n        return item.transcript.trim();\n      }\n    }\n  }\n  return '';\n};\n\nconst transcribedText = extractTranscript(sttResponse);\nconst conversationHistory = Array.isArray(parsedInput.conversationHistory)\n  ? [...parsedInput.conversationHistory]\n  : [];\n\nconst sttFailed = transcribedText.length === 0;\n\n// Add user message only when STT produced text\nif (!sttFailed) {\n  conversationHistory.push({\n    role: 'user',\n    content: transcribedText\n  });\n}\n\n// Detect escalation keywords\nconst escalationKeywords = [\n  'manager', 'human', 'person', 'urgent', 'complaint',\n  '\u0bae\u0bc7\u0bb2\u0bbe\u0bb3\u0bb0\u0bcd', '\u0b86\u0bb3\u0bcd', '\u0b85\u0bb5\u0b9a\u0bb0\u0bae\u0bcd', 'problem'\n];\nconst needsEscalation = !sttFailed && escalationKeywords.some((kw) =>\n  transcribedText.toLowerCase().includes(kw.toLowerCase())\n);\n\nreturn [{\n  json: {\n    transcribedText,\n    conversationHistory,\n    callerPhone: parsedInput.callerPhone,\n    callSid: parsedInput.callSid,\n    needsEscalation,\n    sttFailed,\n    sttRaw: sttResponse,\n    isFirstTurn: false\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "3413a3ed-e1be-4db6-be7e-0d8ddbe3844b",
+          "name": "Check for Escalation",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            432,
+            528
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 1,
+                "leftValue": "",
+                "caseSensitive": false,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "escalation-check",
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $json.needsEscalation }}",
+                  "rightValue": true
+                }
+              ]
+            }
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "b097ba8c-1191-4b8a-9924-60a51a7cfc51",
+          "name": "Handle Escalation",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            640,
+            272
+          ],
+          "parameters": {
+            "jsCode": "// Escalation path \u2014 notify human agent\nconst data = $input.first().json;\n\nconst escalationResponse = '\u0baa\u0bc1\u0bb0\u0bbf\u0ba8\u0bcd\u0ba4\u0ba4\u0bc1. \u0ba8\u0bbe\u0ba9\u0bcd \u0b87\u0baa\u0bcd\u0baa\u0bcb\u0ba4\u0bc1 \u0b89\u0b99\u0bcd\u0b95\u0bb3\u0bc8 \u0b8e\u0b99\u0bcd\u0b95\u0bb3\u0bcd human agent-\u0b95\u0bbf\u0b9f\u0bcd\u0b9f transfer \u0b9a\u0bc6\u0baf\u0bcd\u0b95\u0bbf\u0bb1\u0bc7\u0ba9\u0bcd. \u0b9a\u0bbf\u0bb2 \u0ba8\u0bbf\u0bae\u0bbf\u0b9f\u0b99\u0bcd\u0b95\u0bb3\u0bcd hold-\u0bb2\u0bcd \u0b87\u0bb0\u0bc1\u0b99\u0bcd\u0b95\u0bb3\u0bcd.';\n\n// In production: trigger SMS/WhatsApp alert to human agent here\nreturn [{\n  json: {\n    agentResponse: escalationResponse,\n    transcribedText: data.transcribedText,\n    conversationHistory: data.conversationHistory,\n    callerPhone: data.callerPhone,\n    callSid: data.callSid,\n    isEscalated: true,\n    escalationAlert: {\n      phone: data.callerPhone,\n      transcript: data.transcribedText,\n      timestamp: new Date().toISOString()\n    }\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "37619e99-36e7-4d83-936a-aa37e5fe7fcc",
+          "name": "Merge Response Streams",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            880,
+            400
+          ],
+          "parameters": {
+            "jsCode": "function safeGet(nodeName) {\n  try {\n    const data = $(nodeName).all();\n    return data.length ? data[0].json : null;\n  } catch (e) {\n    return null;\n  }\n}\n\nconst escalationData = safeGet('\ud83d\udea8 Escalation Handler');\nconst llmData = safeGet('Message a model1');\nconst sttData = safeGet('\ud83d\udcdd Process STT');\nconst welcomeData = safeGet('\ud83d\udc4b Welcome Message');\n\nlet agentResponse = '';\nlet conversationHistory = sttData?.conversationHistory || welcomeData?.conversationHistory || [];\nlet callerPhone = sttData?.callerPhone || welcomeData?.callerPhone;\nlet callSid = sttData?.callSid || welcomeData?.callSid;\nlet isEscalated = false;\nlet isFirstTurn = welcomeData?.isFirstTurn || false;\n\nif (isFirstTurn && welcomeData) {\n  agentResponse = welcomeData.agentResponse;\n} else if (sttData?.sttFailed) {\n  agentResponse = '\u0bae\u0ba9\u0bcd\u0ba9\u0bbf\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd, \u0b89\u0b99\u0bcd\u0b95\u0bb3\u0bcd voice clear-\u0b86 \u0b95\u0bc7\u0b9f\u0bcd\u0b95\u0bb5\u0bbf\u0bb2\u0bcd\u0bb2\u0bc8. \u0b95\u0bca\u0b9e\u0bcd\u0b9a\u0bae\u0bcd \u0bae\u0bc6\u0ba4\u0bc1\u0bb5\u0bbe\u0b95 \u0bae\u0bb1\u0bc1\u0baa\u0b9f\u0bbf\u0baf\u0bc1\u0bae\u0bcd \u0b9a\u0bca\u0bb2\u0bcd\u0bb2\u0bc1\u0b99\u0bcd\u0b95\u0bb3\u0bcd, \u0b85\u0bb2\u0bcd\u0bb2\u0ba4\u0bc1 text-\u0b86 \u0b85\u0ba9\u0bc1\u0baa\u0bcd\u0baa\u0bb2\u0bbe\u0bae\u0bcd.';\n  conversationHistory = [\n    ...conversationHistory,\n    { role: 'assistant', content: agentResponse }\n  ];\n} else if (escalationData?.isEscalated) {\n  agentResponse = escalationData.agentResponse;\n  isEscalated = true;\n} else if (llmData) {\n  const extractAssistantText = (data) => {\n    if (typeof data?.text === 'string' && data.text.trim()) return data.text.trim();\n    if (typeof data?.output === 'string' && data.output.trim()) return data.output.trim();\n\n    const output0 = Array.isArray(data?.output) ? data.output[0] : null;\n    const outContent0 = Array.isArray(output0?.content) ? output0.content[0] : null;\n    if (typeof outContent0?.text === 'string' && outContent0.text.trim()) return outContent0.text.trim();\n\n    const choiceText = data?.choices?.[0]?.message?.content;\n    if (typeof choiceText === 'string' && choiceText.trim()) return choiceText.trim();\n\n    const msgContent0 = Array.isArray(data?.content) ? data.content[0] : null;\n    if (typeof msgContent0?.text === 'string' && msgContent0.text.trim()) return msgContent0.text.trim();\n\n    return '';\n  };\n\n  agentResponse = extractAssistantText(llmData) || 'Sorry, clear-ah \u0b95\u0bc7\u0b9f\u0bcd\u0b95\u0bb2. \u0b87\u0ba9\u0bcd\u0ba9\u0bca\u0bb0\u0bc1 \u0ba4\u0b9f\u0bb5\u0bc8 \u0b9a\u0bca\u0bb2\u0bcd\u0bb2\u0bc1\u0b99\u0bcd\u0b95.';\n\n  // Unwrap accidental JSON-string responses like {\"role\":\"assistant\",\"content\":\"...\"}\n  const maybeJsonText = agentResponse.trim();\n  if (maybeJsonText.startsWith('{') && maybeJsonText.endsWith('}')) {\n    try {\n      const parsed = JSON.parse(maybeJsonText);\n      if (typeof parsed?.content === 'string' && parsed.content.trim()) {\n        agentResponse = parsed.content.trim();\n      }\n    } catch (e) {\n      // Keep original text when parsing fails\n    }\n  }\n\n  // Keep spoken output simple, friendly Tamil/Tanglish (avoid very formal Tamil words).\n  agentResponse = agentResponse\n    .replaceAll('\u0b89\u0ba4\u0bb5\u0b9f\u0bcd\u0b9f\u0bc1\u0bae\u0bcd', 'help \u0baa\u0ba3\u0bcd\u0ba3\u0bb2\u0bbe\u0bae\u0bcd')\n    .replaceAll('\u0b89\u0ba4\u0bb5\u0bb2\u0bbe\u0bae\u0bcd', 'help \u0baa\u0ba3\u0bcd\u0ba3\u0bb2\u0bbe\u0bae\u0bcd')\n    .replaceAll('\u0b85\u0bb5\u0b9a\u0bbf\u0baf\u0bae\u0bcd', '\u0ba4\u0bc7\u0bb5\u0bc8\u0ba9\u0bbe')\n    .replaceAll('\u0ba4\u0bca\u0b9f\u0bb0\u0bb5\u0bc1\u0bae\u0bcd', 'continue \u0baa\u0ba3\u0bcd\u0ba3\u0bb2\u0bbe\u0bae\u0bcd')\n    .replaceAll('\u0bb5\u0ba3\u0b95\u0bcd\u0b95\u0bae\u0bcd', '\u0bb9\u0bb2\u0bcb');\n\n  conversationHistory = [\n    ...conversationHistory,\n    { role: 'assistant', content: agentResponse }\n  ];\n} else {\n  agentResponse = '\u0bae\u0ba9\u0bcd\u0ba9\u0bbf\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd, response generate \u0b86\u0b95\u0bb5\u0bbf\u0bb2\u0bcd\u0bb2\u0bc8. \u0bae\u0bc0\u0ba3\u0bcd\u0b9f\u0bc1\u0bae\u0bcd \u0bae\u0bc1\u0baf\u0bb1\u0bcd\u0b9a\u0bbf \u0b9a\u0bc6\u0baf\u0bcd\u0baf\u0bc1\u0b99\u0bcd\u0b95\u0bb3\u0bcd.';\n}\n\nreturn [{\n  json: {\n    agentResponse,\n    conversationHistory,\n    callerPhone,\n    callSid,\n    isEscalated,\n    transcribedText: sttData?.transcribedText || null,\n    sttFailed: sttData?.sttFailed || false,\n    sttRaw: sttData?.sttRaw || null\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "5fdc4395-d70b-4433-9b71-6e0c393a0471",
+          "name": "Post to Sarvam TTS",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            1104,
+            464
+          ],
+          "parameters": {
+            "url": "https://api.sarvam.ai/text-to-speech",
+            "method": "POST",
+            "options": {},
+            "jsonBody": "={\n  \"text\": {{ JSON.stringify($json.agentResponse) }},\n  \"target_language_code\": \"ta-IN\",\n  \"speaker\": \"ishita\",\n  \"model\": \"bulbul:v3\",\n  \"pace\": 0.95,\n  \"speech_sample_rate\": 22050,\n  \"enable_preprocessing\": true,\n  \"temperature\": 0.60\n}",
+            "sendBody": true,
+            "sendHeaders": true,
+            "specifyBody": "json",
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "api-subscription-key",
+                  "value": "={{$env.SARVAM_API_KEY}}"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "330f377b-daf3-437f-8fc3-9d5a8787b44d",
+          "name": "Build Response Payload",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1344,
+            512
+          ],
+          "parameters": {
+            "jsCode": "// Prepare final response payload\nconst ttsData = $('Post to Sarvam TTS').first().json;\nconst mergeData = $('Merge Response Streams').first().json;\n\n// TTS returns base64 audio chunks\nconst audioChunks = ttsData.audios || [];\nconst audioBase64 = audioChunks[0] || '';\n\nreturn {\n  json: {\n    success: true,\n    call_sid: mergeData.callSid,\n    caller_phone: mergeData.callerPhone,\n    transcribed_text: mergeData.transcribedText,\n    stt_failed: mergeData.sttFailed || false,\n    agent_response_text: mergeData.agentResponse,\n    audio_base64: audioBase64,\n    audio_format: 'wav',\n    sample_rate: 8000,\n    is_escalated: mergeData.isEscalated,\n    conversation_history: mergeData.conversationHistory,\n    continue_conversation: !mergeData.isEscalated,\n    timestamp: new Date().toISOString()\n  }\n};"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "0672869d-7d19-412c-8b71-7dd675811723",
+          "name": "Send Webhook Response",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "position": [
+            1568,
+            512
+          ],
+          "parameters": {
+            "options": {
+              "responseHeaders": {
+                "entries": [
+                  {
+                    "name": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "name": "Access-Control-Allow-Origin",
+                    "value": "*"
+                  }
+                ]
+              }
+            },
+            "respondWith": "json",
+            "responseBody": "={{ $json }}"
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "570904b0-0095-4230-b3df-b1c5b1889c83",
+          "name": "Prepare Lead Log Data",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1536,
+            832
+          ],
+          "parameters": {
+            "jsCode": "const input = $input.first().json;\n\nconst history = Array.isArray(input.conversationHistory) ? input.conversationHistory : [];\nconst latestUserText = typeof input.transcribedText === 'string' ? input.transcribedText.trim() : '';\n\nconst isLikelyName = (text) => {\n  if (!text) return false;\n  const words = text.split(/\\s+/).filter(Boolean);\n  if (words.length === 0 || words.length > 3) return false;\n  if (/\\d/.test(text)) return false;\n  return text.length >= 2 && text.length <= 30;\n};\n\nconst askedNameRecently = history\n  .slice(-4)\n  .some((msg) => msg?.role === 'assistant' && typeof msg?.content === 'string' && msg.content.includes('\u0baa\u0bc6\u0baf\u0bb0\u0bcd'));\n\nconst callerName = askedNameRecently && isLikelyName(latestUserText) ? latestUserText : '';\n\nconst numberMatch = latestUserText.match(/(?:\\+?\\d[\\d\\s\\-]{7,}\\d)/);\nconst extractedCallerNumber = numberMatch ? numberMatch[0].replace(/\\s+/g, ' ').trim() : '';\n\nconst intentKeywords = [\n  { key: 'site_visit', words: ['\u0ba8\u0bc7\u0bb0\u0bbf\u0bb2\u0bcd', 'visit', '\u0baa\u0bbe\u0bb0\u0bcd\u0b95\u0bcd\u0b95'] },\n  { key: 'pricing', words: ['\u0bb5\u0bbf\u0bb2\u0bc8', 'price', '\u0bb2\u0b9f\u0bcd\u0b9a\u0bae\u0bcd', '\u0b95\u0bcb\u0b9f\u0bbf'] },\n  { key: 'location', words: ['area', '\u0b8f\u0bb0\u0bbf\u0baf\u0bbe', 'omr', 'porur', '\u0b85\u0ba3\u0bcd\u0ba3\u0bbe \u0ba8\u0b95\u0bb0\u0bcd', '\u0baa\u0bcb\u0bb0\u0bc2\u0bb0\u0bcd'] },\n  { key: 'callback', words: ['call', 'phone', '\u0ba4\u0bca\u0bb2\u0bc8\u0baa\u0bc7\u0b9a\u0bbf'] }\n];\n\nlet callerIntent = 'general_query';\nconst lowerText = latestUserText.toLowerCase();\nfor (const intent of intentKeywords) {\n  if (intent.words.some((w) => lowerText.includes(w.toLowerCase()))) {\n    callerIntent = intent.key;\n    break;\n  }\n}\n\nreturn [{\n  json: {\n    timestamp: new Date().toISOString(),\n    call_sid: input.callSid || '',\n    caller_id: input.callerPhone || '',\n    caller_phone: input.callerPhone || '',\n    caller_name: callerName,\n    caller_intent: callerIntent,\n    extracted_caller_number: extractedCallerNumber,\n    user_last_message: latestUserText,\n    agent_last_reply: input.agentResponse || '',\n    stt_failed: Boolean(input.sttFailed),\n    is_escalated: Boolean(input.isEscalated),\n    continue_conversation: !Boolean(input.isEscalated),\n    audio_format: '',\n    sample_rate: '',\n    history_length: history.length\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "352a19de-7824-47a8-aa70-79df92b2b918",
+          "name": "Append Log to GSheets",
+          "type": "n8n-nodes-base.googleSheets",
+          "onError": "continueRegularOutput",
+          "position": [
+            1776,
+            832
+          ],
+          "parameters": {
+            "columns": {
+              "value": {},
+              "schema": [],
+              "mappingMode": "autoMapInputData",
+              "matchingColumns": [],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "options": {
+              "useAppend": true,
+              "cellFormat": "USER_ENTERED",
+              "handlingExtraData": "insertInNewColumn"
+            },
+            "operation": "append",
+            "sheetName": {
+              "__rl": true,
+              "mode": "id",
+              "value": "{{.GOOGLE_SHEETS_SHEET_ID_1451193517}}"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "{{.GOOGLE_SHEETS_DOCUMENT_ID}}",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/14W9maZj3mvOuuYsbLVe1cDRQog9AeforKUuPvE_aq-4/edit?usp=drivesdk",
+              "cachedResultName": "Voice AI"
+            }
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "DUMMY_GSHEETS_CRED_ID",
+              "name": "John D Google Sheets account"
+            }
+          },
+          "typeVersion": 4.7
+        }
+      ],
+      "pinData": {},
+      "connections": {
+        "If First Turn": {
+          "main": [
+            [
+              {
+                "node": "Generate Welcome Message",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Post to Sarvam STT",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Handle Escalation": {
+          "main": [
+            [
+              {
+                "node": "Merge Response Streams",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Post to Sarvam STT": {
+          "main": [
+            [
+              {
+                "node": "Prepare STT Results",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Post to Sarvam TTS": {
+          "main": [
+            [
+              {
+                "node": "Build Response Payload",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Parse Webhook Input": {
+          "main": [
+            [
+              {
+                "node": "If First Turn",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Prepare STT Results": {
+          "main": [
+            [
+              {
+                "node": "Check for Escalation",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Check for Escalation": {
+          "main": [
+            [
+              {
+                "node": "Handle Escalation",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "OpenAI Model Message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenAI Model Message": {
+          "main": [
+            [
+              {
+                "node": "Merge Response Streams",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Prepare Lead Log Data": {
+          "main": [
+            [
+              {
+                "node": "Append Log to GSheets",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Response Payload": {
+          "main": [
+            [
+              {
+                "node": "Send Webhook Response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Merge Response Streams": {
+          "main": [
+            [
+              {
+                "node": "Post to Sarvam TTS",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Prepare Lead Log Data",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Generate Welcome Message": {
+          "main": [
+            [
+              {
+                "node": "Merge Response Streams",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "When POST to Tamil Agent": {
+          "main": [
+            [
+              {
+                "node": "Parse Webhook Input",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 21,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 2
+        },
+        "n8n-nodes-base.code": {
+          "count": 7
+        },
+        "n8n-nodes-base.webhook": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 6
+        },
+        "n8n-nodes-base.httpRequest": {
+          "count": 2
+        },
+        "n8n-nodes-base.googleSheets": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.openAi": {
+          "count": 1
+        },
+        "n8n-nodes-base.respondToWebhook": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Dinakar Selvakumar",
+      "username": "jamesdinakar",
+      "bio": "Turning real business problems into clean n8n automations. I design reliable templates for social media, lead generation, AI agents, and internal workflows, with a strong focus on simplicity, security, and great user experience.",
+      "verified": true,
+      "links": [
+        "https://www.linkedin.com/in/dinakar-selva/"
+      ],
+      "avatar": "https://gravatar.com/avatar/d3ee0b6c278e3c00cb8b24917f6be30c9deac3c7a9e78157eb8f82690e8a72c5?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 18,
+        "icon": "file:googleSheets.svg",
+        "name": "n8n-nodes-base.googleSheets",
+        "codex": {
+          "data": {
+            "alias": [
+              "CSV",
+              "Sheet",
+              "Spreadsheet",
+              "GS"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/love-at-first-sight-ricardos-n8n-journey/",
+                  "icon": "\u2764\ufe0f",
+                  "label": "Love at first sight: Ricardo\u2019s n8n journey"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-triggers-for-n8n-workflows-using-polling/",
+                  "icon": "\u23f2",
+                  "label": "Creating triggers for n8n workflows using polling"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/migrating-community-metrics-to-orbit-using-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Migrating Community Metrics to Orbit using n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-honest-burgers-use-automation-to-save-100k-per-year/",
+                  "icon": "\ud83c\udf54",
+                  "label": "How Honest Burgers Use Automation to Save $100k per year"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "\ud83d\udcbb",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googlesheets/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage",
+              "Productivity"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\",\"output\"]",
+        "defaults": {
+          "name": "Google Sheets"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNS42OSAxIDUyIDE3LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0OC4yOTMgNjBIMTIuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDkgNTYuMzEyVjQuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTIuNzA3IDF6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM1LjY5IDEgNTIgMTcuMjI1SDM5LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzkuMjExIDE3LjIyNSA1MiAyMi40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTIwLjEyIDMxLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMS42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzEuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNC42OSAwIDUxIDE2LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0Ny4yOTMgNTlIMTEuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDggNTUuMzEyVjMuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTEuNzA3IDB6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM0LjY5IDAgNTEgMTYuMjI1SDM4LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzguMjExIDE2LjIyNSA1MSAyMS40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTE5LjEyIDMwLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMC42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzAuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjwvZz48L3N2Zz4="
+        },
+        "displayName": "Google Sheets",
+        "typeVersion": 5,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          },
+          {
+            "id": 4,
+            "name": "Productivity"
+          }
+        ]
+      },
+      {
+        "id": 19,
+        "icon": "file:httprequest.svg",
+        "name": "n8n-nodes-base.httpRequest",
+        "codex": {
+          "data": {
+            "alias": [
+              "API",
+              "Request",
+              "URL",
+              "Build",
+              "cURL"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-designs-with-bannerbear-and-n8n/",
+                  "icon": "\ud83c\udfa8",
+                  "label": "Automate Designs with Bannerbear and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-use-the-http-request-node-the-swiss-army-knife-for-workflow-automation/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "How to use the HTTP Request Node - The Swiss Army Knife for Workflow Automation"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HTTP Request",
+          "color": "#0004F5"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MCAyMEM0MCA4Ljk1MzE0IDMxLjA0NjkgMCAyMCAwQzguOTUzMTQgMCAwIDguOTUzMTQgMCAyMEMwIDMxLjA0NjkgOC45NTMxNCA0MCAyMCA0MEMzMS4wNDY5IDQwIDQwIDMxLjA0NjkgNDAgMjBaTTIwIDM2Ljk0NThDMTguODg1MiAzNi45NDU4IDE3LjEzNzggMzUuOTY3IDE1LjQ5OTggMzIuNjk4NUMxNC43OTY0IDMxLjI5MTggMTQuMTk2MSAyOS41NDMxIDEzLjc1MjYgMjcuNjg0N0gyNi4xODk4QzI1LjgwNDUgMjkuNTQwMyAyNS4yMDQ0IDMxLjI5MDEgMjQuNTAwMiAzMi42OTg1QzIyLjg2MjIgMzUuOTY3IDIxLjExNDggMzYuOTQ1OCAyMCAzNi45NDU4Wk0xMi45MDY0IDIwQzEyLjkwNjQgMjEuNjA5NyAxMy4wMDg3IDIzLjE2NCAxMy4yMDAzIDI0LjYzMDVIMjYuNzk5N0MyNi45OTEzIDIzLjE2NCAyNy4wOTM2IDIxLjYwOTcgMjcuMDkzNiAyMEMyNy4wOTM2IDE4LjM5MDMgMjYuOTkxMyAxNi44MzYgMjYuNzk5NyAxNS4zNjk1SDEzLjIwMDNDMTMuMDA4NyAxNi44MzYgMTIuOTA2NCAxOC4zOTAzIDEyLjkwNjQgMjBaTTIwIDMuMDU0MTlDMjEuMTE0OSAzLjA1NDE5IDIyLjg2MjIgNC4wMzA3OCAyNC41MDAxIDcuMzAwMzlDMjUuMjA2NiA4LjcxNDA4IDI1LjgwNzIgMTAuNDA2NyAyNi4xOTIgMTIuMzE1M0gxMy43NTAxQzE0LjE5MzMgMTAuNDA0NyAxNC43OTQyIDguNzEyNTQgMTUuNDk5OCA3LjMwMDY0QzE3LjEzNzcgNC4wMzA4MyAxOC44ODUxIDMuMDU0MTkgMjAgMy4wNTQxOVpNMzAuMTQ3OCAyMEMzMC4xNDc4IDE4LjQwOTkgMzAuMDU0MyAxNi44NjE3IDI5LjgyMjcgMTUuMzY5NUgzNi4zMDQyQzM2LjcyNTIgMTYuODQyIDM2Ljk0NTggMTguMzk2NCAzNi45NDU4IDIwQzM2Ljk0NTggMjEuNjAzNiAzNi43MjUyIDIzLjE1OCAzNi4zMDQyIDI0LjYzMDVIMjkuODIyN0MzMC4wNTQzIDIzLjEzODMgMzAuMTQ3OCAyMS41OTAxIDMwLjE0NzggMjBaTTI2LjI3NjcgNC4yNTUxMkMyNy42MzY1IDYuMzYwMTkgMjguNzExIDkuMTMyIDI5LjM3NzQgMTIuMzE1M0gzNS4xMDQ2QzMzLjI1MTEgOC42NjggMzAuMTA3IDUuNzgzNDYgMjYuMjc2NyA0LjI1NTEyWk0xMC42MjI2IDEyLjMxNTNINC44OTI5M0M2Ljc1MTQ3IDguNjY3ODQgOS44OTM1MSA1Ljc4MzQxIDEzLjcyMzIgNC4yNTUxM0MxMi4zNjM1IDYuMzYwMjEgMTEuMjg5IDkuMTMyMDEgMTAuNjIyNiAxMi4zMTUzWk0zLjA1NDE5IDIwQzMuMDU0MTkgMjEuNjAzIDMuMjc3NDMgMjMuMTU3NSAzLjY5NDg0IDI0LjYzMDVIMTAuMTIxN0M5Ljk0NjE5IDIzLjE0MiA5Ljg1MjIyIDIxLjU5NDMgOS44NTIyMiAyMEM5Ljg1MjIyIDE4LjQwNTcgOS45NDYxOSAxNi44NTggMTAuMTIxNyAxNS4zNjk1SDMuNjk0ODRDMy4yNzc0MyAxNi44NDI1IDMuMDU0MTkgMTguMzk3IDMuMDU0MTkgMjBaTTI2LjI3NjYgMzUuNzQyN0MyNy42MzY1IDMzLjYzOTMgMjguNzExIDMwLjg2OCAyOS4zNzc0IDI3LjY4NDdIMzUuMTA0NkMzMy4yNTEgMzEuMzMyMiAzMC4xMDY4IDM0LjIxNzkgMjYuMjc2NiAzNS43NDI3Wk0xMy43MjM0IDM1Ljc0MjdDOS44OTM2OSAzNC4yMTc5IDYuNzUxNTUgMzEuMzMyNCA0Ljg5MjkzIDI3LjY4NDdIMTAuNjIyNkMxMS4yODkgMzAuODY4IDEyLjM2MzUgMzMuNjM5MyAxMy43MjM0IDM1Ljc0MjdaIiBmaWxsPSIjM0E0MkU5Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "HTTP Request",
+        "typeVersion": 4,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 47,
+        "icon": "file:webhook.svg",
+        "name": "n8n-nodes-base.webhook",
+        "codex": {
+          "data": {
+            "alias": [
+              "HTTP",
+              "API",
+              "Build",
+              "WH"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "\ud83d\udcbb",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-automatically-give-kudos-to-contributors-with-github-slack-and-n8n/",
+                  "icon": "\ud83d\udc4f",
+                  "label": "How to automatically give kudos to contributors with GitHub, Slack, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-custom-incident-response-workflows-with-n8n/",
+                  "label": "How to automate every step of an incident response workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Webhook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTM1IDM3Yy0yLjIgMC00LTEuOC00LTRzMS44LTQgNC00IDQgMS44IDQgNC0xLjggNC00IDQiLz48cGF0aCBmaWxsPSIjMzc0NzRmIiBkPSJNMzUgNDNjLTMgMC01LjktMS40LTcuOC0zLjdsMy4xLTIuNWMxLjEgMS40IDIuOSAyLjMgNC43IDIuMyAzLjMgMCA2LTIuNyA2LTZzLTIuNy02LTYtNmMtMSAwLTIgLjMtMi45LjdsLTEuNyAxTDIzLjMgMTZsMy41LTEuOSA1LjMgOS40YzEtLjMgMi0uNSAzLS41IDUuNSAwIDEwIDQuNSAxMCAxMFM0MC41IDQzIDM1IDQzIi8+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTE0IDQzQzguNSA0MyA0IDM4LjUgNCAzM2MwLTQuNiAzLjEtOC41IDcuNS05LjdsMSAzLjlDOS45IDI3LjkgOCAzMC4zIDggMzNjMCAzLjMgMi43IDYgNiA2czYtMi43IDYtNnYtMmgxNXY0SDIzLjhjLS45IDQuNi01IDgtOS44IDgiLz48cGF0aCBmaWxsPSIjZTkxZTYzIiBkPSJNMTQgMzdjLTIuMiAwLTQtMS44LTQtNHMxLjgtNCA0LTQgNCAxLjggNCA0LTEuOCA0LTQgNCIvPjxwYXRoIGZpbGw9IiMzNzQ3NGYiIGQ9Ik0yNSAxOWMtMi4yIDAtNC0xLjgtNC00czEuOC00IDQtNCA0IDEuOCA0IDQtMS44IDQtNCA0Ii8+PHBhdGggZmlsbD0iI2U5MWU2MyIgZD0ibTE1LjcgMzQtMy40LTIgNS45LTkuN2MtMi0xLjktMy4yLTQuNS0zLjItNy4zIDAtNS41IDQuNS0xMCAxMC0xMHMxMCA0LjUgMTAgMTBjMCAuOS0uMSAxLjctLjMgMi41bC0zLjktMWMuMS0uNS4yLTEgLjItMS41IDAtMy4zLTIuNy02LTYtNnMtNiAyLjctNiA2YzAgMi4xIDEuMSA0IDIuOSA1LjFsMS43IDF6Ii8+PC9zdmc+"
+        },
+        "displayName": "Webhook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 535,
+        "icon": "file:webhook.svg",
+        "name": "n8n-nodes-base.respondToWebhook",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.respondtowebhook/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes",
+              "Utility"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Respond to Webhook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTM1IDM3Yy0yLjIgMC00LTEuOC00LTRzMS44LTQgNC00IDQgMS44IDQgNC0xLjggNC00IDQiLz48cGF0aCBmaWxsPSIjMzc0NzRmIiBkPSJNMzUgNDNjLTMgMC01LjktMS40LTcuOC0zLjdsMy4xLTIuNWMxLjEgMS40IDIuOSAyLjMgNC43IDIuMyAzLjMgMCA2LTIuNyA2LTZzLTIuNy02LTYtNmMtMSAwLTIgLjMtMi45LjdsLTEuNyAxTDIzLjMgMTZsMy41LTEuOSA1LjMgOS40YzEtLjMgMi0uNSAzLS41IDUuNSAwIDEwIDQuNSAxMCAxMFM0MC41IDQzIDM1IDQzIi8+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTE0IDQzQzguNSA0MyA0IDM4LjUgNCAzM2MwLTQuNiAzLjEtOC41IDcuNS05LjdsMSAzLjlDOS45IDI3LjkgOCAzMC4zIDggMzNjMCAzLjMgMi43IDYgNiA2czYtMi43IDYtNnYtMmgxNXY0SDIzLjhjLS45IDQuNi01IDgtOS44IDgiLz48cGF0aCBmaWxsPSIjZTkxZTYzIiBkPSJNMTQgMzdjLTIuMiAwLTQtMS44LTQtNHMxLjgtNCA0LTQgNCAxLjggNCA0LTEuOCA0LTQgNCIvPjxwYXRoIGZpbGw9IiMzNzQ3NGYiIGQ9Ik0yNSAxOWMtMi4yIDAtNC0xLjgtNC00czEuOC00IDQtNCA0IDEuOCA0IDQtMS44IDQtNCA0Ii8+PHBhdGggZmlsbD0iI2U5MWU2MyIgZD0ibTE1LjcgMzQtMy40LTIgNS45LTkuN2MtMi0xLjktMy4yLTQuNS0zLjItNy4zIDAtNS41IDQuNS0xMCAxMC0xMHMxMCA0LjUgMTAgMTBjMCAuOS0uMSAxLjctLjMgMi41bC0zLjktMWMuMS0uNS4yLTEgLjItMS41IDAtMy4zLTIuNy02LTYtNnMtNiAyLjctNiA2YzAgMi4xIDEuMSA0IDIuOSA1LjFsMS43IDF6Ii8+PC9zdmc+"
+        },
+        "displayName": "Respond to Webhook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 7,
+            "name": "Utility"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1250,
+        "icon": "file:openAi.svg",
+        "name": "@n8n/n8n-nodes-langchain.openAi",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain",
+              "ChatGPT",
+              "Sora",
+              "DallE",
+              "whisper",
+              "audio",
+              "transcribe",
+              "tts",
+              "assistant"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-langchain.openai/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Agents",
+                "Miscellaneous",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "OpenAI"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTM2Ljg2NzEgMTYuMzcxOEMzNy43NzQ2IDEzLjY0OCAzNy40NjIxIDEwLjY2NDIgMzYuMDEwOCA4LjE4NjYxQzMzLjgyODIgNC4zODY1MyAyOS40NDA3IDIuNDMxNDkgMjUuMTU1NiAzLjM1MTUxQzIzLjI0OTMgMS4yMDM5NiAyMC41MTA1IC0wLjAxNzMxNDggMTcuNjM5MiAwLjAwMDE4NTUzM0MxMy4yNTkxIC0wLjAwOTgxNDY4IDkuMzcyNzMgMi44MTAyNSA4LjAyNTIgNi45Nzc4M0M1LjIxMTM5IDcuNTU0MSAyLjc4MjU4IDkuMzE1MzggMS4zNjEzIDExLjgxMTdDLTAuODM3NDkzIDE1LjYwMTggLTAuMzM2MjMyIDIwLjM3OTQgMi42MDEzMyAyMy42Mjk0QzEuNjkzODEgMjYuMzUzMiAyLjAwNjMyIDI5LjMzNzEgMy40NTc2IDMxLjgxNDZDNS42NDAxNSAzNS42MTQ3IDEwLjAyNzcgMzcuNTY5NyAxNC4zMTI4IDM2LjY0OTdDMTYuMjE3OSAzOC43OTczIDE4Ljk1NzkgNDAuMDE4NSAyMS44MjkyIDM5Ljk5OThDMjYuMjExOCA0MC4wMTEgMzAuMDk5NCAzNy4xODg1IDMxLjQ0NjkgMzMuMDE3MUMzNC4yNjA4IDMyLjQ0MDkgMzYuNjg5NiAzMC42Nzk2IDM4LjExMDggMjguMTgzM0M0MC4zMDcxIDI0LjM5MzIgMzkuODA0NiAxOS42MTk0IDM2Ljg2ODMgMTYuMzY5M0wzNi44NjcxIDE2LjM3MThaTTIxLjgzMTcgMzcuMzg2QzIwLjA3OCAzNy4zODg1IDE4LjM3OTIgMzYuNzc0NyAxNy4wMzI5IDM1LjY1MDlDMTcuMDk0MSAzNS42MTg1IDE3LjIwMDQgMzUuNTU5NyAxNy4yNjkxIDM1LjUxNzJMMjUuMjM0MyAzMC45MTcxQzI1LjY0MTggMzAuNjg1OCAyNS44OTE4IDMwLjI1MjEgMjUuODg5MyAyOS43ODMzVjE4LjU1NDNMMjkuMjU1NiAyMC40OTgxQzI5LjI5MTkgMjAuNTE1NiAyOS4zMTU3IDIwLjU1MDYgMjkuMzIwNyAyMC41OTA2VjI5Ljg4OTZDMjkuMzE1NyAzNC4wMjQ3IDI1Ljk2NjggMzcuMzc3MiAyMS44MzE3IDM3LjM4NlpNNS43MjY0IDMwLjUwNzFDNC44NDc2MyAyOC45ODk2IDQuNTMxMzcgMjcuMjEwOCA0LjgzMjYzIDI1LjQ4NDVDNC44OTEzOCAyNS41MTk1IDQuOTk1MTMgMjUuNTgzMiA1LjA2ODg4IDI1LjYyNTdMMTMuMDM0MSAzMC4yMjU4QzEzLjQzNzggMzAuNDYyMSAxMy45Mzc4IDMwLjQ2MjEgMTQuMzQyOCAzMC4yMjU4TDI0LjA2NjggMjQuNjEwN1YyOC40OTgzQzI0LjA2OTMgMjguNTM4MyAyNC4wNTA1IDI4LjU3NyAyNC4wMTkzIDI4LjYwMkwxNS45Njc5IDMzLjI1MDlDMTIuMzgxNSAzNS4zMTU5IDcuODAxNDQgMzQuMDg4NCA1LjcyNzY1IDMwLjUwNzFINS43MjY0Wk0zLjYzMDEgMTMuMTIwNUM0LjUwNTEyIDExLjYwMDQgNS44ODY0IDEwLjQzNzkgNy41MzE0NCA5LjgzNDE1QzcuNTMxNDQgOS45MDI5IDcuNTI3NjkgMTAuMDI0MSA3LjUyNzY5IDEwLjEwOTJWMTkuMzEwNkM3LjUyNTE5IDE5Ljc3ODEgNy43NzUxOSAyMC4yMTE5IDguMTgxNDUgMjAuNDQzMUwxNy45MDU0IDI2LjA1N0wxNC41MzkxIDI4LjAwMDhDMTQuNTA1MyAyOC4wMjMzIDE0LjQ2MjggMjguMDI3IDE0LjQyNTMgMjguMDEwOEw2LjM3MjY2IDIzLjM1ODJDMi43OTM4MyAyMS4yODU2IDEuNTY2MzEgMTYuNzA2OCAzLjYyODg1IDEzLjEyMTdMMy42MzAxIDEzLjEyMDVaTTMxLjI4ODIgMTkuNTU2OUwyMS41NjQyIDEzLjk0MTdMMjQuOTMwNiAxMS45OTkyQzI0Ljk2NDMgMTEuOTc2NyAyNS4wMDY4IDExLjk3MjkgMjUuMDQ0MyAxMS45ODkyTDMzLjA5NyAxNi42MzhDMzYuNjgyMSAxOC43MDkzIDM3LjkxMDggMjMuMjk1NyAzNS44Mzk1IDI2Ljg4MDhDMzQuOTYzMyAyOC4zOTgzIDMzLjU4MzIgMjkuNTYwOCAzMS45Mzk1IDMwLjE2NThWMjAuNjg5NEMzMS45NDMyIDIwLjIyMTkgMzEuNjk0NSAxOS43ODk0IDMxLjI4OTQgMTkuNTU2OUgzMS4yODgyWk0zNC42MzgzIDE0LjUxNDJDMzQuNTc5NSAxNC40NzggMzQuNDc1OCAxNC40MTU1IDM0LjQwMiAxNC4zNzNMMjYuNDM2OCA5Ljc3Mjg5QzI2LjAzMzEgOS41MzY2NCAyNS41MzMxIDkuNTM2NjQgMjUuMTI4MSA5Ljc3Mjg5TDE1LjQwNDEgMTUuMzg4VjExLjUwMDRDMTUuNDAxNiAxMS40NjA0IDE1LjQyMDQgMTEuNDIxNyAxNS40NTE2IDExLjM5NjdMMjMuNTAzIDYuNzUxNThDMjcuMDg5NCA0LjY4Mjc5IDMxLjY3NDUgNS45MTQwNiAzMy43NDIgOS41MDE2NEMzNC42MTU4IDExLjAxNjcgMzQuOTMyIDEyLjc5MDUgMzQuNjM1OCAxNC41MTQySDM0LjYzODNaTTEzLjU3NDEgMjEuNDQzMUwxMC4yMDY1IDE5LjQ5OTRDMTAuMTcwMiAxOS40ODE5IDEwLjE0NjUgMTkuNDQ2OCAxMC4xNDE1IDE5LjQwNjhWMTAuMTA3OUMxMC4xNDQgNS45Njc4MSAxMy41MDI4IDIuNjEyNzQgMTcuNjQyOSAyLjYxNTI0QzE5LjM5NDIgMi42MTUyNCAyMS4wODkyIDMuMjMwMjUgMjIuNDM1NSA0LjM1MDI4QzIyLjM3NDMgNC4zODI3OCAyMi4yNjkzIDQuNDQxNTMgMjIuMTk5MiA0LjQ4NDAzTDE0LjIzNDEgOS4wODQxM0MxMy44MjY2IDkuMzE1MzggMTMuNTc2NiA5Ljc0Nzg5IDEzLjU3OTEgMTAuMjE2N0wxMy41NzQxIDIxLjQ0MDZWMjEuNDQzMVpNMTUuNDAyOSAxNy41MDA2TDE5LjczNDIgMTQuOTk5M0wyNC4wNjU1IDE3LjQ5OTNWMjIuNTAwN0wxOS43MzQyIDI1LjAwMDdMMTUuNDAyOSAyMi41MDA3VjE3LjUwMDZaIiBmaWxsPSJibGFjayIvPgo8L3N2Zz4K"
+        },
+        "displayName": "OpenAI",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 40,
+        "name": "Support Chatbot"
+      },
+      {
+        "id": 47,
+        "name": "AI Chatbot"
+      }
+    ],
+    "image": []
+  }
+}

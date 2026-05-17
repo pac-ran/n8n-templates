@@ -1,0 +1,1664 @@
+{
+  "workflow": {
+    "id": 15536,
+    "name": "Qualify and nurture Typeform leads in GoHighLevel with OpenAI, Calendly, Gmail and Slack",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-07T16:36:16.600Z",
+    "description": "## Who it's for\n\nService businesses, agencies, and consultants using GoHighLevel as their CRM who want to automatically qualify, route, and follow up with inbound leads based on their fit and buying intent.\n\n## How it works\n\nWhen a lead submits your Typeform, OpenAI scores them from 0 to 100 based on budget, timeline, and business need. The workflow routes leads into three tiers automatically. Hot leads above 80 are created in GoHighLevel, added to your hot pipeline, sent a Calendly booking link via Gmail, and trigger an instant Slack alert. Warm leads between 50 and 79 are added to a nurture pipeline, sent a personalized AI-written email, and receive an automated follow-up 48 hours later. Cold leads below 50 are tagged and logged in GoHighLevel with a Slack notification for manual review.\n\n## How to set up\n\n1. Update all variables in the Configure Variables node\n\n2. Connect Typeform and select your form\n\n3. Add OpenAI API credentials\n\n4. Add GoHighLevel API credentials and Pipeline IDs\n\n5. Connect Gmail for outbound emails\n\n6. Connect Slack and set your channel name\n\n7. Add your Calendly booking link to Configure Variables\n\n## Requirements\n\n- Typeform account with an active form\n- OpenAI API key\n- GoHighLevel account with API access and two pipelines configured\n- Gmail account\n- Slack workspace\n- Calendly account with booking link\n\n## How to customize\n\n- Adjust hot and warm score thresholds in the Configure Variables node\n- Modify AI scoring criteria in the AI Lead Scorer prompt\n- Replace the 48 hour wait with any delay that fits your sales cycle\n- Add Twilio SMS notifications for hot leads\n- Replace Gmail with any email provider supported by n8n",
+    "workflow": {
+      "id": "URFOwLt4qHI8HLbi",
+      "meta": {
+        "instanceId": "7fca5a09220fe56fcaf23cb497881a53ab245ef68c2db2ea5f5bcbf8bb0afecd"
+      },
+      "name": "Lead Qualification Workflow",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "a0a1e560-ae5f-4a4a-8a85-55d6da224aec",
+          "name": "Typeform Submission",
+          "type": "n8n-nodes-base.typeformTrigger",
+          "position": [
+            240,
+            400
+          ],
+          "webhookId": "0e86871a-327e-4048-9719-b0002da4356c",
+          "parameters": {
+            "formId": "<__PLACEHOLDER_VALUE__Your Typeform Form ID__>"
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "1376c2d8-7e45-4061-b42d-5679197790e9",
+          "name": "Configure Variables",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            464,
+            400
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "1",
+                  "name": "typeformFormId",
+                  "type": "string",
+                  "value": "<__PLACEHOLDER_VALUE__Your Typeform Form ID__>"
+                },
+                {
+                  "id": "2",
+                  "name": "hotLeadThreshold",
+                  "type": "number",
+                  "value": 80
+                },
+                {
+                  "id": "3",
+                  "name": "warmLeadThreshold",
+                  "type": "number",
+                  "value": 50
+                },
+                {
+                  "id": "4",
+                  "name": "hotPipelineId",
+                  "type": "string",
+                  "value": "<__PLACEHOLDER_VALUE__Hot Pipeline ID from GoHighLevel__>"
+                },
+                {
+                  "id": "5",
+                  "name": "nurturePipelineId",
+                  "type": "string",
+                  "value": "<__PLACEHOLDER_VALUE__Nurture Pipeline ID from GoHighLevel__>"
+                },
+                {
+                  "id": "6",
+                  "name": "slackChannelName",
+                  "type": "string",
+                  "value": "<__PLACEHOLDER_VALUE__Slack channel name (e.g., #sales-alerts)__>"
+                },
+                {
+                  "id": "7",
+                  "name": "calendlyBookingLink",
+                  "type": "string",
+                  "value": "<__PLACEHOLDER_VALUE__Your Calendly booking link__>"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "6e8c6bb8-ba0e-4a20-8169-62ec453d87a6",
+          "name": "AI Lead Scorer",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "position": [
+            688,
+            400
+          ],
+          "parameters": {
+            "text": "=Score this lead from 0 to 100 based on the following criteria:\n\nBudget: {{ $(\"Typeform Submission\").item.json.budget }}\nTimeline: {{ $(\"Typeform Submission\").item.json.timeline }}\nBusiness Need: {{ $(\"Typeform Submission\").item.json.business_need }}\n\nScoring guidelines:\n- Budget: Higher budget = higher score (0-40 points)\n- Timeline: Urgent timeline = higher score (0-30 points)\n- Business Need: Clear, specific need = higher score (0-30 points)\n\nDetermine qualification tier:\n- \"hot\" if score > 80\n- \"warm\" if score 50-80\n- \"cold\" if score < 50\n\nProvide a brief reason for the score and create a personalized message for the lead.",
+            "options": {
+              "systemMessage": "You are a lead qualification expert. Analyze leads based on budget, timeline, and business need. Score them from 0-100 and provide structured output with score, qualification tier, reason, and personalized message."
+            },
+            "promptType": "define",
+            "hasOutputParser": true
+          },
+          "typeVersion": 3.1
+        },
+        {
+          "id": "e5be7474-c1e2-4541-bd4f-6b8c175bc004",
+          "name": "OpenAI Model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "position": [
+            704,
+            624
+          ],
+          "parameters": {
+            "model": {
+              "__rl": true,
+              "mode": "id",
+              "value": "gpt-4o-mini"
+            },
+            "options": {
+              "temperature": 0.2
+            },
+            "builtInTools": {}
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "d96ca765-3c62-4284-8a38-664455ee824e",
+          "name": "Structured Output Parser",
+          "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+          "position": [
+            832,
+            624
+          ],
+          "parameters": {
+            "jsonSchemaExample": {
+              "score": 85,
+              "reason": "High budget and urgent timeline indicate strong buying intent",
+              "qualification_tier": "hot",
+              "personalized_message": "Based on your budget and timeline, I recommend scheduling a call to discuss our enterprise solution."
+            }
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "12d804ed-5249-45f4-84b0-1af2c80c33e4",
+          "name": "Check Hot Lead",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            1056,
+            400
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 2,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "1",
+                  "operator": {
+                    "type": "number",
+                    "operation": "gt"
+                  },
+                  "leftValue": "={{ $json.output.score }}",
+                  "rightValue": "={{ $(\"Configure Variables\").item.json.hotLeadThreshold }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "17ae74cf-30ad-4413-938c-c91f22339e0a",
+          "name": "Create Hot Lead Contact",
+          "type": "n8n-nodes-base.highLevel",
+          "position": [
+            1360,
+            208
+          ],
+          "parameters": {
+            "email": "={{ $(\"Typeform Submission\").item.json.email }}",
+            "phone": "={{ $(\"Typeform Submission\").item.json.phone }}",
+            "requestOptions": {},
+            "additionalFields": {
+              "tags": "hot-lead,typeform",
+              "notes": "=AI Score: {{ $(\"AI Lead Scorer\").item.json.output.score }}\nReason: {{ $(\"AI Lead Scorer\").item.json.output.reason }}",
+              "lastName": "={{ $(\"Typeform Submission\").item.json.last_name }}",
+              "firstName": "={{ $(\"Typeform Submission\").item.json.first_name }}"
+            }
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "d49d6e9c-4ccc-4fe4-bfb0-bdea2ee5dbec",
+          "name": "Assign to Hot Pipeline",
+          "type": "n8n-nodes-base.highLevel",
+          "position": [
+            1600,
+            208
+          ],
+          "parameters": {
+            "resource": "opportunity",
+            "operation": "update",
+            "updateFields": {
+              "status": "open",
+              "pipelineId": "={{ $(\"Configure Variables\").item.json.hotPipelineId }}"
+            },
+            "opportunityId": "={{ $json.id }}",
+            "requestOptions": {}
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "ae5c70e6-6f03-4ea6-b3d7-62db9a405dda",
+          "name": "Send Hot Lead Email with Calendly",
+          "type": "n8n-nodes-base.gmail",
+          "position": [
+            1856,
+            208
+          ],
+          "webhookId": "329a173f-8739-49c0-9d85-23d22b92b204",
+          "parameters": {
+            "sendTo": "={{ $(\"Typeform Submission\").item.json.email }}",
+            "message": "=<p>Hi {{ $(\"Typeform Submission\").item.json.first_name }},</p>\n\n<p>Thank you for your interest! Based on your requirements, I'd love to schedule a personalized demo with you.</p>\n\n<p><strong>Book your demo here:</strong> <a href=\"{{ $(\"Configure Variables\").item.json.calendlyBookingLink }}\">{{ $(\"Configure Variables\").item.json.calendlyBookingLink }}</a></p>\n\n<p>Looking forward to speaking with you!</p>\n\n<p>Best regards,<br>Sales Team</p>",
+            "options": {},
+            "subject": "=Let's Schedule Your Demo - {{ $(\"Typeform Submission\").item.json.first_name }}"
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "e9c6e085-3d5b-4107-bf9f-f567856ef21b",
+          "name": "Notify Hot Lead on Slack",
+          "type": "n8n-nodes-base.slack",
+          "position": [
+            2112,
+            208
+          ],
+          "webhookId": "3803de5e-cc09-4551-8d4d-d841333251b8",
+          "parameters": {
+            "text": "=\ud83d\udd25 Hot Lead Alert",
+            "select": "channel",
+            "blocksUi": "=[\n  {\n    \"type\": \"header\",\n    \"text\": {\n      \"type\": \"plain_text\",\n      \"text\": \"\ud83d\udd25 Hot Lead Alert - Score: {{ $(\"AI Lead Scorer\").item.json.output.score }}\"\n    }\n  },\n  {\n    \"type\": \"section\",\n    \"fields\": [\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Name:*\\n{{ $(\"Typeform Submission\").item.json.first_name }} {{ $(\"Typeform Submission\").item.json.last_name }}\"\n      },\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Email:*\\n{{ $(\"Typeform Submission\").item.json.email }}\"\n      },\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Budget:*\\n{{ $(\"Typeform Submission\").item.json.budget }}\"\n      },\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Timeline:*\\n{{ $(\"Typeform Submission\").item.json.timeline }}\"\n      }\n    ]\n  },\n  {\n    \"type\": \"section\",\n    \"text\": {\n      \"type\": \"mrkdwn\",\n      \"text\": \"*Reason:*\\n{{ $(\"AI Lead Scorer\").item.json.output.reason }}\"\n    }\n  }\n]",
+            "channelId": {
+              "__rl": true,
+              "mode": "name",
+              "value": "={{ $(\"Configure Variables\").item.json.slackChannelName }}"
+            },
+            "messageType": "block",
+            "otherOptions": {}
+          },
+          "typeVersion": 2.4
+        },
+        {
+          "id": "3a52123a-a25f-4c78-8762-007bbefd1625",
+          "name": "Check Warm Lead",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            1088,
+            640
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 2,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "1",
+                  "operator": {
+                    "type": "number",
+                    "operation": "gt"
+                  },
+                  "leftValue": "={{ $json.output.score }}",
+                  "rightValue": "={{ $(\"Configure Variables\").item.json.warmLeadThreshold }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "96b1b4ae-2a1e-45ad-ae11-c8a47f229df5",
+          "name": "Create Warm Lead Contact",
+          "type": "n8n-nodes-base.highLevel",
+          "position": [
+            1344,
+            560
+          ],
+          "parameters": {
+            "email": "={{ $(\"Typeform Submission\").item.json.email }}",
+            "phone": "={{ $(\"Typeform Submission\").item.json.phone }}",
+            "requestOptions": {},
+            "additionalFields": {
+              "tags": "warm-lead,typeform",
+              "notes": "=AI Score: {{ $(\"AI Lead Scorer\").item.json.output.score }}\nReason: {{ $(\"AI Lead Scorer\").item.json.output.reason }}",
+              "lastName": "={{ $(\"Typeform Submission\").item.json.last_name }}",
+              "firstName": "={{ $(\"Typeform Submission\").item.json.first_name }}"
+            }
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "5ef1ba13-12aa-4f26-9226-cc93a711b1a1",
+          "name": "Assign to Nurture Pipeline",
+          "type": "n8n-nodes-base.highLevel",
+          "position": [
+            1584,
+            560
+          ],
+          "parameters": {
+            "resource": "opportunity",
+            "operation": "update",
+            "updateFields": {
+              "status": "open",
+              "pipelineId": "={{ $(\"Configure Variables\").item.json.nurturePipelineId }}"
+            },
+            "opportunityId": "={{ $json.id }}",
+            "requestOptions": {}
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "4bf5dcb2-8ffe-421d-ad7d-a10dd26a8e77",
+          "name": "Send Warm Lead Personalized Email",
+          "type": "n8n-nodes-base.gmail",
+          "position": [
+            1808,
+            560
+          ],
+          "webhookId": "d5d21cfa-4eb4-49cc-b0b1-abf21a290bf1",
+          "parameters": {
+            "sendTo": "={{ $(\"Typeform Submission\").item.json.email }}",
+            "message": "=<p>Hi {{ $(\"Typeform Submission\").item.json.first_name }},</p>\n\n<p>{{ $(\"AI Lead Scorer\").item.json.output.personalized_message }}</p>\n\n<p>I'll follow up with you in a couple of days with more information tailored to your needs.</p>\n\n<p>Best regards,<br>Sales Team</p>",
+            "options": {},
+            "subject": "=Thank You for Your Interest - {{ $(\"Typeform Submission\").item.json.first_name }}"
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "bfaf751e-135f-42e6-b809-ca6d6e4d3cef",
+          "name": "Wait 48 Hours",
+          "type": "n8n-nodes-base.wait",
+          "position": [
+            2016,
+            560
+          ],
+          "webhookId": "1ac46ec2-32b9-4543-baea-a29640288e42",
+          "parameters": {
+            "unit": "hours",
+            "amount": 48
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "de19fc80-eacf-40e2-8821-bea31f00a781",
+          "name": "Send Warm Lead Follow-Up Email",
+          "type": "n8n-nodes-base.gmail",
+          "position": [
+            2224,
+            560
+          ],
+          "webhookId": "544f5406-7bc6-49d4-913a-708837d947bd",
+          "parameters": {
+            "sendTo": "={{ $(\"Typeform Submission\").item.json.email }}",
+            "message": "=<p>Hi {{ $(\"Typeform Submission\").item.json.first_name }},</p>\n\n<p>I wanted to follow up on my previous email. Have you had a chance to review our solution?</p>\n\n<p>I'd be happy to answer any questions you might have or schedule a brief call to discuss how we can help with {{ $(\"Typeform Submission\").item.json.business_need }}.</p>\n\n<p>Best regards,<br>Sales Team</p>",
+            "options": {},
+            "subject": "=Following Up - {{ $(\"Typeform Submission\").item.json.first_name }}"
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "89d406b6-7333-481c-a8c5-66c317eec188",
+          "name": "Create Cold Lead Contact",
+          "type": "n8n-nodes-base.highLevel",
+          "position": [
+            1344,
+            976
+          ],
+          "parameters": {
+            "email": "={{ $(\"Typeform Submission\").item.json.email }}",
+            "phone": "={{ $(\"Typeform Submission\").item.json.phone }}",
+            "requestOptions": {},
+            "additionalFields": {
+              "tags": "cold-lead,typeform",
+              "notes": "=AI Score: {{ $(\"AI Lead Scorer\").item.json.output.score }}\nReason: {{ $(\"AI Lead Scorer\").item.json.output.reason }}",
+              "lastName": "={{ $(\"Typeform Submission\").item.json.last_name }}",
+              "firstName": "={{ $(\"Typeform Submission\").item.json.first_name }}"
+            }
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "cd218b77-c208-4472-9418-635af90a2484",
+          "name": "Notify Cold Lead on Slack",
+          "type": "n8n-nodes-base.slack",
+          "position": [
+            1568,
+            976
+          ],
+          "webhookId": "3232e819-391b-4b0e-87bd-2863d89873ec",
+          "parameters": {
+            "text": "=\u2744\ufe0f Cold Lead Notification",
+            "select": "channel",
+            "blocksUi": "=[\n  {\n    \"type\": \"header\",\n    \"text\": {\n      \"type\": \"plain_text\",\n      \"text\": \"\u2744\ufe0f Cold Lead - Score: {{ $(\"AI Lead Scorer\").item.json.output.score }}\"\n    }\n  },\n  {\n    \"type\": \"section\",\n    \"fields\": [\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Name:*\\n{{ $(\"Typeform Submission\").item.json.first_name }} {{ $(\"Typeform Submission\").item.json.last_name }}\"\n      },\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Email:*\\n{{ $(\"Typeform Submission\").item.json.email }}\"\n      }\n    ]\n  },\n  {\n    \"type\": \"section\",\n    \"text\": {\n      \"type\": \"mrkdwn\",\n      \"text\": \"*Reason:*\\n{{ $(\"AI Lead Scorer\").item.json.output.reason }}\"\n    }\n  }\n]",
+            "channelId": {
+              "__rl": true,
+              "mode": "name",
+              "value": "={{ $(\"Configure Variables\").item.json.slackChannelName }}"
+            },
+            "messageType": "block",
+            "otherOptions": {}
+          },
+          "typeVersion": 2.4
+        },
+        {
+          "id": "4e157129-c077-4859-9487-95015c06872f",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            176,
+            -416
+          ],
+          "parameters": {
+            "color": "#FFF995",
+            "width": 992,
+            "height": 560,
+            "content": "## Qualify, nurture and book appointments from Typeform leads using AI, GoHighLevel and Calendly\n\n### How it works\nWhen a lead submits your Typeform, OpenAI scores them 0-100 based on budget, timeline, and business need. Hot leads above 80 instantly receive a Calendly booking link and trigger a Slack alert. Warm leads above 50 are added to a nurture pipeline and receive a personalized email followed by an automated 48-hour follow-up. Cold leads are tagged and logged in GoHighLevel with a Slack notification. All three tiers are created as contacts in GoHighLevel automatically.\n\n### Setup\n1. Update all variables in the Configure Variables node\n2. Connect your Typeform account and select your form\n3. Add your OpenAI API credentials\n4. Add your GoHighLevel API credentials and Pipeline IDs\n5. Connect Gmail for all outbound emails\n6. Connect Slack and set your channel name\n7. Add your Calendly booking link to the Configure Variables node\n8. Activate the workflow\n\n### Customization\n- Adjust hot and warm score thresholds in the Configure Variables node\n- Modify the AI scoring criteria in the AI Lead Scorer prompt\n- Add SMS notifications via Twilio for hot leads\n- Replace the 48 hour wait with any delay that suits your sales cycle"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "aa61516b-98d1-4b8f-af78-2e88ac9eac74",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            192,
+            288
+          ],
+          "parameters": {
+            "color": "#AAAAAA",
+            "width": 1040,
+            "height": 480,
+            "content": "## 1. Capture & Score\nTypeform triggers the workflow. Variables are configured here. OpenAI scores the lead 0-100."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "36deb7c4-0494-4fec-9060-83ef7f20f27b",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1296,
+            96
+          ],
+          "parameters": {
+            "color": "#AAAAAA",
+            "width": 1008,
+            "height": 256,
+            "content": "## 2. Hot Leads 80+\nContact created in GHL hot pipeline. Calendly link sent instantly. Slack alert fired."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "9161ef59-b84a-45f0-b80e-94e81a27699c",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1296,
+            448
+          ],
+          "parameters": {
+            "color": "#AAAAAA",
+            "width": 1104,
+            "height": 272,
+            "content": "## 3. Warm Leads 50-79\nContact added to nurture pipeline. Personalized email sent. 48-hour follow-up automated."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "31eff39e-6ca5-4c34-a894-97815098ae2c",
+          "name": "Sticky Note4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1296,
+            880
+          ],
+          "parameters": {
+            "color": "#AAAAAA",
+            "width": 528,
+            "height": 256,
+            "content": "## 4. Cold Leads Below 50\nContact tagged cold in GHL. Slack notification sent with score and reason."
+          },
+          "typeVersion": 1
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "2a75152d-626c-46a5-a4a3-e6bf3c1099d1",
+      "connections": {
+        "OpenAI Model": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "AI Lead Scorer",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Wait 48 Hours": {
+          "main": [
+            [
+              {
+                "node": "Send Warm Lead Follow-Up Email",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "AI Lead Scorer": {
+          "main": [
+            [
+              {
+                "node": "Check Hot Lead",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Check Hot Lead": {
+          "main": [
+            [
+              {
+                "node": "Create Hot Lead Contact",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Check Warm Lead",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Check Warm Lead": {
+          "main": [
+            [
+              {
+                "node": "Create Warm Lead Contact",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Create Cold Lead Contact",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Configure Variables": {
+          "main": [
+            [
+              {
+                "node": "AI Lead Scorer",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Typeform Submission": {
+          "main": [
+            [
+              {
+                "node": "Configure Variables",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Assign to Hot Pipeline": {
+          "main": [
+            [
+              {
+                "node": "Send Hot Lead Email with Calendly",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Create Hot Lead Contact": {
+          "main": [
+            [
+              {
+                "node": "Assign to Hot Pipeline",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Create Cold Lead Contact": {
+          "main": [
+            [
+              {
+                "node": "Notify Cold Lead on Slack",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Create Warm Lead Contact": {
+          "main": [
+            [
+              {
+                "node": "Assign to Nurture Pipeline",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Structured Output Parser": {
+          "ai_outputParser": [
+            [
+              {
+                "node": "AI Lead Scorer",
+                "type": "ai_outputParser",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Assign to Nurture Pipeline": {
+          "main": [
+            [
+              {
+                "node": "Send Warm Lead Personalized Email",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Send Hot Lead Email with Calendly": {
+          "main": [
+            [
+              {
+                "node": "Notify Hot Lead on Slack",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Send Warm Lead Personalized Email": {
+          "main": [
+            [
+              {
+                "node": "Wait 48 Hours",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 23,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 2
+        },
+        "n8n-nodes-base.set": {
+          "count": 1
+        },
+        "n8n-nodes-base.wait": {
+          "count": 1
+        },
+        "n8n-nodes-base.gmail": {
+          "count": 3
+        },
+        "n8n-nodes-base.slack": {
+          "count": 2
+        },
+        "n8n-nodes-base.highLevel": {
+          "count": 5
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 5
+        },
+        "@n8n/n8n-nodes-langchain.agent": {
+          "count": 1
+        },
+        "n8n-nodes-base.typeformTrigger": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.lmChatOpenAi": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.outputParserStructured": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Andrew",
+      "username": "striker",
+      "bio": "AI automation specialist building lead generation, appointment setting, and workflow systems for service businesses. I build with n8n, Make, and GoHighLevel to help trades and service businesses capture leads, qualify them automatically, and book appointments without any manual work.",
+      "verified": true,
+      "links": [
+        ""
+      ],
+      "avatar": "https://gravatar.com/avatar/03d2b73ba5c1eefa8de385bfe515b0cea4f436eb3070a3e84e624d8328a411f7?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 40,
+        "icon": "file:slack.svg",
+        "name": "n8n-nodes-base.slack",
+        "codex": {
+          "data": {
+            "alias": [
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-automatically-give-kudos-to-contributors-with-github-slack-and-n8n/",
+                  "icon": "\ud83d\udc4f",
+                  "label": "How to automatically give kudos to contributors with GitHub, Slack, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.slack/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/slack/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "Slack"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgMTUwLjg1MiAxNTAuODUyIj48dXNlIHhsaW5rOmhyZWY9IiNhIiB4PSIuOTI2IiB5PSIuOTI2Ii8+PHN5bWJvbCBpZD0iYSIgb3ZlcmZsb3c9InZpc2libGUiPjxnIHN0cm9rZS13aWR0aD0iMS44NTIiPjxwYXRoIGZpbGw9IiNlMDFlNWEiIHN0cm9rZT0iI2UwMWU1YSIgZD0iTTQwLjc0MSA5My41NWMwLTguNzM1IDYuNjA3LTE1Ljc3MiAxNC44MTUtMTUuNzcyczE0LjgxNSA3LjAzNyAxNC44MTUgMTUuNzcydjM4LjgyNGMwIDguNzM3LTYuNjA3IDE1Ljc3NC0xNC44MTUgMTUuNzc0cy0xNC44MTUtNy4wMzctMTQuODE1LTE1Ljc3MnoiLz48cGF0aCBmaWxsPSIjZWNiMjJkIiBzdHJva2U9IiNlY2IyMmQiIGQ9Ik05My41NSAxMDcuNDA4Yy04LjczNSAwLTE1Ljc3Mi02LjYwNy0xNS43NzItMTQuODE1czcuMDM3LTE0LjgxNSAxNS43NzItMTQuODE1aDM4LjgyNmM4LjczNSAwIDE1Ljc3MiA2LjYwNyAxNS43NzIgMTQuODE1cy03LjAzNyAxNC44MTUtMTUuNzcyIDE0LjgxNXoiLz48cGF0aCBmaWxsPSIjMmZiNjdjIiBzdHJva2U9IiMyZmI2N2MiIGQ9Ik03Ny43NzggMTUuNzcyQzc3Ljc3OCA3LjAzNyA4NC4zODUgMCA5Mi41OTMgMHMxNC44MTUgNy4wMzcgMTQuODE1IDE1Ljc3MnYzOC44MjZjMCA4LjczNS02LjYwNyAxNS43NzItMTQuODE1IDE1Ljc3MnMtMTQuODE1LTcuMDM3LTE0LjgxNS0xNS43NzJ6Ii8+PHBhdGggZmlsbD0iIzM2YzVmMSIgc3Ryb2tlPSIjMzZjNWYxIiBkPSJNMTUuNzcyIDcwLjM3MUM3LjAzNyA3MC4zNzEgMCA2My43NjMgMCA1NS41NTZzNy4wMzctMTQuODE1IDE1Ljc3Mi0xNC44MTVoMzguODI2YzguNzM1IDAgMTUuNzcyIDYuNjA3IDE1Ljc3MiAxNC44MTVzLTcuMDM3IDE0LjgxNS0xNS43NzIgMTQuODE1eiIvPjxnIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiPjxwYXRoIGZpbGw9IiNlY2IyMmQiIHN0cm9rZT0iI2VjYjIyZCIgZD0iTTc3Ljc3OCAxMzMuMzMzYzAgOC4yMDggNi42MDcgMTQuODE1IDE0LjgxNSAxNC44MTVzMTQuODE1LTYuNjA3IDE0LjgxNS0xNC44MTUtNi42MDctMTQuODE1LTE0LjgxNS0xNC44MTVINzcuNzc4eiIvPjxwYXRoIGZpbGw9IiMyZmI2N2MiIHN0cm9rZT0iIzJmYjY3YyIgZD0iTTEzMy4zMzQgNzAuMzcxaC0xNC44MTVWNTUuNTU2YzAtOC4yMDcgNi42MDctMTQuODE1IDE0LjgxNS0xNC44MTVzMTQuODE1IDYuNjA3IDE0LjgxNSAxNC44MTUtNi42MDcgMTQuODE1LTE0LjgxNSAxNC44MTV6Ii8+PHBhdGggZmlsbD0iI2UwMWU1YSIgc3Ryb2tlPSIjZTAxZTVhIiBkPSJNMTQuODE1IDc3Ljc3OEgyOS42M3YxNC44MTVjMCA4LjIwNy02LjYwNyAxNC44MTUtMTQuODE1IDE0LjgxNVMwIDEwMC44IDAgOTIuNTkzczYuNjA3LTE0LjgxNSAxNC44MTUtMTQuODE1eiIvPjxwYXRoIGZpbGw9IiMzNmM1ZjEiIHN0cm9rZT0iIzM2YzVmMSIgZD0iTTcwLjM3MSAxNC44MTVWMjkuNjNINTUuNTU2Yy04LjIwNyAwLTE0LjgxNS02LjYwNy0xNC44MTUtMTQuODE1UzQ3LjM0OCAwIDU1LjU1NiAwczE0LjgxNSA2LjYwNyAxNC44MTUgMTQuODE1eiIvPjwvZz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Slack",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 51,
+        "icon": "file:typeform.svg",
+        "name": "n8n-nodes-base.typeformTrigger",
+        "codex": {
+          "data": {
+            "alias": [
+              "Form"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automating-conference-organization-processes-with-n8n/",
+                  "icon": "\ud83d\ude4b\u200d\u2640\ufe0f",
+                  "label": "Automating Conference Organization Processes with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/trigger-nodes/n8n-nodes-base.typeformtrigger/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/typeform/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Typeform Trigger"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE4Ljg4NzYgMC4wNzM4OTg0QzI0LjAzMTYgLTAuMzQ5NjE4IDI3LjcyNiAxLjAxNTY2IDMxLjcwMTIgNC45ODg0NkMzNS45OTMgOS4yNzc2NyAzOC44NDYzIDE0LjgzNjEgMzkuNjE1MiAyMC43NTdDNDAuNDcwOCAyNy4zNDE1IDM5LjI5NCAzMi4yNTUxIDM1LjY2OTcgMzUuODUyNUMzMi4yMDQgMzkuMjkyNCAyNy4xNDE5IDQwLjQyNyAyMC4zNzk3IDM5Ljg2MTdMMjAuMDk5OCAzOS44MzcxQzE0LjM0MTUgMzkuMzA3NyAxMC4yNjg2IDM3LjQxOTcgNi4zMjIzMyAzMy40MjMxQzIuMTA3MTEgMjkuMTU0IC0wLjExNDA5NCAyNC4zMDcgMC4wMDQ1MTUwMyAxOS4yMTk2QzAuMDYyNTI4MiAxNi43MjkgMC43NjgwNDYgMTQuNjA2MyAyLjEyODY3IDEyLjUyMzZDMy4wMjA2OCAxMS4xNTgyIDMuOTI2NTcgMTAuMDkzMSA1LjgyMTQ5IDguMTM5N0w2LjQ1Mzg5IDcuNDkxOTNMNy4xNTEgNi43ODUzNUMxMS42NDE4IDIuMjcxMjggMTQuNTk4NCAwLjQyNzA0MiAxOC44ODc2IDAuMDczODk4NFpNMzEuMzk1NSA1LjI5NDMyQzI3LjUwOTkgMS40MTEgMjMuOTQwMSAwLjA5MTc4OTggMTguOTIzMSAwLjUwNDg1M0MxNC42OTUgMC44NTI5NjYgMTEuNzkxMyAyLjcwMDEgNy4yNDcwNiA3LjMwMjcxTDYuOTE4MzIgNy42MzYyNUM0LjcwNDI2IDkuODg3MDQgMy42NjY2OSAxMS4wMzc4IDIuNzUyNzEgMTIuMzY4N0wyLjYxOTcyIDEyLjU2NDlMMi40OTA2OCAxMi43NjAxQzEuMTcyNjEgMTQuNzc3NyAwLjQ5Mjg3MyAxNi44MjI4IDAuNDM2ODEgMTkuMjI5NkMwLjMyMTE0MyAyNC4xOTA5IDIuNDkyMjggMjguOTI4NiA2LjYzMDAyIDMzLjExOTJDMTAuNTY2MyAzNy4xMDU4IDE0LjYxMDIgMzguOTQ1NiAyMC40MTU4IDM5LjQzMDhMMjAuNzAzOCAzOS40NTM5QzI3LjIwNzEgMzkuOTU0IDMyLjA1NTYgMzguODMwNCAzNS4zNjUgMzUuNTQ1NkMzOC44ODEyIDMyLjA1NTYgNDAuMDI2MSAyNy4yNzUxIDM5LjE4NjQgMjAuODEyN0MzOC40MzAxIDE0Ljk4OTEgMzUuNjIxNSA5LjUxNzczIDMxLjM5NTUgNS4yOTQzMlpNMjYuMDE0MSAxNC41NDlWMTYuNjYxNEgyMS41Mjc4VjI4Ljc2ODFIMTkuMjkzMVYxNi42NjE0SDE0LjgwNjhWMTQuNTQ5SDI2LjAxNDFaIiBmaWxsPSIjMjYyNjI3Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "Typeform Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          }
+        ]
+      },
+      {
+        "id": 356,
+        "icon": "file:gmail.svg",
+        "name": "n8n-nodes-base.gmail",
+        "codex": {
+          "data": {
+            "alias": [
+              "email",
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/using-automation-to-boost-productivity-in-the-workplace/",
+                  "icon": "\ud83d\udcaa",
+                  "label": "Using Automation to Boost Productivity in the Workplace"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.gmail/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Gmail"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMTkzIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCI+PHBhdGggZmlsbD0iIzQyODVGNCIgZD0iTTU4LjE4MiAxOTIuMDVWOTMuMTRMMjcuNTA3IDY1LjA3NyAwIDQ5LjUwNHYxMjUuMDkxYzAgOS42NTggNy44MjUgMTcuNDU1IDE3LjQ1NSAxNy40NTV6Ii8+PHBhdGggZmlsbD0iIzM0QTg1MyIgZD0iTTE5Ny44MTggMTkyLjA1aDQwLjcyN2M5LjY1OSAwIDE3LjQ1NS03LjgyNiAxNy40NTUtMTcuNDU1VjQ5LjUwNWwtMzEuMTU2IDE3LjgzNy0yNy4wMjYgMjUuNzk4eiIvPjxwYXRoIGZpbGw9IiNFQTQzMzUiIGQ9Im01OC4xODIgOTMuMTQtNC4xNzQtMzguNjQ3IDQuMTc0LTM2Ljk4OUwxMjggNjkuODY4bDY5LjgxOC01Mi4zNjQgNC42NyAzNC45OTItNC42NyA0MC42NDRMMTI4IDE0NS41MDR6Ii8+PHBhdGggZmlsbD0iI0ZCQkMwNCIgZD0iTTE5Ny44MTggMTcuNTA0VjkzLjE0TDI1NiA0OS41MDRWMjYuMjMxYzAtMjEuNTg1LTI0LjY0LTMzLjg5LTQxLjg5LTIwLjk0NXoiLz48cGF0aCBmaWxsPSIjQzUyMjFGIiBkPSJtMCA0OS41MDQgMjYuNzU5IDIwLjA3TDU4LjE4MiA5My4xNFYxNy41MDRMNDEuODkgNS4yODZDMjQuNjEtNy42NiAwIDQuNjQ2IDAgMjYuMjN6Ii8+PC9zdmc+"
+        },
+        "displayName": "Gmail",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 514,
+        "icon": "fa:pause-circle",
+        "name": "n8n-nodes-base.wait",
+        "codex": {
+          "data": {
+            "alias": [
+              "pause",
+              "sleep",
+              "delay",
+              "timeout"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.wait/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Wait",
+          "color": "#804050"
+        },
+        "iconData": {
+          "icon": "pause-circle",
+          "type": "icon"
+        },
+        "displayName": "Wait",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 825,
+        "icon": "file:highLevel.svg",
+        "name": "n8n-nodes-base.highLevel",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.highlevel/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/highlevel/"
+                }
+              ]
+            },
+            "categories": [
+              "Marketing",
+              "Sales"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "HighLevel"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3QgeD0iNS43NzczNCIgeT0iNi44MDQyIiB3aWR0aD0iNS4yOTIxNiIgaGVpZ2h0PSIzMi44ODciIGZpbGw9IiNGREM0MDAiLz4KPHJlY3QgeD0iMjguODM1OSIgeT0iNi44MDQyIiB3aWR0aD0iNS4yOTIxNiIgaGVpZ2h0PSIzMi44ODciIGZpbGw9IiM0QUNGMjciLz4KPHJlY3QgeD0iMTYuOTI4NyIgeT0iMTguOTk1MSIgd2lkdGg9IjYuMDQ4MTkiIGhlaWdodD0iMjAuNjk2MSIgZmlsbD0iIzI4OTZGQiIvPgo8cGF0aCBkPSJNOC40NzA2NCAwTDE2Ljk0MTMgOC45MzA1M0gwTDguNDcwNjQgMFoiIGZpbGw9IiNGREM0MDAiLz4KPHBhdGggZD0iTTMxLjUyOTIgMEwzOS45OTk5IDguOTMwNTNIMjMuMDU4NkwzMS41MjkyIDBaIiBmaWxsPSIjNEFDRjI3Ii8+CjxwYXRoIGQ9Ik0xOS45OTk5IDEyLjY2MzNMMjguNDcwNiAyMS41OTM5SDExLjUyOTNMMTkuOTk5OSAxMi42NjMzWiIgZmlsbD0iIzI4OTZGQiIvPgo8cGF0aCBkPSJNNS43NzczNCA4LjkzMDQySDExLjA2OTVWMTQuMjIyNkw1Ljc3NzM0IDguOTMwNDJaIiBmaWxsPSIjREFBOTAwIi8+CjxwYXRoIGQ9Ik0yOC44MzU5IDguOTMwNDJIMzQuMTI4MVYxNC4yMjI2TDI4LjgzNTkgOC45MzA0MloiIGZpbGw9IiM1MUIzNDYiLz4KPHBhdGggZD0iTTE2LjkyODcgMjEuNTk0SDIyLjk3NjlWMjcuNjQyMkwxNi45Mjg3IDIxLjU5NFoiIGZpbGw9IiMxRjgxREIiLz4KPC9zdmc+Cg=="
+        },
+        "displayName": "HighLevel",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 2,
+            "name": "Sales"
+          },
+          {
+            "id": 27,
+            "name": "Marketing"
+          }
+        ]
+      },
+      {
+        "id": 1119,
+        "icon": "fa:robot",
+        "name": "@n8n/n8n-nodes-langchain.agent",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain",
+              "Chat",
+              "Conversational",
+              "Plan and Execute",
+              "ReAct",
+              "Tools"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Agents",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "AI Agent",
+          "color": "#404040"
+        },
+        "iconData": {
+          "icon": "robot",
+          "type": "icon"
+        },
+        "displayName": "AI Agent",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1153,
+        "icon": "file:openAiLight.svg",
+        "name": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmchatopenai/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Language Models",
+                "Root Nodes"
+              ],
+              "Language Models": [
+                "Chat Models (Recommended)"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "OpenAI Chat Model"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTM2Ljg2NzEgMTYuMzcxOEMzNy43NzQ2IDEzLjY0OCAzNy40NjIxIDEwLjY2NDIgMzYuMDEwOCA4LjE4NjYxQzMzLjgyODIgNC4zODY1MyAyOS40NDA3IDIuNDMxNDkgMjUuMTU1NiAzLjM1MTUxQzIzLjI0OTMgMS4yMDM5NiAyMC41MTA1IC0wLjAxNzMxNDggMTcuNjM5MiAwLjAwMDE4NTUzM0MxMy4yNTkxIC0wLjAwOTgxNDY4IDkuMzcyNzMgMi44MTAyNSA4LjAyNTIgNi45Nzc4M0M1LjIxMTM5IDcuNTU0MSAyLjc4MjU4IDkuMzE1MzggMS4zNjEzIDExLjgxMTdDLTAuODM3NDkzIDE1LjYwMTggLTAuMzM2MjMyIDIwLjM3OTQgMi42MDEzMyAyMy42Mjk0QzEuNjkzODEgMjYuMzUzMiAyLjAwNjMyIDI5LjMzNzEgMy40NTc2IDMxLjgxNDZDNS42NDAxNSAzNS42MTQ3IDEwLjAyNzcgMzcuNTY5NyAxNC4zMTI4IDM2LjY0OTdDMTYuMjE3OSAzOC43OTczIDE4Ljk1NzkgNDAuMDE4NSAyMS44MjkyIDM5Ljk5OThDMjYuMjExOCA0MC4wMTEgMzAuMDk5NCAzNy4xODg1IDMxLjQ0NjkgMzMuMDE3MUMzNC4yNjA4IDMyLjQ0MDkgMzYuNjg5NiAzMC42Nzk2IDM4LjExMDggMjguMTgzM0M0MC4zMDcxIDI0LjM5MzIgMzkuODA0NiAxOS42MTk0IDM2Ljg2ODMgMTYuMzY5M0wzNi44NjcxIDE2LjM3MThaTTIxLjgzMTcgMzcuMzg2QzIwLjA3OCAzNy4zODg1IDE4LjM3OTIgMzYuNzc0NyAxNy4wMzI5IDM1LjY1MDlDMTcuMDk0MSAzNS42MTg0IDE3LjIwMDQgMzUuNTU5NyAxNy4yNjkxIDM1LjUxNzJMMjUuMjM0MyAzMC45MTcxQzI1LjY0MTggMzAuNjg1OCAyNS44OTE4IDMwLjI1MjEgMjUuODg5MyAyOS43ODMzVjE4LjU1NDNMMjkuMjU1NyAyMC40OTgxQzI5LjI5MTkgMjAuNTE1NiAyOS4zMTU3IDIwLjU1MDYgMjkuMzIwNyAyMC41OTA2VjI5Ljg4OTZDMjkuMzE1NyAzNC4wMjQ3IDI1Ljk2NjggMzcuMzc3MiAyMS44MzE3IDM3LjM4NlpNNS43MjY0IDMwLjUwNzFDNC44NDc2MyAyOC45ODk2IDQuNTMxMzcgMjcuMjEwOCA0LjgzMjYzIDI1LjQ4NDVDNC44OTEzOCAyNS41MTk1IDQuOTk1MTMgMjUuNTgzMiA1LjA2ODg4IDI1LjYyNTdMMTMuMDM0MSAzMC4yMjU4QzEzLjQzNzggMzAuNDYyMSAxMy45Mzc4IDMwLjQ2MjEgMTQuMzQyOCAzMC4yMjU4TDI0LjA2NjggMjQuNjEwN1YyOC40OTgzQzI0LjA2OTMgMjguNTM4MyAyNC4wNTA1IDI4LjU3NyAyNC4wMTkzIDI4LjYwMkwxNS45Njc5IDMzLjI1MDlDMTIuMzgxNSAzNS4zMTU5IDcuODAxNDQgMzQuMDg4NCA1LjcyNzY1IDMwLjUwNzFINS43MjY0Wk0zLjYzMDEgMTMuMTIwNUM0LjUwNTEyIDExLjYwMDQgNS44ODY0IDEwLjQzNzkgNy41MzE0NCA5LjgzNDE1QzcuNTMxNDQgOS45MDI5IDcuNTI3NjkgMTAuMDI0MiA3LjUyNzY5IDEwLjEwOTJWMTkuMzEwNkM3LjUyNTE5IDE5Ljc3ODEgNy43NzUxOSAyMC4yMTE5IDguMTgxNDUgMjAuNDQzMUwxNy45MDU0IDI2LjA1N0wxNC41MzkxIDI4LjAwMDhDMTQuNTA1MyAyOC4wMjMzIDE0LjQ2MjggMjguMDI3IDE0LjQyNTMgMjguMDEwOEw2LjM3MjY2IDIzLjM1ODJDMi43OTM4MyAyMS4yODU2IDEuNTY2MzEgMTYuNzA2OCAzLjYyODg1IDEzLjEyMTdMMy42MzAxIDEzLjEyMDVaTTMxLjI4ODIgMTkuNTU2OUwyMS41NjQyIDEzLjk0MTdMMjQuOTMwNiAxMS45OTkyQzI0Ljk2NDMgMTEuOTc2NyAyNS4wMDY4IDExLjk3MjkgMjUuMDQ0MyAxMS45ODkyTDMzLjA5NyAxNi42MzhDMzYuNjgyMSAxOC43MDkzIDM3LjkxMDggMjMuMjk1NyAzNS44Mzk1IDI2Ljg4MDhDMzQuOTYzMyAyOC4zOTgzIDMzLjU4MzIgMjkuNTYwOCAzMS45Mzk1IDMwLjE2NThWMjAuNjg5NEMzMS45NDMyIDIwLjIyMTkgMzEuNjk0NSAxOS43ODk0IDMxLjI4OTQgMTkuNTU2OUgzMS4yODgyWk0zNC42MzgzIDE0LjUxNDJDMzQuNTc5NSAxNC40NzggMzQuNDc1OCAxNC40MTU1IDM0LjQwMiAxNC4zNzNMMjYuNDM2OCA5Ljc3Mjg5QzI2LjAzMzEgOS41MzY2NCAyNS41MzMxIDkuNTM2NjQgMjUuMTI4MSA5Ljc3Mjg5TDE1LjQwNDEgMTUuMzg4VjExLjUwMDRDMTUuNDAxNiAxMS40NjA0IDE1LjQyMDQgMTEuNDIxNyAxNS40NTE2IDExLjM5NjdMMjMuNTAzIDYuNzUxNThDMjcuMDg5NCA0LjY4Mjc5IDMxLjY3NDUgNS45MTQwNiAzMy43NDIgOS41MDE2NEMzNC42MTU4IDExLjAxNjcgMzQuOTMyIDEyLjc5MDUgMzQuNjM1OCAxNC41MTQySDM0LjYzODNaTTEzLjU3NDEgMjEuNDQzMUwxMC4yMDY1IDE5LjQ5OTRDMTAuMTcwMiAxOS40ODE5IDEwLjE0NjUgMTkuNDQ2OCAxMC4xNDE1IDE5LjQwNjhWMTAuMTA3OUMxMC4xNDQgNS45Njc4MSAxMy41MDI4IDIuNjEyNzQgMTcuNjQyOSAyLjYxNTI0QzE5LjM5NDIgMi42MTUyNCAyMS4wODkyIDMuMjMwMjUgMjIuNDM1NSA0LjM1MDI4QzIyLjM3NDMgNC4zODI3OCAyMi4yNjkzIDQuNDQxNTMgMjIuMTk5MiA0LjQ4NDAzTDE0LjIzNDEgOS4wODQxM0MxMy44MjY2IDkuMzE1MzggMTMuNTc2NiA5Ljc0Nzg5IDEzLjU3OTEgMTAuMjE2N0wxMy41NzQxIDIxLjQ0MDZWMjEuNDQzMVpNMTUuNDAyOSAxNy41MDA2TDE5LjczNDIgMTQuOTk5M0wyNC4wNjU1IDE3LjQ5OTNWMjIuNTAwN0wxOS43MzQyIDI1LjAwMDdMMTUuNDAyOSAyMi41MDA3VjE3LjUwMDZaIiBmaWxsPSIjN0Q3RDg3Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "OpenAI Chat Model",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1179,
+        "icon": "fa:code",
+        "name": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "codex": {
+          "data": {
+            "alias": [
+              "json",
+              "zod"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.outputparserstructured/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Output Parsers"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Structured Output Parser"
+        },
+        "iconData": {
+          "icon": "code",
+          "type": "icon"
+        },
+        "displayName": "Structured Output Parser",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 37,
+        "name": "Lead Generation"
+      },
+      {
+        "id": 49,
+        "name": "AI Summarization"
+      }
+    ],
+    "image": [
+      {
+        "id": 6146,
+        "url": "https://n8niostorageaccount.blob.core.windows.net/n8nio-strapi-blobs-prod/assets/Screenshot_2026_05_07_at_10_43_41_AM_7fb5f83e7d.png"
+      }
+    ]
+  }
+}

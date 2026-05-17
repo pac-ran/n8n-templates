@@ -1,0 +1,1582 @@
+{
+  "workflow": {
+    "id": 15522,
+    "name": "Classify Gmail support emails with AI and store tickets in PostgreSQL",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-07T06:54:07.719Z",
+    "description": "This workflow automatically converts incoming Gmail messages into structured support tickets using AI classification. It assigns categories, generates a unique ticket ID, stores data in PostgreSQL, assigns a support agent based on workload, and sends an automated email reply to the customer.\n\n\u2699\ufe0f How it works\nFetch email from Gmail AI classifies ticket (Payment, Login, Fraud, etc.) Generates unique ticket ID Stores ticket in PostgreSQL Assigns available support agent Logs assignment Sends email confirmation to customer\n\n\ud83d\udce6 Requirements\n1. n8n (latest version)\n2. Gmail OAuth2 credentials\n3. PostgreSQL database\n4. AI model (Ollama or compatible LLM)\n5. Support tables:\n6. tickets\n7. support_persons\n8. ticket_assignment_logs\n",
+    "workflow": {
+      "id": "ANM0XWTjlsQvNUbf",
+      "meta": {
+        "instanceId": "34b4e6043c6ca26b945320d7e1d54c509a801020e3b57689263d33ed5a21eac7",
+        "templateCredsSetupCompleted": true
+      },
+      "name": "AI Ticket Classifier",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "2624805e-f8f9-4cb7-8de2-c3ae7cd2f975",
+          "name": "Get many messages",
+          "type": "n8n-nodes-base.gmail",
+          "position": [
+            -576,
+            -240
+          ],
+          "webhookId": "84a3d3ed-e2ce-4300-8e9a-e730763bca3b",
+          "parameters": {
+            "limit": 1,
+            "filters": {},
+            "operation": "getAll"
+          },
+          "credentials": {
+            "gmailOAuth2": {
+              "id": "zHYelbAAdYG7vxb2",
+              "name": "Gmail account"
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "c9ed6968-dbad-4990-bbdd-cd97f3b09d28",
+          "name": "Text Classifier",
+          "type": "@n8n/n8n-nodes-langchain.textClassifier",
+          "position": [
+            -304,
+            -288
+          ],
+          "parameters": {
+            "options": {
+              "systemPromptTemplate": "You are an intelligent email and support ticket classifier.\n\nClassify the user's message into exactly ONE of these categories:{categories}\n"
+            },
+            "inputText": "={{ $json.Subject }}",
+            "categories": {
+              "categories": [
+                {
+                  "category": "Payment Issue",
+                  "description": "Issues related to payment failure, duplicate payment, refund requests, subscription activation, invoice problems, or money deducted from customer account."
+                },
+                {
+                  "category": "Login Failure",
+                  "description": "Issues where users cannot log in, forgot password, account locked, OTP problems, authentication failure, or access denied."
+                },
+                {
+                  "category": "Enhancement Request",
+                  "description": "Requests for new features, UI improvements, integrations, performance enhancements, or product suggestions."
+                },
+                {
+                  "category": "Fraud Alert",
+                  "description": "Unauthorized access attempts, suspicious transactions, account hacking concerns, phishing reports, or security-related complaints."
+                },
+                {
+                  "category": "Other",
+                  "description": "Unclassified "
+                }
+              ]
+            }
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "647ddb9c-73dc-42b4-bf8b-cc0ef7fe34f1",
+          "name": "Ollama Model",
+          "type": "@n8n/n8n-nodes-langchain.lmOllama",
+          "position": [
+            -304,
+            112
+          ],
+          "parameters": {
+            "model": "llama3:latest",
+            "options": {
+              "lowVram": true
+            }
+          },
+          "credentials": {
+            "ollamaApi": {
+              "id": "aJDjCdUTel28ttqr",
+              "name": "Ollama account"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "832507a4-bce5-4d85-af99-fe775b2e53bf",
+          "name": "Insert rows in a table",
+          "type": "n8n-nodes-base.postgres",
+          "position": [
+            1408,
+            -256
+          ],
+          "parameters": {
+            "table": {
+              "__rl": true,
+              "mode": "list",
+              "value": "tickets",
+              "cachedResultName": "tickets"
+            },
+            "schema": {
+              "__rl": true,
+              "mode": "list",
+              "value": "public",
+              "cachedResultName": "public"
+            },
+            "columns": {
+              "value": {
+                "status": "Active",
+                "message": "={{ $('Get many messages').item.json.snippet }}",
+                "subject": "={{ $('Get many messages').item.json.Subject }}",
+                "category": "Oher Unclassified",
+                "priority": "Less",
+                "sentiment": "NA",
+                "assigned_to": "={{ $json.id }}",
+                "ticket_number": "={{ $('Code in JavaScript').item.json.ticket_number }}",
+                "customer_email": "={{ $('Get many messages').item.json.From }}"
+              },
+              "schema": [
+                {
+                  "id": "id",
+                  "type": "number",
+                  "display": true,
+                  "removed": true,
+                  "required": false,
+                  "displayName": "id",
+                  "defaultMatch": true,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "ticket_number",
+                  "type": "string",
+                  "display": true,
+                  "required": true,
+                  "displayName": "ticket_number",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "customer_email",
+                  "type": "string",
+                  "display": true,
+                  "required": true,
+                  "displayName": "customer_email",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "subject",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "subject",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "message",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "message",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "category",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "category",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "priority",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "priority",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "sentiment",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "sentiment",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "status",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "status",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "assigned_to",
+                  "type": "number",
+                  "display": true,
+                  "required": false,
+                  "displayName": "assigned_to",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "created_at",
+                  "type": "dateTime",
+                  "display": true,
+                  "required": false,
+                  "displayName": "created_at",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "updated_at",
+                  "type": "dateTime",
+                  "display": true,
+                  "required": false,
+                  "displayName": "updated_at",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                }
+              ],
+              "mappingMode": "defineBelow",
+              "matchingColumns": [
+                "id"
+              ],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "options": {}
+          },
+          "credentials": {
+            "postgres": {
+              "id": "N6PDEbLSrvaTS7rD",
+              "name": "Postgres account"
+            }
+          },
+          "typeVersion": 2.6
+        },
+        {
+          "id": "5eeb559e-759c-4566-aaa6-670c091f336a",
+          "name": "Code in JavaScript",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            960,
+            -256
+          ],
+          "parameters": {
+            "jsCode": "for (const item of $input.all()) {\n\n  const now = new Date();\n\n  const year = now.getFullYear();\n  const month = String(now.getMonth() + 1).padStart(2, '0');\n  const day = String(now.getDate()).padStart(2, '0');\n  const hours = String(now.getHours()).padStart(2, '0');\n  const minutes = String(now.getMinutes()).padStart(2, '0');\n  const seconds = String(now.getSeconds()).padStart(2, '0');\n  const random = Math.floor(100 + Math.random() * 900);\n\n  const ticketId =\n    `TKT[Other]-${year}${month}${day}-${hours}${minutes}${seconds}-${random}`;\n\n  item.json.ticket_number = ticketId;\n\n\n  item.json.myNewField = $input.first().json.myNewField;\n}\n\nreturn $input.all();"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "9baf8647-e6b9-4320-9f1a-ba2ecad19093",
+          "name": "Select rows from a table",
+          "type": "n8n-nodes-base.postgres",
+          "position": [
+            1184,
+            -256
+          ],
+          "parameters": {
+            "table": {
+              "__rl": true,
+              "mode": "list",
+              "value": "support_persons",
+              "cachedResultName": "support_persons"
+            },
+            "where": {
+              "values": [
+                {
+                  "value": "={{ $json.myNewField }}",
+                  "column": "skill_category",
+                  "condition": "LIKE"
+                },
+                {
+                  "value": "5",
+                  "column": "active_tickets",
+                  "condition": "<"
+                }
+              ]
+            },
+            "schema": {
+              "__rl": true,
+              "mode": "list",
+              "value": "public"
+            },
+            "options": {},
+            "operation": "select"
+          },
+          "credentials": {
+            "postgres": {
+              "id": "N6PDEbLSrvaTS7rD",
+              "name": "Postgres account"
+            }
+          },
+          "typeVersion": 2.6
+        },
+        {
+          "id": "79c08a8a-3724-4d30-ac92-8944bf0ef1ae",
+          "name": "Update rows in a table",
+          "type": "n8n-nodes-base.postgres",
+          "position": [
+            1632,
+            -256
+          ],
+          "parameters": {
+            "table": {
+              "__rl": true,
+              "mode": "list",
+              "value": "support_persons",
+              "cachedResultName": "support_persons"
+            },
+            "schema": {
+              "__rl": true,
+              "mode": "list",
+              "value": "public"
+            },
+            "columns": {
+              "value": {
+                "id": "={{ $('Select rows from a table').item.json.id }}",
+                "active_tickets": "={{ Number($('Select rows from a table').item.json.active_tickets) + 1 }}"
+              },
+              "schema": [
+                {
+                  "id": "id",
+                  "type": "number",
+                  "display": true,
+                  "removed": false,
+                  "required": false,
+                  "displayName": "id",
+                  "defaultMatch": true,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "name",
+                  "type": "string",
+                  "display": true,
+                  "removed": true,
+                  "required": true,
+                  "displayName": "name",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "email",
+                  "type": "string",
+                  "display": true,
+                  "removed": true,
+                  "required": true,
+                  "displayName": "email",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "department",
+                  "type": "string",
+                  "display": true,
+                  "removed": true,
+                  "required": false,
+                  "displayName": "department",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "skill_category",
+                  "type": "string",
+                  "display": true,
+                  "removed": true,
+                  "required": false,
+                  "displayName": "skill_category",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "status",
+                  "type": "string",
+                  "display": true,
+                  "removed": true,
+                  "required": false,
+                  "displayName": "status",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "active_tickets",
+                  "type": "number",
+                  "display": true,
+                  "required": false,
+                  "displayName": "active_tickets",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "max_tickets",
+                  "type": "number",
+                  "display": true,
+                  "removed": true,
+                  "required": false,
+                  "displayName": "max_tickets",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "created_at",
+                  "type": "dateTime",
+                  "display": true,
+                  "removed": true,
+                  "required": false,
+                  "displayName": "created_at",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                }
+              ],
+              "mappingMode": "defineBelow",
+              "matchingColumns": [
+                "id"
+              ],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "options": {},
+            "operation": "update"
+          },
+          "credentials": {
+            "postgres": {
+              "id": "N6PDEbLSrvaTS7rD",
+              "name": "Postgres account"
+            }
+          },
+          "typeVersion": 2.6
+        },
+        {
+          "id": "33cc911f-732a-4039-abd3-2bb0bbb11654",
+          "name": "Insert rows in a table1",
+          "type": "n8n-nodes-base.postgres",
+          "position": [
+            1856,
+            -256
+          ],
+          "parameters": {
+            "table": {
+              "__rl": true,
+              "mode": "list",
+              "value": "ticket_assignment_logs",
+              "cachedResultName": "ticket_assignment_logs"
+            },
+            "schema": {
+              "__rl": true,
+              "mode": "list",
+              "value": "public"
+            },
+            "columns": {
+              "value": {
+                "ticket_id": "={{ $('Code in JavaScript').item.json.ticket_number }}",
+                "assignment_reason": "={{ $('Select rows from a table').item.json.status }}",
+                "support_person_id": "={{ $('Select rows from a table').item.json.id }}"
+              },
+              "schema": [
+                {
+                  "id": "id",
+                  "type": "number",
+                  "display": true,
+                  "required": false,
+                  "displayName": "id",
+                  "defaultMatch": true,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "ticket_id",
+                  "type": "string",
+                  "display": true,
+                  "required": true,
+                  "displayName": "ticket_id",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "support_person_id",
+                  "type": "number",
+                  "display": true,
+                  "required": true,
+                  "displayName": "support_person_id",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "assigned_at",
+                  "type": "dateTime",
+                  "display": true,
+                  "required": false,
+                  "displayName": "assigned_at",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "assignment_reason",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "assignment_reason",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                }
+              ],
+              "mappingMode": "defineBelow",
+              "matchingColumns": [
+                "id"
+              ],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "options": {}
+          },
+          "credentials": {
+            "postgres": {
+              "id": "N6PDEbLSrvaTS7rD",
+              "name": "Postgres account"
+            }
+          },
+          "typeVersion": 2.6
+        },
+        {
+          "id": "063c92c3-4ba6-472a-95ab-bd0bb6ead7db",
+          "name": "Reply to a message",
+          "type": "n8n-nodes-base.gmail",
+          "position": [
+            2080,
+            -256
+          ],
+          "webhookId": "daf13e5f-dd31-409b-9377-fde23c9894e5",
+          "parameters": {
+            "message": "=<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Ticket Confirmation</title>\n</head>\n<body style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333;\">\n\n  <h2 style=\"color: #16a085;\">Support Ticket Generated Successfully</h2>\n\n  <p>Dear Customer,</p>\n\n  <p>Thank you for contacting our support team. We have successfully received your request and created a support ticket for your issue.</p>\n\n  <h3 style=\"color: #16a085;\">Ticket Details</h3>\n\n  <table style=\"border-collapse: collapse; width: 100%; max-width: 600px;\">\n    <tr>\n      <td style=\"border: 1px solid #ddd; padding: 8px;\"><b>Ticket ID</b></td>\n      <td style=\"border: 1px solid #ddd; padding: 8px;\">{{ $('Code in JavaScript').item.json.ticket_number }}</td>\n    </tr>\n    <tr>\n      <td style=\"border: 1px solid #ddd; padding: 8px;\"><b>Support Person</b></td>\n      <td style=\"border: 1px solid #ddd; padding: 8px;\">{{ $('Select rows from a table').item.json.name }}</td>\n    </tr>\n    <tr>\n      <td style=\"border: 1px solid #ddd; padding: 8px;\"><b>Support Person Contact</b></td>\n      <td style=\"border: 1px solid #ddd; padding: 8px;\">{{ $('Select rows from a table').item.json.email }}</td>\n    </tr>\n    <tr>\n      <td style=\"border: 1px solid #ddd; padding: 8px;\"><b>Status</b></td>\n      <td style=\"border: 1px solid #ddd; padding: 8px;\">Under Review</td>\n    </tr>\n  </table>\n\n  <p>\n    We appreciate your patience. You will receive another update once the issue is resolved.\n  </p>\n\n  <br>\n\n  <p>Regards,<br>\n  <b>Support Team</b></p>\n\n</body>\n</html>",
+            "options": {
+              "ccList": "={{ $('Select rows from a table').item.json.email }}"
+            },
+            "messageId": "={{ $('Get many messages').item.json.id }}",
+            "operation": "reply"
+          },
+          "credentials": {
+            "gmailOAuth2": {
+              "id": "zHYelbAAdYG7vxb2",
+              "name": "Gmail account"
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "37b78d8c-d365-408e-a10d-74f624f7d4f6",
+          "name": "Code in JavaScript1",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            400,
+            -624
+          ],
+          "parameters": {
+            "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 'Payment Issue';\n}\n\nreturn $input.all();"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "09dbcfce-663e-4164-944c-aaaa5bbbd6cf",
+          "name": "Code in JavaScript2",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            400,
+            -432
+          ],
+          "parameters": {
+            "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 'Bug Report';\n}\n\nreturn $input.all();"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "d27192a8-7fd7-43e5-a1b9-0038bd37c582",
+          "name": "Code in JavaScript3",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            400,
+            -240
+          ],
+          "parameters": {
+            "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 'General Query';\n}\n\nreturn $input.all();"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "62cc5b11-2887-4417-81c1-7fae3026f9dc",
+          "name": "Code in JavaScript4",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            400,
+            -48
+          ],
+          "parameters": {
+            "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 'Fraud Alert';\n}\n\nreturn $input.all();"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "d57bf31f-b6f3-442b-b3ea-6de3553f79a3",
+          "name": "Code in JavaScript5",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            400,
+            144
+          ],
+          "parameters": {
+            "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 'General';\n}\n\nreturn $input.all();"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "ff05d10c-ff67-418b-8b0c-fe31473e5ee5",
+          "name": "No Operation, do nothing",
+          "type": "n8n-nodes-base.noOp",
+          "position": [
+            2352,
+            -256
+          ],
+          "parameters": {},
+          "typeVersion": 1
+        },
+        {
+          "id": "024437d9-6d7f-48d4-ad1d-6994f20062cc",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1104,
+            -384
+          ],
+          "parameters": {
+            "color": 4,
+            "width": 928,
+            "height": 480,
+            "content": "## Ticket Creation in Postgres\n                                                          \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "23a73d52-b771-4740-8e0c-a348f787c459",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -352,
+            -1072
+          ],
+          "parameters": {
+            "width": 896,
+            "height": 384,
+            "content": "# This workflow automatically converts incoming Gmail messages into structured support tickets using AI classification. It assigns categories, generates a unique ticket ID, stores data in PostgreSQL, assigns a support agent based on workload, and sends an automated email reply to the customer."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "c66b99ac-24f0-47e4-bf7e-bb9055c1438f",
+          "name": "Gmail Trigger",
+          "type": "n8n-nodes-base.gmailTrigger",
+          "position": [
+            -848,
+            -240
+          ],
+          "parameters": {
+            "filters": {},
+            "pollTimes": {
+              "item": [
+                {
+                  "mode": "everyMinute"
+                }
+              ]
+            }
+          },
+          "credentials": {
+            "gmailOAuth2": {
+              "id": "zHYelbAAdYG7vxb2",
+              "name": "Gmail account"
+            }
+          },
+          "typeVersion": 1.4
+        },
+        {
+          "id": "e1a72df2-99aa-4887-8028-e0ba548eac01",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -384,
+            -464
+          ],
+          "parameters": {
+            "color": 6,
+            "width": 608,
+            "height": 512,
+            "content": "# Classify Email based on Ticket Priorirty Using Ollma \n"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "4be5854a-42a1-4d35-8c8b-3429079183c4",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            784,
+            -320
+          ],
+          "parameters": {
+            "width": 320,
+            "height": 240,
+            "content": "##  Ticket ID Generation"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "133aad6c-b7bc-4146-a541-349a482b104b",
+          "name": "Sticky Note4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -896,
+            -1056
+          ],
+          "parameters": {
+            "color": 6,
+            "width": 416,
+            "height": 448,
+            "content": "# \ud83d\udce6 Requirements\n## n8n (latest version)\n## Gmail OAuth2 credentials\n## PostgreSQL database\n## AI model (Ollama or compatible LLM)\n## Support tables:\n## tickets\n## support_persons\n## ticket_assignment_logs"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "37cfa514-af80-4496-94d6-e9081302aa8f",
+          "name": "Sticky Note5",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -1808,
+            -1056
+          ],
+          "parameters": {
+            "width": 816,
+            "height": 1424,
+            "content": "# AI Ticket Classifier Database Setup\n\n\n\n# Create support_persons Table\n\n```sql\nCREATE TABLE support_persons (\n    id SERIAL PRIMARY KEY,\n    name VARCHAR(100) NOT NULL,\n    email VARCHAR(150) UNIQUE NOT NULL,\n    department VARCHAR(100),\n    skill_category VARCHAR(100),\n    status VARCHAR(20) DEFAULT 'available',\n    active_tickets INT DEFAULT 0,\n    max_tickets INT DEFAULT 5,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n```\n\n---\n\n# Create tickets Table\n\n```sql\nCREATE TABLE tickets (\n    id SERIAL PRIMARY KEY,\n    ticket_number VARCHAR(30) UNIQUE NOT NULL,\n    customer_email VARCHAR(150) NOT NULL,\n    subject VARCHAR(255),\n    message TEXT,\n    category VARCHAR(100),\n    priority VARCHAR(20),\n    sentiment VARCHAR(20),\n    status VARCHAR(30) DEFAULT 'open',\n\n    assigned_to INT REFERENCES support_persons(id),\n\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n```\n\n---\n\n# Create ticket_assignment_logs Table\n\n```sql\nCREATE TABLE ticket_assignment_logs (\n    id SERIAL PRIMARY KEY,\n\n    ticket_id VARCHAR(100) NOT NULL,\n\n    support_person_id INT NOT NULL,\n\n    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n\n    assignment_reason TEXT,\n\n    CONSTRAINT fk_support\n        FOREIGN KEY (support_person_id)\n        REFERENCES support_persons(id)\n);\n```\n\n\n# Supported Ticket Categories\n\n- Technical Issue\n- Payment Issue\n- Refund Request\n- Fraud Alert\n- Bug Report\n- General Query\n- General\n"
+          },
+          "typeVersion": 1
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "08ee582c-1daf-40c0-9417-060d6a5cc16a",
+      "connections": {
+        "Ollama Model": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "Text Classifier",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Gmail Trigger": {
+          "main": [
+            [
+              {
+                "node": "Get many messages",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Text Classifier": {
+          "main": [
+            [
+              {
+                "node": "Code in JavaScript1",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Code in JavaScript2",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Code in JavaScript3",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Code in JavaScript4",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Code in JavaScript5",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get many messages": {
+          "main": [
+            [
+              {
+                "node": "Text Classifier",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Code in JavaScript": {
+          "main": [
+            [
+              {
+                "node": "Select rows from a table",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Reply to a message": {
+          "main": [
+            [
+              {
+                "node": "No Operation, do nothing",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Code in JavaScript1": {
+          "main": [
+            [
+              {
+                "node": "Code in JavaScript",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Code in JavaScript2": {
+          "main": [
+            [
+              {
+                "node": "Code in JavaScript",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Code in JavaScript3": {
+          "main": [
+            [
+              {
+                "node": "Code in JavaScript",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Code in JavaScript4": {
+          "main": [
+            [
+              {
+                "node": "Code in JavaScript",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Code in JavaScript5": {
+          "main": [
+            [
+              {
+                "node": "Code in JavaScript",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Insert rows in a table": {
+          "main": [
+            [
+              {
+                "node": "Update rows in a table",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Update rows in a table": {
+          "main": [
+            [
+              {
+                "node": "Insert rows in a table1",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Insert rows in a table1": {
+          "main": [
+            [
+              {
+                "node": "Reply to a message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Select rows from a table": {
+          "main": [
+            [
+              {
+                "node": "Insert rows in a table",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 22,
+      "nodeTypes": {
+        "n8n-nodes-base.code": {
+          "count": 6
+        },
+        "n8n-nodes-base.noOp": {
+          "count": 1
+        },
+        "n8n-nodes-base.gmail": {
+          "count": 2
+        },
+        "n8n-nodes-base.postgres": {
+          "count": 4
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 6
+        },
+        "n8n-nodes-base.gmailTrigger": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.lmOllama": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.textClassifier": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Jyothish S L",
+      "username": "jyothishsl",
+      "bio": "Automation professional with experience in designing and delivering enterprise-grade automation solutions across banking, government, and ERP domains. Focused on improving business efficiency, reducing manual effort, and enabling scalable digital transformation.",
+      "verified": false,
+      "links": [
+        "linkedin.com/in/jyothish-s-l-52446720b"
+      ],
+      "avatar": "https://gravatar.com/avatar/bab38c8a1d6bdbe250f8440fe733bd76a2d4619a16e238084058ba8f54baed02?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 26,
+        "icon": "fa:arrow-right",
+        "name": "n8n-nodes-base.noOp",
+        "codex": {
+          "data": {
+            "alias": [
+              "nothing"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.noop/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "No Operation, do nothing",
+          "color": "#b0b0b0"
+        },
+        "iconData": {
+          "icon": "arrow-right",
+          "type": "icon"
+        },
+        "displayName": "No Operation, do nothing",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 30,
+        "icon": "file:postgres.svg",
+        "name": "n8n-nodes-base.postgres",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/love-at-first-sight-ricardos-n8n-journey/",
+                  "icon": "\u2764\ufe0f",
+                  "label": "Love at first sight: Ricardo\u2019s n8n journey"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-i-chose-n8n-over-zapier-in-2020/",
+                  "icon": "\ud83d\ude0d",
+                  "label": "Why I chose n8n over Zapier in 2020"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-honest-burgers-use-automation-to-save-100k-per-year/",
+                  "icon": "\ud83c\udf54",
+                  "label": "How Honest Burgers Use Automation to Save $100k per year"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.postgres/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/postgres/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Data & Storage"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Postgres"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgNzkgODEiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48ZyBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSI+PHBhdGggZmlsbD0iIzAwMCIgZD0iTTc3LjM5MSA0Ny45MjJjLS40NjYtMS40MTItMS42ODgtMi4zOTYtMy4yNjgtMi42MzItLjc0NS0uMTExLTEuNTk4LS4wNjQtMi42MDguMTQ0LTEuNzYuMzYzLTMuMDY1LjUwMS00LjAxOC41MjggMy41OTYtNi4wNzIgNi41MjEtMTIuOTk3IDguMjA0LTE5LjUxNSAyLjcyMi0xMC41NCAxLjI2OC0xNS4zNDEtLjQzMi0xNy41MTNDNzAuNzcgMy4xODUgNjQuMjA2LjA5NyA1Ni4yODcuMDAyYy00LjIyNC0uMDUyLTcuOTMzLjc4Mi05Ljg2NyAxLjM4MmEzNyAzNyAwIDAgMC01Ljc3LS41MjhjLTMuODA5LS4wNjEtNy4xNzQuNzctMTAuMDUgMi40NzZhNDYgNDYgMCAwIDAtNy4wOTgtMS43ODJDMTYuNTYxLjQxMSAxMC45NjggMS4yOTkgNi44NzYgNC4xOSAxLjkyMiA3LjY4OS0uMzc1IDEzLjc3LjA1IDIyLjI2MmMuMTM1IDIuNjk2IDEuNjQzIDEwLjkgNC4wMTggMTguNjggMS4zNjUgNC40NzIgMi44MiA4LjE4NSA0LjMyNiAxMS4wMzggMi4xMzUgNC4wNDYgNC40MTkgNi40MjggNi45ODQgNy4yODQgMS40MzguNDc5IDQuMDQ5LjgxNCA2Ljc5Ny0xLjQ3M2E2IDYgMCAwIDAgMS40MjkgMS4yM2MuNzgzLjQ5NCAxLjc0Ljg5NyAyLjY5NiAxLjEzNiAzLjQ0Ni44NjIgNi42NzQuNjQ2IDkuNDI3LS41NjFsLjA0MSAxLjM2Mi4wNiAxLjg5OWMuMTYzIDQuMDY0LjQ0IDcuMjIzIDEuMjU5IDkuNDM0LjA0NS4xMjIuMTA1LjMwNy4xNjkuNTAzLjQwOSAxLjI1MSAxLjA5MiAzLjM0NiAyLjgzIDQuOTg3IDEuOCAxLjY5OSAzLjk3OCAyLjIyIDUuOTcyIDIuMjIgMSAwIDEuOTU1LS4xMzEgMi43OTItLjMxMSAyLjk4NC0uNjM5IDYuMzczLTEuNjE0IDguODI0LTUuMTA0IDIuMzE4LTMuMyAzLjQ0NC04LjI3IDMuNjQ4LTE2LjEwMWwuMDc0LS42MzQuMDQ4LS40MTQuNTQ2LjA0OC4xNDEuMDFjMy4wMzkuMTM4IDYuNzU1LS41MDYgOS4wMzctMS41NjYgMS44MDMtLjgzNyA3LjU4Mi0zLjg4OCA2LjIyMS04LjAwNyIvPjxwYXRoIGZpbGw9IiMzMzY3OTEiIGQ9Ik03Mi4xOTUgNDguNzIzYy05LjAzNiAxLjg2NC05LjY1Ny0xLjE5NS05LjY1Ny0xLjE5NSA5LjU0MS0xNC4xNTcgMTMuNTI5LTMyLjEyNyAxMC4wODctMzYuNTI1QzYzLjIzNS0uOTk0IDQ2Ljk4MSA0LjY4IDQ2LjcxIDQuODI3bC0uMDg3LjAxNmMtMS43ODUtLjM3MS0zLjc4My0uNTkxLTYuMDI5LS42MjgtNC4wODktLjA2Ny03LjE5IDEuMDcyLTkuNTQ0IDIuODU3IDAgMC0yOC45OTUtMTEuOTQ1LTI3LjY0NyAxNS4wMjMuMjg3IDUuNzM3IDguMjIzIDQzLjQxIDE3LjY4OSAzMi4wMzEgMy40Ni00LjE2MSA2LjgwMy03LjY3OSA2LjgwMy03LjY3OSAxLjY2IDEuMTAzIDMuNjQ4IDEuNjY2IDUuNzMyIDEuNDYzbC4xNjItLjEzN2E2LjMgNi4zIDAgMCAwIC4wNjUgMS42MmMtMi40MzkgMi43MjUtMS43MjIgMy4yMDMtNi41OTcgNC4yMDYtNC45MzMgMS4wMTctMi4wMzUgMi44MjYtLjE0MyAzLjI5OSAyLjI5NC41NzQgNy42IDEuMzg2IDExLjE4NS0zLjYzM2wtLjE0My41NzNjLjk1Ni43NjUgMS42MjYgNC45NzggMS41MTQgOC43OTdzLS4xODggNi40NDEuNTY1IDguNDg5IDEuNTAzIDYuNjU2IDcuOTEyIDUuMjgyYzUuMzU1LTEuMTQ4IDguMTMtNC4xMjEgOC41MTYtOS4wODEuMjc0LTMuNTI2Ljg5NC0zLjAwNS45MzMtNi4xNThsLjQ5Ny0xLjQ5M2MuNTczLTQuNzguMDkxLTYuMzIyIDMuMzktNS42MDVsLjgwMi4wN2MyLjQyOC4xMSA1LjYwNi0uMzkxIDcuNDcxLTEuMjU3IDQuMDE2LTEuODY0IDYuMzk4LTQuOTc2IDIuNDM4LTQuMTU4Ii8+PHBhdGggZD0iTTMyLjc0NyAyNC42NmMtLjgxNC0uMTEzLTEuNTUyLS4wMDgtMS45MjUuMjc0YS43LjcgMCAwIDAtLjI5Mi40N2MtLjA0Ny4zMzYuMTg4LjcwNy4zMzMuODk4LjQwOS41NDIgMS4wMDYuOTE1IDEuNTk4Ljk5N2EyIDIgMCAwIDAgLjI1Ni4wMThjLjk4NiAwIDEuODgzLS43NjggMS45NjItMS4zMzUuMDk5LS43MS0uOTMyLTEuMTgzLTEuOTMxLTEuMzIybTI2Ljk3NS4wMjJjLS4wNzgtLjU1Ni0xLjA2OC0uNzE1LTIuMDA3LS41ODRzLTEuODQ4LjU1NC0xLjc3MiAxLjExMmMuMDYxLjQzNC44NDQgMS4xNzQgMS43NzEgMS4xNzRxLjExNyAwIC4yMzctLjAxNmMuNjE5LS4wODYgMS4wNzMtLjQ3OSAxLjI4OC0uNzA1LjMyOS0uMzQ1LjUxOC0uNzMuNDg0LS45OG0xNS40NzcgMjMuODI4Yy0uMzQ1LTEuMDQyLTEuNDUzLTEuMzc3LTMuMjk2LS45OTctNS40NzEgMS4xMjktNy40My4zNDctOC4wNzMtLjEyNyA0LjI1Mi02LjQ3OCA3Ljc1LTE0LjMwOCA5LjYzNy0yMS42MTQuODk0LTMuNDYxIDEuMzg4LTYuNjc1IDEuNDI4LTkuMjk0LjA0NS0yLjg3Ni0uNDQ1LTQuOTg4LTEuNDU1LTYuMjc5LTQuMDcyLTUuMjAzLTEwLjA0OC03Ljk5NC0xNy4yODMtOC4wNy00Ljk3My0uMDU2LTkuMTc1IDEuMjE3LTkuOTkgMS41NzVhMjUgMjUgMCAwIDAtNS42MjItLjcyMmMtMy43MzQtLjA2LTYuOTYxLjgzNC05LjYzMyAyLjY1NWE0MyA0MyAwIDAgMC03LjgyOC0yLjA1MmMtNi4zNDItMS4wMjEtMTEuMzgxLS4yNDgtMTQuOTc4IDIuMy00LjI5MSAzLjA0LTYuMjcyIDguNDc1LTUuODg4IDE2LjE1Mi4xMjkgMi41ODMgMS42MDEgMTAuNTI5IDMuOTIzIDE4LjEzOSAzLjA1NyAxMC4wMTYgNi4zOCAxNS42ODYgOS44NzcgMTYuODUyYTQuNCA0LjQgMCAwIDAgMS40MDIuMjMyYzEuMjc2IDAgMi44MzktLjU3NSA0LjQ2Ni0yLjUzMWExNjEgMTYxIDAgMCAxIDYuMTU2LTYuOTY2IDkuOSA5LjkgMCAwIDAgNC40MjkgMS4xOTFsLjAxLjEyMWMtLjMxLjM2OC0uNTY0LjY5LS43ODEuOTY1LTEuMDcgMS4zNTgtMS4yOTMgMS42NDEtNC43MzggMi4zNTEtLjk4LjIwMi0zLjU4Mi43MzgtMy42MiAyLjU2My0uMDQxIDEuOTkzIDMuMDc2IDIuODMgMy40MzEgMi45MTkgMS4yMzguMzEgMi40My40NjMgMy41NjguNDYzIDIuNzY2IDAgNS4yLS45MDkgNy4xNDUtMi42NjgtLjA2IDcuMTA2LjIzNiAxNC4xMDcgMS4wODkgMTYuMjQxLjY5OSAxLjc0NiAyLjQwNiA2LjAxNCA3Ljc5OCA2LjAxNC43OTEgMCAxLjY2Mi0uMDkyIDIuNjItLjI5NyA1LjYyNy0xLjIwNyA4LjA3MS0zLjY5NCA5LjAxNi05LjE3Ny41MDYtMi45MyAxLjM3NC05LjkyOCAxLjc4Mi0xMy42ODIuODYyLjI2OSAxLjk3MS4zOTIgMy4xNy4zOTIgMi41MDEgMCA1LjM4Ny0uNTMxIDcuMTk3LTEuMzcyIDIuMDMzLS45NDQgNS43MDItMy4yNjEgNS4wMzctNS4yNzR6TTYxLjggMjMuMTQ3Yy0uMDE5IDEuMTA4LS4xNzEgMi4xMTQtLjMzMyAzLjE2NC0uMTc0IDEuMTI5LS4zNTQgMi4yOTctLjM5OSAzLjcxNS0uMDQ1IDEuMzc5LjEyOCAyLjgxNC4yOTQgNC4yLjMzNyAyLjgwMS42ODIgNS42ODUtLjY1NSA4LjUzMWExMSAxMSAwIDAgMS0uNTkyLTEuMjE4Yy0uMTY2LS40MDMtLjUyNy0xLjA1LTEuMDI3LTEuOTQ2LTEuOTQ0LTMuNDg3LTYuNDk3LTExLjY1Mi00LjE2Ny0xNC45ODQuNjk0LS45OTIgMi40NTYtMi4wMTEgNi44NzktMS40NjN6TTU2LjQzOSA0LjM3NGM2LjQ4Mi4xNDMgMTEuNjA5IDIuNTY4IDE1LjI0IDcuMjA3IDIuNzg0IDMuNTU4LS4yODIgMTkuNzQ5LTkuMTU4IDMzLjcxNmwtLjI2OS0uMzM5LS4xMTItLjE0YzIuMjk0LTMuNzg4IDEuODQ1LTcuNTM2IDEuNDQ2LTEwLjg1OS0uMTY0LTEuMzY0LS4zMTktMi42NTItLjI4LTMuODYxLjA0MS0xLjI4My4yMS0yLjM4Mi4zNzQtMy40NDYuMjAyLTEuMzExLjQwNy0yLjY2Ny4zNS00LjI2NWExLjggMS44IDAgMCAwIC4wMzctLjYwMWMtLjE0NC0xLjUzMy0xLjg5NC02LjEyLTUuNDYyLTEwLjI3My0xLjk1MS0yLjI3MS00Ljc5Ny00LjgxMy04LjY4Mi02LjUyN2EyOS4zIDI5LjMgMCAwIDEgNi41MTUtLjYxMnpNMjAuMTY3IDUzLjI5OGMtMS43OTMgMi4xNTUtMy4wMzEgMS43NDItMy40MzggMS42MDctMi42NTMtLjg4NS01LjczLTYuNDkxLTguNDQ0LTE1LjM4Mi0yLjM0OC03LjY5My0zLjcyLTE1LjQyOC0zLjgyOS0xNy41OTctLjM0My02Ljg2IDEuMzItMTEuNjQxIDQuOTQzLTE0LjIxIDUuODk2LTQuMTgxIDE1LjU4OS0xLjY3OSAxOS40ODQtLjQwOWwtLjE3LjE2M2MtNi4zOTEgNi40NTUtNi4yNCAxNy40ODMtNi4yMjQgMTguMTU3YTIyIDIyIDAgMCAwIC4wNTEgMS4xMzVjLjExIDEuODU1LjMxNSA1LjMwNy0uMjMyIDkuMjE3LS41MDggMy42MzMuNjEyIDcuMTg5IDMuMDcyIDkuNzU2cS4zODMuMzk4Ljc5NS43NWExNjQgMTY0IDAgMCAwLTYuMDA4IDYuODE0em02LjgzLTkuMTEzYy0xLjk4My0yLjA2OS0yLjg4NC00Ljk0Ny0yLjQ3MS03Ljg5Ni41NzctNC4xMy4zNjQtNy43MjcuMjUtOS42NTlsLS4wMzktLjY5NGMuOTM0LS44MjggNS4yNjEtMy4xNDYgOC4zNDYtMi40MzkgMS40MDguMzIzIDIuMjY2IDEuMjgxIDIuNjIzIDIuOTMxIDEuODQ2IDguNTM5LjI0NCAxMi4wOTgtMS4wNDMgMTQuOTU3LS4yNjUuNTg5LS41MTYgMS4xNDYtLjczIDEuNzIybC0uMTY2LjQ0NWMtLjQyIDEuMTI2LS44MTEgMi4xNzMtMS4wNTMgMy4xNjctMi4xMDgtLjAwNi00LjE1OS0uOTA3LTUuNzE4LTIuNTM0em0uMzI0IDExLjUxNmE1IDUgMCAwIDEtMS40OTQtLjY0MmMuMjcxLS4xMjguNzU0LS4zMDEgMS41OTEtLjQ3NCA0LjA1Mi0uODM0IDQuNjc4LTEuNDIzIDYuMDQ1LTMuMTU4LjMxMy0uMzk4LjY2OS0uODQ5IDEuMTYtMS4zOTguNzMzLS44MjEgMS4wNjgtLjY4MiAxLjY3Ni0uNDMuNDkzLjIwNC45NzIuODIxIDEuMTY3IDEuNTAxLjA5Mi4zMjEuMTk1LjkzLS4xNDMgMS40MDQtMi44NTUgMy45OTctNy4wMTUgMy45NDYtMTAuMDAzIDMuMTk4em0yMS4yMDcgMTkuNzM1Yy00Ljk1NyAxLjA2Mi02LjcxMy0xLjQ2Ny03Ljg2OS00LjM1OS0uNzQ3LTEuODY3LTEuMTEzLTEwLjI4NS0uODUzLTE5LjU4MmExLjEgMS4xIDAgMCAwLS4wNDgtLjM1NiA1IDUgMCAwIDAtLjEzOS0uNjU3Yy0uMzg3LTEuMzUzLTEuMzMxLTIuNDg0LTIuNDYyLTIuOTUzLS40NS0uMTg2LTEuMjc1LS41MjgtMi4yNjctLjI3NC4yMTItLjg3MS41NzgtMS44NTUuOTc2LTIuOTIxbC4xNjctLjQ0OGMuMTg4LS41MDUuNDIzLTEuMDI5LjY3My0xLjU4MyAxLjM0Ny0yLjk5MiAzLjE5Mi03LjA5MSAxLjE5LTE2LjM1LS43NS0zLjQ2OC0zLjI1NC01LjE2MS03LjA1LTQuNzY4LTIuMjc2LjIzNS00LjM1OCAxLjE1NC01LjM5NiAxLjY4cS0uMzM0LjE2OS0uNjE4LjMyOWMuMjktMy40OTQgMS4zODUtMTAuMDI0IDUuNDgxLTE0LjE1NiAyLjU3OS0yLjYwMSA2LjAxNC0zLjg4NiAxMC4xOTktMy44MTcgOC4yNDYuMTM1IDEzLjUzNCA0LjM2NyAxNi41MTggNy44OTMgMi41NzEgMy4wMzkgMy45NjQgNi4xIDQuNTIgNy43NTEtNC4xNzktLjQyNS03LjAyMi40LTguNDYzIDIuNDYtMy4xMzUgNC40ODEgMS43MTUgMTMuMTc4IDQuMDQ2IDE3LjM1OC40MjcuNzY2Ljc5NiAxLjQyOC45MTIgMS43MDkuNzU5IDEuODM5IDEuNzQyIDMuMDY3IDIuNDU5IDMuOTY0LjIyLjI3NS40MzMuNTQxLjU5Ni43NzQtMS4yNjYuMzY1LTMuNTM5IDEuMjA4LTMuMzMyIDUuNDIyLS4xNjcgMi4xMTUtMS4zNTYgMTIuMDE2LTEuOTU5IDE1LjUxNC0uNzk3IDQuNjIxLTIuNDk3IDYuMzQzLTcuMjc5IDcuMzY4em0yMC42OTMtMjMuNjhjLTEuMjk0LjYwMS0zLjQ2IDEuMDUyLTUuNTE4IDEuMTQ4LTIuMjczLjEwNy0zLjQzLS4yNTUtMy43MDItLjQ3Ny0uMTI4LTIuNjI2Ljg1LTIuOTAxIDEuODg0LTMuMTkxLjE2My0uMDQ2LjMyMS0uMDkuNDc0LS4xNDRhNCA0IDAgMCAwIC4zMTMuMjNjMS44MjcgMS4yMDYgNS4wODUgMS4zMzYgOS42ODUuMzg2bC4wNS0uMDFjLS42Mi41OC0xLjY4MiAxLjM1OS0zLjE4NyAyLjA1OHoiLz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Postgres",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          },
+          {
+            "id": 5,
+            "name": "Development"
+          }
+        ]
+      },
+      {
+        "id": 356,
+        "icon": "file:gmail.svg",
+        "name": "n8n-nodes-base.gmail",
+        "codex": {
+          "data": {
+            "alias": [
+              "email",
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/using-automation-to-boost-productivity-in-the-workplace/",
+                  "icon": "\ud83d\udcaa",
+                  "label": "Using Automation to Boost Productivity in the Workplace"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.gmail/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Gmail"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMTkzIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCI+PHBhdGggZmlsbD0iIzQyODVGNCIgZD0iTTU4LjE4MiAxOTIuMDVWOTMuMTRMMjcuNTA3IDY1LjA3NyAwIDQ5LjUwNHYxMjUuMDkxYzAgOS42NTggNy44MjUgMTcuNDU1IDE3LjQ1NSAxNy40NTV6Ii8+PHBhdGggZmlsbD0iIzM0QTg1MyIgZD0iTTE5Ny44MTggMTkyLjA1aDQwLjcyN2M5LjY1OSAwIDE3LjQ1NS03LjgyNiAxNy40NTUtMTcuNDU1VjQ5LjUwNWwtMzEuMTU2IDE3LjgzNy0yNy4wMjYgMjUuNzk4eiIvPjxwYXRoIGZpbGw9IiNFQTQzMzUiIGQ9Im01OC4xODIgOTMuMTQtNC4xNzQtMzguNjQ3IDQuMTc0LTM2Ljk4OUwxMjggNjkuODY4bDY5LjgxOC01Mi4zNjQgNC42NyAzNC45OTItNC42NyA0MC42NDRMMTI4IDE0NS41MDR6Ii8+PHBhdGggZmlsbD0iI0ZCQkMwNCIgZD0iTTE5Ny44MTggMTcuNTA0VjkzLjE0TDI1NiA0OS41MDRWMjYuMjMxYzAtMjEuNTg1LTI0LjY0LTMzLjg5LTQxLjg5LTIwLjk0NXoiLz48cGF0aCBmaWxsPSIjQzUyMjFGIiBkPSJtMCA0OS41MDQgMjYuNzU5IDIwLjA3TDU4LjE4MiA5My4xNFYxNy41MDRMNDEuODkgNS4yODZDMjQuNjEtNy42NiAwIDQuNjQ2IDAgMjYuMjN6Ii8+PC9zdmc+"
+        },
+        "displayName": "Gmail",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 824,
+        "icon": "file:gmail.svg",
+        "name": "n8n-nodes-base.gmailTrigger",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/using-automation-to-boost-productivity-in-the-workplace/",
+                  "icon": "\ud83d\udcaa",
+                  "label": "Using Automation to Boost Productivity in the Workplace"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/trigger-nodes/n8n-nodes-base.gmailtrigger/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Gmail Trigger"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMTkzIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCI+PHBhdGggZmlsbD0iIzQyODVGNCIgZD0iTTU4LjE4MiAxOTIuMDVWOTMuMTRMMjcuNTA3IDY1LjA3NyAwIDQ5LjUwNHYxMjUuMDkxYzAgOS42NTggNy44MjUgMTcuNDU1IDE3LjQ1NSAxNy40NTV6Ii8+PHBhdGggZmlsbD0iIzM0QTg1MyIgZD0iTTE5Ny44MTggMTkyLjA1aDQwLjcyN2M5LjY1OSAwIDE3LjQ1NS03LjgyNiAxNy40NTUtMTcuNDU1VjQ5LjUwNWwtMzEuMTU2IDE3LjgzNy0yNy4wMjYgMjUuNzk4eiIvPjxwYXRoIGZpbGw9IiNFQTQzMzUiIGQ9Im01OC4xODIgOTMuMTQtNC4xNzQtMzguNjQ3IDQuMTc0LTM2Ljk4OUwxMjggNjkuODY4bDY5LjgxOC01Mi4zNjQgNC42NyAzNC45OTItNC42NyA0MC42NDRMMTI4IDE0NS41MDR6Ii8+PHBhdGggZmlsbD0iI0ZCQkMwNCIgZD0iTTE5Ny44MTggMTcuNTA0VjkzLjE0TDI1NiA0OS41MDRWMjYuMjMxYzAtMjEuNTg1LTI0LjY0LTMzLjg5LTQxLjg5LTIwLjk0NXoiLz48cGF0aCBmaWxsPSIjQzUyMjFGIiBkPSJtMCA0OS41MDQgMjYuNzU5IDIwLjA3TDU4LjE4MiA5My4xNFYxNy41MDRMNDEuODkgNS4yODZDMjQuNjEtNy42NiAwIDQuNjQ2IDAgMjYuMjN6Ii8+PC9zdmc+"
+        },
+        "displayName": "Gmail Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1159,
+        "icon": "file:ollama.svg",
+        "name": "@n8n/n8n-nodes-langchain.lmOllama",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmollama/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Language Models",
+                "Root Nodes"
+              ],
+              "Language Models": [
+                "Text Completion Models"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Ollama Model"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNDEuMzMzIiBoZWlnaHQ9IjM0MS4zMzMiIHZlcnNpb249IjEuMCIgdmlld0JveD0iMCAwIDE4MSAyNTYiPjxnIGZpbGw9IiM3RDdEODciPjxwYXRoIGQ9Ik0zNy43IDE5LjVjLTUuMiAxLjgtOC4zIDQuOS0xMS43IDExLjYtNC41IDguOS02LjIgMTkuMi01LjggMzUuNWwuMyAxNC4yLTUuOCA2LjFjLTE0LjggMTUuNS0xOC41IDM4LjctOS4yIDU3LjRsMy40IDYuOS0yIDQuNGMtMy40IDguMi01IDE2LjQtNSAyNi4zIDAgMTAuOCAxLjggMTkgNS44IDI2LjJsMi42IDQuOC0yLjEgNC45Yy0xLjIgMi43LTIuNiA3LjEtMy4yIDkuOC0xLjQgNi4yLTEuNSAyMi4xLS4xIDI1LjcgMSAyLjYgMS40IDIuNyA3LjYgMi43IDcuMyAwIDcgLjQgNS4zLTguNi0xLjUtOC4yLjItMTguOCA0LjItMjYuNiAzLjctNyAzLjgtMTAuNC41LTE0LjgtNC43LTYuNC02LjgtMTMuNi02LjktMjQtLjEtMTAuMyAxLjQtMTYgNi42LTI2LjEgMy4xLTYuMSAyLjktOC43LTEtMTIuMi0xLjEtMS0zLjEtNC4yLTQuMy03LTEuOS00LjItMi40LTYuOS0yLjMtMTQuMiAwLTExLjQgMi41LTE4LjMgOS41LTI2IDctNy42IDE0LjItMTEgMjMuOS0xMS4yIDQuMSAwIDcuOC0uMiA4LjItLjIuNC0uMSAxLjctMi4yIDIuOS00LjcgMy01LjkgOS42LTExLjkgMTYuNy0xNS4yIDQuOS0yLjMgNy0yLjcgMTQuNy0yLjcgNy45IDAgOS43LjQgMTQuOSAyLjkgNi44IDMuMyAxMy4zIDkuNCAxNS45IDE0LjggMSAyIDIuMyA0LjEgMyA0LjUuNi40IDQuNi44IDguNy44IDYuNy4xIDguMy41IDE0IDMuNiAxMi4zIDYuOCAxOS4zIDE4LjcgMTkuMyAzMy40LjEgNi43LS40IDktMi43IDE0LjItMS42IDMuNS0zLjUgNi44LTQuMyA3LjUtMy40IDIuOC0zLjUgNS44LS41IDExLjcgNS4yIDEwLjEgNi43IDE1LjggNi42IDI2LjEtLjEgMTAuNC0yLjIgMTcuNi02LjkgMjQtMy4zIDQuNC0zLjIgNy44LjUgMTQuOCA0IDcuOCA1LjcgMTguNCA0LjIgMjYuNi0xLjcgOS0yIDguNiA1LjMgOC42IDYuMiAwIDYuNi0uMSA3LjYtMi43IDEuNC0zLjYgMS4zLTE5LjUtLjEtMjUuNy0uNi0yLjctMi03LjEtMy4yLTkuOGwtMi4xLTQuOSAyLjYtNC44YzcuNi0xMy45IDcuOS0zNS45LjYtNTIuOGwtMi00LjcgMi41LTQuNmM5LjktMTguMyA2LjQtNDMuOS04LjEtNTkuMWwtNS44LTYuMS4zLTE0LjJjLjQtMTYuNC0xLjMtMjYuNi01LjgtMzUuNy02LjQtMTIuNi0xNy4yLTE1LjktMjYuMy03LjktNS40IDQuNy05LjIgMTMuOC0xMi4zIDI5LjgtLjMgMS40LTEgMi4yLTEuNyAxLjgtMTguMi04LTI5LjctOC41LTQ0LjMtMi4xTDY1IDU0LjlsLS40LTIuMkM2MSAzNC4yIDU2LjEgMjQuMiA0OSAyMC41Yy00LjMtMi4xLTcuNC0yLjQtMTEuMy0xbTcuNyAxNi44YzQuMiA3LjEgOC4xIDMwLjEgNS43IDMzLjYtLjUuOC0zLjEgMS42LTUuOCAxLjgtMi42LjItNi4yLjgtOCAxLjNsLTMuMS44LS43LTQuOWMtLjgtNS45LjItMTcuMiAyLjItMjQuOEMzNy4xIDM4LjQgNDAuNSAzMiA0MiAzMmMuNSAwIDIgMS45IDMuNCA0LjNtOTYuNS0xYzQgNi41IDYuOSAyMy45IDUuNiAzMy42bC0uNyA0LjktMy4xLS44Yy0xLjgtLjUtNS40LTEuMS04LTEuMy0yLjctLjItNS4zLTEtNS44LTEuOC0xLjItMS43LS4zLTE0LjEgMS43LTIyLjkgMS41LTYuNCA1LjctMTUgNy40LTE1IC40IDAgMS44IDEuNSAyLjkgMy4zIi8+PHBhdGggZD0iTTc3LjggMTE5LjljLTcuMyAyLjQtMTEuNiA1LjEtMTYuNSAxMC40LTUuNSA2LTcuNiAxMi03LjEgMjAuMS41IDcuNiAzLjUgMTIuOSAxMC42IDE4LjMgNi4yIDQuNyAxMi43IDYuMyAyNS43IDYuMyAxNy4yIDAgMjUuOC0zLjYgMzIuOS0xMy44IDQuMi01LjkgNC44LTE1LjUgMS42LTIzLTIuOS02LjgtMTEuMS0xNC4zLTE4LjgtMTcuMy04LTMuMS0yMC43LTMuNi0yOC40LTFtMjUuNyAxMGMxNi4xIDcuMSAxOS40IDIzLjIgNi42IDMxLjgtNC45IDMuMy05LjQgNC4zLTE5LjYgNC4zcy0xNC43LTEtMTkuNi00LjNjLTE3LjgtMTItMy4yLTM1LjYgMjEuMS0zNC4zIDMuOS4yIDguNiAxLjIgMTEuNSAyLjUiLz48cGF0aCBkPSJNODMuOCAxNDAuMWMtMi41IDEuNC0yLjIgNC40LjcgNi43IDIgMS42IDIuNCAyLjYgMS45IDQuOS0uNyAzLjYgMS41IDUuOCA1LjEgNC45IDIuMS0uNSAyLjUtMS4yIDIuNS00LjYgMC0yLjkuNS00LjIgMi01IDIuNy0xLjUgMi43LTYuNiAwLTcuNS0xLS4zLTIuOC0uMS00IC41LTEuNC43LTIuNi44LTMuOSAwLTIuMy0xLjItMi4yLTEuMi00LjMuMW0tNDQuMS0xOC45Yy0uOS43LTIuMyAzLTMuMiA1LTIuMSA1LjMtLjEgMTAuMyA0LjcgMTEuNiA0LjMgMS4xIDYgLjYgOS4yLTIuNyA0LTQuMSA0LjMtOC4xIDEuMS0xMS45LTIuMS0yLjUtMy40LTMuMi02LjQtMy4yLTIgMC00LjUuNi01LjQgMS4ybTg5LjggMmMtMy4yIDMuOC0yLjkgNy44IDEuMSAxMS45IDMuMiAzLjMgNC45IDMuOCA5LjIgMi43IDQuOS0xLjMgNi44LTYuMiA0LjYtMTEuOC0xLjktNC43LTMuOC02LTguNy02LTIuNyAwLTQuMS43LTYuMiAzLjIiLz48L2c+PC9zdmc+"
+        },
+        "displayName": "Ollama Model",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1265,
+        "icon": "fa:tags",
+        "name": "@n8n/n8n-nodes-langchain.textClassifier",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.text-classifier/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Chains",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Text Classifier"
+        },
+        "iconData": {
+          "icon": "tags",
+          "type": "icon"
+        },
+        "displayName": "Text Classifier",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 41,
+        "name": "Ticket Management"
+      },
+      {
+        "id": 49,
+        "name": "AI Summarization"
+      }
+    ],
+    "image": []
+  }
+}

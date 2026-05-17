@@ -1,0 +1,1706 @@
+{
+  "workflow": {
+    "id": 15673,
+    "name": "Optimize delivery routes for carriers from Google Sheets using Google Maps",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-12T17:09:58.805Z",
+    "description": "This workflow automates the process of converting delivery addresses into geographic coordinates and **optimizes delivery routes for each carrier** using Google Maps.\n\nFinally, the workflow outputs an optimized circular route that starts and ends at the base location.\n\nThis workflow is particularly useful for:\n\n* Logistics companies\n* Courier services\n* Delivery businesses\n* Field service operations\n* Fleet management teams\n\nIt enables **faster route planning, improves delivery efficiency**, and provides a low-code automation solution that integrates directly with existing operational spreadsheets.\n\n\n\n---\n\n### Key Advantages\n\n#### 1. \u2705 Automated Address Geocoding\n\nThe workflow automatically converts delivery addresses into precise GPS coordinates using Google Maps APIs, eliminating manual data entry and reducing human errors.\n\n#### 2. \u2705 Delivery Route Optimization\n\nBy calculating the most efficient delivery order, the workflow helps drivers reduce travel time, fuel consumption, and operational costs.\n\n#### 3. \u2705 Seamless Google Sheets Integration\n\nAll delivery data is managed directly inside Google Sheets, making the system easy to use for logistics teams without requiring additional software.\n\n#### 4. \u2705 Carrier-Based Delivery Grouping\n\nDeliveries are automatically grouped by carrier, allowing each driver or logistics operator to receive a dedicated optimized route.\n\n### 5. \u2705 Real-Time Data Processing\n\nThe workflow dynamically processes only the deliveries scheduled for the current day, ensuring routes are always updated and relevant.\n\n#### 6. \u2705 Scalable and Flexible\n\nThe solution can easily scale to handle larger delivery volumes and can be adapted for different logistics operations, territories, or business models.\n\n#### 7. \u2705 Reduced Operational Costs\n\nOptimized routes reduce unnecessary mileage, helping companies lower fuel expenses, vehicle wear, and delivery times.\n\n#### 8. \u2705 Intelligent Distance Calculation\n\nThe workflow uses Google Routes API for accurate driving distances and includes fallback logic to ensure continuity even if API responses fail.\n\n#### 9. \u2705 Fully Automated Workflow\n\nOnce configured, the entire process runs automatically with minimal manual intervention, improving productivity and operational reliability.\n\n#### 10. \u2705 Easy Customization\n\nThe workflow can be customized to support:\n\n* Multiple warehouses\n* Dynamic starting points\n* Additional delivery constraints\n* Traffic-aware routing\n* Advanced optimization strategies\n\n---\n\n\n### **How it works**\n\n1. **Manual trigger**  \n   The workflow starts manually by clicking \"Execute workflow\".\n\n2. **Fetch today\u2019s deliveries**  \n   - Reads from a Google Sheet.  \n   - Filters rows where `DATE DELIVERY` equals today\u2019s date.\n\n3. **Geocode each delivery address**  \n   - Loops through each delivery row.  \n   - Calls the **Google Maps Places API (textsearch)** to get latitude and longitude.  \n   - Updates the sheet\u2019s `LANG` and `LONG` columns.  \n   - Marks `DONE = \"x\"` to avoid reprocessing.\n\n4. **Get start address location**  \n   - A fixed start address (e.g., warehouse) is geocoded once.  \n   - Stores `START ADDRESS`, `START LAT`, `START LNG`.\n\n5. **Filter already processed deliveries**  \n   - Reads the sheet again, filtering for today\u2019s date **and** `DONE = \"x\"`.  \n   - These are fully geocoded deliveries ready for routing.\n\n6. **Group deliveries by carrier**  \n   - Groups all delivery rows by `NAME CARRIER`.\n\n7. **Optimize route for each carrier**  \n   - Runs a **custom JavaScript** routing algorithm:  \n     - Uses **Google Routes API** for real driving distances.  \n     - Implements a **nearest neighbor** heuristic + **2-opt optimization**.  \n     - Computes a circular route starting/ending at the warehouse.  \n   - Outputs an ordered list of stops including the warehouse as start and end.\n\n8. **Return optimized route**  \n   - The final route is returned as structured JSON.  \n   - Can be further used for writing back to Sheets or displaying.\n\n---\n\n### **Set up steps**\n\n1. **Google Sheets setup**  \n   - Create a Google Sheet with columns:  \n     `row_number`, `NAME CARRIER`, `DATE DELIVERY`, `ADDRESS`, `LANG`, `LONG`, `DONE`.  \n   - Clone the [example sheet](https://docs.google.com/spreadsheets/d/1iQHlKJOfAI_9OeKaemW21n82IEbMVsvuaQqSLIKw2n8/edit?usp=sharing).  \n   - Note the `documentId` from the sheet\u2019s URL.\n\n2. **Google Sheets OAuth2 credentials**  \n   - In n8n, add a **Google Sheets OAuth2 API** credential.  \n   - Use the same email that owns/edits the sheet.\n\n3. **Google Maps API credentials**  \n   - Enable **Places API** and **Routes API** in Google Cloud Console.  \n   - Create an **API key** with no restrictions or restrict it to the required APIs.  \n   - In n8n, add an **HTTP Query Auth** credential:  \n     - Key: `key`  \n     - Value: your Google Maps API key.\n\n4. **Update workflow configuration**  \n   - In the **Google Sheets** nodes (`Get date delivery`, `Update Lat and Lng`, `Get addresses`), replace the `documentId` with your own sheet ID.  \n   - Ensure the sheet name (`Foglio1` or `gid=0`) matches.\n\n5. **Set start address**  \n   - In the **Start address** node (`n8n-nodes-base.set`), edit the `START ADDRESS` assignment to your warehouse/starting location.\n\n6. **Adjust wait time**  \n   - The **Wait** node is set to 10 seconds to respect Google Maps API rate limits. Adjust if needed.\n\n7. **Run the workflow**  \n   - Click **\"When clicking \u2018Execute workflow\u2019\"** button in n8n.  \n   - The workflow geocodes new addresses, updates the sheet, and outputs an optimized route per carrier.\n\n---\n\n\ud83d\udc49 [Subscribe to my new **YouTube channel**](https://youtube.com/@n3witalia). Here I\u2019ll share videos and Shorts with practical tutorials and **FREE templates for n8n**.\n\n[![image](https://n3wstorage.b-cdn.net/n3witalia/youtube-n8n-cover.jpg)](https://youtube.com/@n3witalia)\n\n---\n\n### **Need help customizing?**  \n[Contact me](mailto:info@n3w.it) for consulting and support or add me on [Linkedin](https://www.linkedin.com/in/davideboizza/). ",
+    "workflow": {
+      "id": "BZ8KkG0nsep2UnDz",
+      "meta": {
+        "instanceId": "a4bfc93e975ca233ac45ed7c9227d84cf5a2329310525917adaf3312e10d5462",
+        "templateCredsSetupCompleted": true
+      },
+      "name": "Delivery Route Optimizer for Carriers",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "5ba957ea-dff9-456c-8750-86e878e81622",
+          "name": "When clicking \u2018Execute workflow\u2019",
+          "type": "n8n-nodes-base.manualTrigger",
+          "position": [
+            -560,
+            176
+          ],
+          "parameters": {},
+          "typeVersion": 1
+        },
+        {
+          "id": "fda47def-1eb1-47de-a0ce-cff6687a0097",
+          "name": "Loop Over Items",
+          "type": "n8n-nodes-base.splitInBatches",
+          "position": [
+            224,
+            -176
+          ],
+          "parameters": {
+            "options": {}
+          },
+          "typeVersion": 3
+        },
+        {
+          "id": "74d54af3-5d0a-45aa-a0c7-dfe6490d16d9",
+          "name": "Wait",
+          "type": "n8n-nodes-base.wait",
+          "position": [
+            1104,
+            -160
+          ],
+          "webhookId": "f0cd7653-bf07-467d-804b-1407d5c3312b",
+          "parameters": {
+            "amount": 10
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "ddea4835-1c3c-4b9e-88b9-600033607747",
+          "name": "Loop Over Items1",
+          "type": "n8n-nodes-base.splitInBatches",
+          "position": [
+            1088,
+            432
+          ],
+          "parameters": {
+            "options": {}
+          },
+          "typeVersion": 3
+        },
+        {
+          "id": "d530451b-a2dc-4112-b80b-03cd68caac03",
+          "name": "Merge",
+          "type": "n8n-nodes-base.merge",
+          "position": [
+            832,
+            432
+          ],
+          "parameters": {
+            "mode": "combine",
+            "options": {},
+            "combineBy": "combineAll"
+          },
+          "typeVersion": 3.2
+        },
+        {
+          "id": "a5a6bb50-a751-443a-97d0-d87d3970b0c7",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -240,
+            -832
+          ],
+          "parameters": {
+            "width": 1248,
+            "height": 496,
+            "content": "## Daily Delivery Route Optimizer for Carriers and Logistics companies Using Google Maps API\n\nhis workflow automates the process of converting delivery addresses into geographic coordinates and **optimizes delivery routes for each carrier** using Google Maps.\n\nFinally, the workflow outputs an optimized circular route that starts and ends at the base location.\n\nThis workflow is particularly useful for:\n\n* Logistics companies\n* Courier services\n* Delivery businesses\n* Field service operations\n* Fleet management teams\n\n[Enable these Google Maps API](https://console.developers.google.com/apis/api/mapstools.googleapis.com/overview?project=1063614113399)\n\n### **How it works:**\n\nThis workflow reads today\u2019s deliveries from Google Sheets, geocodes each address with Google Maps Places API, and updates the sheet with latitude, longitude, and processing status. It then groups completed deliveries by carrier and uses Google Routes API with nearest neighbor and 2-opt optimization to generate an efficient circular route starting and ending at the warehouse. The final output is structured JSON containing the optimized stop order for each carrier.\n\n### **Setup steps:**\n\nCreate a Google Sheet with delivery columns, configure Google Sheets OAuth2 credentials in n8n, and add a Google Maps API key with Places API and Routes API enabled. Update the workflow with your sheet `documentId`, correct sheet name, and warehouse start address. Run the workflow manually to geocode new deliveries, update the spreadsheet, and return optimized routes grouped by carrier.\n\n"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "6abac159-fe75-44c3-8e31-dc6aed810e02",
+          "name": "Get date delivery",
+          "type": "n8n-nodes-base.googleSheets",
+          "position": [
+            -128,
+            -176
+          ],
+          "parameters": {
+            "options": {},
+            "filtersUI": {
+              "values": [
+                {
+                  "lookupValue": "={{$now.format('dd/LL/yyyy')}}",
+                  "lookupColumn": "DATE DELIVERY"
+                },
+                {
+                  "lookupColumn": "LONG"
+                },
+                {
+                  "lookupColumn": "LONG"
+                }
+              ]
+            },
+            "sheetName": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gid=0",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1iQHlKJOfAI_9OeKaemW21n82IEbMVsvuaQqSLIKw2n8/edit#gid=0",
+              "cachedResultName": "Foglio1"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "1iQHlKJOfAI_9OeKaemW21n82IEbMVsvuaQqSLIKw2n8",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1iQHlKJOfAI_9OeKaemW21n82IEbMVsvuaQqSLIKw2n8/edit?usp=drivesdk",
+              "cachedResultName": "Carrier"
+            }
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "JYR6a64Qecd6t8Hb",
+              "name": "Google Sheets account"
+            }
+          },
+          "typeVersion": 4.7
+        },
+        {
+          "id": "bebf4178-141b-43d3-807b-258824290318",
+          "name": "Update Lat and Lng",
+          "type": "n8n-nodes-base.googleSheets",
+          "position": [
+            784,
+            -160
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "DONE": "x",
+                "LANG": "={{ $json.results[0].geometry.location.lat }}",
+                "LONG": "={{ $json.results[0].geometry.location.lng }}",
+                "row_number": "={{ $('Loop Over Items').item.json.row_number }}"
+              },
+              "schema": [
+                {
+                  "id": "NAME CARRIER",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "NAME CARRIER",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "DATE DELIVERY",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "DATE DELIVERY",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "ADDRESS",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "ADDRESS",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "LANG",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "LANG",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "LONG",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "LONG",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "DONE",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "required": false,
+                  "displayName": "DONE",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "row_number",
+                  "type": "number",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": true,
+                  "required": false,
+                  "displayName": "row_number",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                }
+              ],
+              "mappingMode": "defineBelow",
+              "matchingColumns": [
+                "row_number"
+              ],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "options": {
+              "cellFormat": "USER_ENTERED"
+            },
+            "operation": "update",
+            "sheetName": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gid=0",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1iQHlKJOfAI_9OeKaemW21n82IEbMVsvuaQqSLIKw2n8/edit#gid=0",
+              "cachedResultName": "Foglio1"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "1iQHlKJOfAI_9OeKaemW21n82IEbMVsvuaQqSLIKw2n8",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1iQHlKJOfAI_9OeKaemW21n82IEbMVsvuaQqSLIKw2n8/edit?usp=drivesdk",
+              "cachedResultName": "Carrier"
+            }
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "JYR6a64Qecd6t8Hb",
+              "name": "Google Sheets account"
+            }
+          },
+          "typeVersion": 4.7
+        },
+        {
+          "id": "dd027f6a-69b6-4064-b740-46f211300576",
+          "name": "Get Lat and Lng",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            496,
+            -160
+          ],
+          "parameters": {
+            "url": "https://maps.googleapis.com/maps/api/place/textsearch/json",
+            "options": {},
+            "sendQuery": true,
+            "authentication": "genericCredentialType",
+            "genericAuthType": "httpQueryAuth",
+            "queryParameters": {
+              "parameters": [
+                {
+                  "name": "query",
+                  "value": "={{ $json.ADDRESS }}"
+                }
+              ]
+            }
+          },
+          "credentials": {
+            "httpQueryAuth": {
+              "id": "JY02mmtrnwyFOcny",
+              "name": "Google Maps"
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "b4115495-b650-4fe5-961a-8be4ba970859",
+          "name": "Start address",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            -128,
+            288
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "6bbe88bf-286a-48b8-94b7-67356f79952a",
+                  "name": "START ADDRESS",
+                  "type": "string",
+                  "value": "via rotaldo 11 verona"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "9599fdcb-abe3-432d-9d9b-73d6aba502c1",
+          "name": "Get Lat and Lng of Start address",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            224,
+            288
+          ],
+          "parameters": {
+            "url": "https://maps.googleapis.com/maps/api/place/textsearch/json",
+            "options": {},
+            "sendQuery": true,
+            "authentication": "genericCredentialType",
+            "genericAuthType": "httpQueryAuth",
+            "queryParameters": {
+              "parameters": [
+                {
+                  "name": "query",
+                  "value": "={{ $json[\"START ADDRESS\"] }}"
+                }
+              ]
+            }
+          },
+          "credentials": {
+            "httpQueryAuth": {
+              "id": "JY02mmtrnwyFOcny",
+              "name": "Google Maps"
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "e6b25111-cc04-4a19-84b7-e38999cd33b2",
+          "name": "Set vars",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            480,
+            288
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "1af4ed4c-ab2c-42b2-87fb-63370d34bf66",
+                  "name": "START ADDRESS",
+                  "type": "string",
+                  "value": "={{ $json.results[0].formatted_address }}"
+                },
+                {
+                  "id": "c4ac0441-6569-4046-80d7-7675b71ab25d",
+                  "name": "START LAT",
+                  "type": "number",
+                  "value": "={{ $json.results[0].geometry.location.lat }}"
+                },
+                {
+                  "id": "19cbf770-9210-479a-8f2b-83de67b0e72d",
+                  "name": "START LNG",
+                  "type": "number",
+                  "value": "={{ $json.results[0].geometry.location.lng }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "65806d26-9725-4ebc-9520-4ca36aa0aa11",
+          "name": "Get addresses",
+          "type": "n8n-nodes-base.googleSheets",
+          "position": [
+            224,
+            672
+          ],
+          "parameters": {
+            "options": {},
+            "filtersUI": {
+              "values": [
+                {
+                  "lookupValue": "={{$now.format('dd/LL/yyyy')}}",
+                  "lookupColumn": "DATE DELIVERY"
+                },
+                {
+                  "lookupValue": "x",
+                  "lookupColumn": "DONE"
+                }
+              ]
+            },
+            "sheetName": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gid=0",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1iQHlKJOfAI_9OeKaemW21n82IEbMVsvuaQqSLIKw2n8/edit#gid=0",
+              "cachedResultName": "Foglio1"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "1iQHlKJOfAI_9OeKaemW21n82IEbMVsvuaQqSLIKw2n8",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1iQHlKJOfAI_9OeKaemW21n82IEbMVsvuaQqSLIKw2n8/edit?usp=drivesdk",
+              "cachedResultName": "Carrier"
+            }
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "JYR6a64Qecd6t8Hb",
+              "name": "Google Sheets account"
+            }
+          },
+          "typeVersion": 4.7
+        },
+        {
+          "id": "30f26882-3ca4-4a6f-8dda-4994ed76e0a8",
+          "name": "Delivery Algorithm",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1376,
+            448
+          ],
+          "parameters": {
+            "jsCode": "\nconst GOOGLE_API_KEY = \"xxx\";\n\n\nconst distanceCache = {};\n\nasync function drivingDistance(lat1, lng1, lat2, lng2) {\n  const key = `${lat1},${lng1}|${lat2},${lng2}`;\n  if (distanceCache[key] !== undefined) return distanceCache[key];\n\n  try {\n    const result = await this.helpers.httpRequest({\n      method: \"POST\",\n      url: \"https://routes.googleapis.com/directions/v2:computeRoutes\",\n      headers: {\n        \"Content-Type\": \"application/json\",\n        \"X-Goog-Api-Key\": GOOGLE_API_KEY,\n        \"X-Goog-FieldMask\": \"routes.distanceMeters\"\n      },\n      body: {\n        origin: {\n          location: { latLng: { latitude: lat1, longitude: lng1 } }\n        },\n        destination: {\n          location: { latLng: { latitude: lat2, longitude: lng2 } }\n        },\n        travelMode: \"DRIVE\",\n        routingPreference: \"TRAFFIC_UNAWARE\"\n      },\n      json: true\n    });\n\n    if (!result.routes || result.routes.length === 0) throw new Error(\"No route\");\n    distanceCache[key] = result.routes[0].distanceMeters;\n    return distanceCache[key];\n\n  } catch (e) {\n    const dLat = lat2 - lat1;\n    const dLng = lng2 - lng1;\n    const d = Math.sqrt(dLat * dLat + dLng * dLng) * 111000;\n    distanceCache[key] = d;\n    return d;\n  }\n}\n\n\nasync function totalCircularDistance(route) {\n  let total = 0;\n  for (let i = 0; i < route.length; i++) {\n    const a = route[i];\n    const b = route[(i + 1) % route.length]; // circolare: ultimo \u2192 primo\n    total += await drivingDistance.call(this, a.LANG, a.LONG, b.LANG, b.LONG);\n  }\n  return total;\n}\n\nconst items = $input.all();\nconst data = items[0].json;\n\nconst start = {\n  row_number: 0,\n  \"NAME CARRIER\": data[\"NAME CARRIER\"],\n  \"DATE DELIVERY\": data.deliveries[0][\"DATE DELIVERY\"],\n  ADDRESS: data[\"START ADDRESS\"],\n  LANG: data[\"START LAT\"],\n  LONG: data[\"START LNG\"]\n};\n\nconst stops = data.deliveries.map(d => ({\n  row_number: d.row_number,\n  \"NAME CARRIER\": d[\"NAME CARRIER\"],\n  \"DATE DELIVERY\": d[\"DATE DELIVERY\"],\n  ADDRESS: d.ADDRESS,\n  LANG: d.LANG,\n  LONG: d.LONG\n}));\n\nlet remaining = [...stops];\nconst route = [];\nlet currentLat = start.LANG;\nlet currentLng = start.LONG;\n\nwhile (remaining.length > 0) {\n  let bestIndex = 0;\n  let bestCost = Infinity;\n\n  const isLastStep = remaining.length === 1;\n\n  const costs = await Promise.all(\n    remaining.map(async (stop, i) => {\n      // Distanza dal punto corrente al candidato\n      const toCandidate = await drivingDistance.call(\n        this, currentLat, currentLng, stop.LANG, stop.LONG\n      );\n\n      if (isLastStep) {\n        // Ultimo step: considera anche il ritorno alla base\n        const toBase = await drivingDistance.call(\n          this, stop.LANG, stop.LONG, start.LANG, start.LONG\n        );\n        return toCandidate + toBase;\n      }\n\n      return toCandidate;\n    })\n  );\n\n  for (let i = 0; i < costs.length; i++) {\n    if (costs[i] < bestCost) {\n      bestCost = costs[i];\n      bestIndex = i;\n    }\n  }\n\n  const nearest = remaining.splice(bestIndex, 1)[0];\n  route.push(nearest);\n  currentLat = nearest.LANG;\n  currentLng = nearest.LONG;\n}\n\nlet improved = true;\nlet iterations = 0;\nconst MAX_ITERATIONS = 100;\n\nwhile (improved && iterations < MAX_ITERATIONS) {\n  improved = false;\n  iterations++;\n\n  for (let i = 0; i < route.length - 1; i++) {\n    for (let j = i + 1; j < route.length; j++) {\n\n      const prevI = i === 0 ? start : route[i - 1];\n      const nextJ = j === route.length - 1 ? start : route[j + 1];\n\n      const currentCost =\n        distanceCache[`${prevI.LANG},${prevI.LONG}|${route[i].LANG},${route[i].LONG}`] || 0 +\n        distanceCache[`${route[j].LANG},${route[j].LONG}|${nextJ.LANG},${nextJ.LONG}`] || 0;\n\n      // Dopo swap: ...\u2192 route[j] \u2192 route[j-1] \u2192...\u2192 route[i] \u2192 route[j+1|base] \u2192...\n      const newCost =\n        distanceCache[`${prevI.LANG},${prevI.LONG}|${route[j].LANG},${route[j].LONG}`] || 0 +\n        distanceCache[`${route[i].LANG},${route[i].LONG}|${nextJ.LANG},${nextJ.LONG}`] || 0;\n\n      if (newCost < currentCost) {\n        // Inverti il segmento tra i e j\n        const segment = route.slice(i, j + 1).reverse();\n        route.splice(i, j - i + 1, ...segment);\n        improved = true;\n      }\n    }\n  }\n}\n\nconst lastRowNumber = route[route.length - 1].row_number;\n\nconst returnToBase = {\n  row_number: lastRowNumber + 1,\n  \"NAME CARRIER\": data[\"NAME CARRIER\"],\n  \"DATE DELIVERY\": data.deliveries[0][\"DATE DELIVERY\"],\n  ADDRESS: data[\"START ADDRESS\"],\n  LANG: data[\"START LAT\"],\n  LONG: data[\"START LNG\"]\n};\n\nconst ordered = [start, ...route, returnToBase];\n\nreturn ordered.map(stop => ({ json: stop }));"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "2406c2a0-2557-461d-b15f-e69eb535993b",
+          "name": "Group delivery",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            480,
+            672
+          ],
+          "parameters": {
+            "jsCode": "const items = $input.all();\n\nconst grouped = {};\n\nfor (const item of items) {\n  const carrier = item.json[\"NAME CARRIER\"];\n\n  if (!grouped[carrier]) {\n    grouped[carrier] = [];\n  }\n\n  grouped[carrier].push(item.json);\n}\n\n// trasformo in array finale\nconst result = Object.keys(grouped).map(carrier => {\n  return {\n    json: {\n      \"NAME CARRIER\": carrier,\n      deliveries: grouped[carrier]\n    }\n  };\n});\n\nreturn result;"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "993d2b38-d8a7-4704-9cd4-57b0d2e866bc",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            992,
+            304
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 592,
+            "height": 384,
+            "content": "## STEP 6 - Algorithm routing\nSet GOOGLE_API_KEY and the algorithm Implements a nearest neighbor heuristic + 2-opt optimization"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "d1040742-ca03-4eb2-bb2b-573a8d4082e9",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -240,
+            -288
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 336,
+            "height": 336,
+            "content": "## STEP 1 - Database\n[Clone this Sheet](https://docs.google.com/spreadsheets/d/1iQHlKJOfAI_9OeKaemW21n82IEbMVsvuaQqSLIKw2n8/edit?usp=sharing) and fill Name carrier, Date delivery and Address columns"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "c442237c-171d-4639-a8fa-a5bed5165c83",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -240,
+            192
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 368,
+            "height": 304,
+            "content": "## STEP 3 - Start address\n\nSet the START_ADDRESS"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "2e5cf06d-1f8d-4f8b-aede-dfc11599c1c9",
+          "name": "Sticky Note4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            128,
+            -288
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1152,
+            "height": 336,
+            "content": "## STEP 2 - Latitude and Longitude\n\nCalls the Google Maps Places API (textsearch) to get latitude and longitude"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "bee9462e-66ba-4810-ac17-f94653cc0dd4",
+          "name": "Sticky Note5",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            160,
+            192
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 528,
+            "height": 304,
+            "content": "## STEP 4 - Latitude and Longitude\nCalls the Google Maps Places API (textsearch) to get latitude and longitude"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "ccea0d37-06ef-4b1f-a43d-a7fb34b2cebc",
+          "name": "Sticky Note6",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            160,
+            528
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 528,
+            "height": 320,
+            "content": "## STEP 5 - Group by Name Carrier\n\nThese are fully geocoded deliveries ready for routing and Groups all delivery rows by NAME CARRIER"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "ff7fa13c-f969-4da9-b209-15136d1fbe03",
+          "name": "Group by Carrier",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1376,
+            128
+          ],
+          "parameters": {
+            "jsCode": "const items = $input.all();\n\nconst grouped = {};\n\nfor (const item of items) {\n  const carrier = item.json[\"NAME CARRIER\"];\n\n  if (!grouped[carrier]) {\n    grouped[carrier] = [];\n  }\n\n  grouped[carrier].push(item.json);\n}\n\nreturn Object.entries(grouped).map(([carrier, data]) => {\n  return {\n    json: {\n      carrier,\n      deliveries: data\n    }\n  };\n});"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "c5a56f3f-e696-408e-8172-66d35f68695c",
+          "name": "Schedule Trigger",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "position": [
+            -576,
+            -16
+          ],
+          "parameters": {
+            "rule": {
+              "interval": [
+                {}
+              ]
+            }
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "2882effe-afab-413c-86a3-4cbdb874f11f",
+          "name": "Sticky Note7",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1040,
+            -1200
+          ],
+          "parameters": {
+            "width": 896,
+            "height": 864,
+            "content": "## Workflow output\nThe workflow returns the optimized delivery routes as structured JSON data, making the result highly flexible and easy to integrate into external systems. The JSON can be sent via webhook to a courier management system, logistics platform, ERP, CRM, or any custom application that needs delivery route data.\nBecause the output is fully structured, it can also be reused for analytics, automation, reporting, or real-time operational dashboards.\nFor example, I created a custom web application that accepts the generated JSON and automatically displays all optimized routes directly on Google Maps, allowing dispatchers and drivers to visualize delivery paths.\n\n![image](https://n3wstorage.b-cdn.net/test/route.png)"
+          },
+          "typeVersion": 1
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "0c941dbe-0f50-4783-96f3-4cf4bda6dcfc",
+      "connections": {
+        "Wait": {
+          "main": [
+            [
+              {
+                "node": "Loop Over Items",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Merge": {
+          "main": [
+            [
+              {
+                "node": "Loop Over Items1",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Set vars": {
+          "main": [
+            [
+              {
+                "node": "Merge",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get addresses": {
+          "main": [
+            [
+              {
+                "node": "Group delivery",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Start address": {
+          "main": [
+            [
+              {
+                "node": "Get addresses",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Get Lat and Lng of Start address",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Group delivery": {
+          "main": [
+            [
+              {
+                "node": "Merge",
+                "type": "main",
+                "index": 1
+              }
+            ]
+          ]
+        },
+        "Get Lat and Lng": {
+          "main": [
+            [
+              {
+                "node": "Update Lat and Lng",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Loop Over Items": {
+          "main": [
+            [],
+            [
+              {
+                "node": "Get Lat and Lng",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Group by Carrier": {
+          "main": [
+            []
+          ]
+        },
+        "Loop Over Items1": {
+          "main": [
+            [
+              {
+                "node": "Group by Carrier",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Delivery Algorithm",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Schedule Trigger": {
+          "main": [
+            [
+              {
+                "node": "Get date delivery",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Start address",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get date delivery": {
+          "main": [
+            [
+              {
+                "node": "Loop Over Items",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Delivery Algorithm": {
+          "main": [
+            [
+              {
+                "node": "Loop Over Items1",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Update Lat and Lng": {
+          "main": [
+            [
+              {
+                "node": "Wait",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get Lat and Lng of Start address": {
+          "main": [
+            [
+              {
+                "node": "Set vars",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "When clicking \u2018Execute workflow\u2019": {
+          "main": [
+            [
+              {
+                "node": "Start address",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Get date delivery",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 24,
+      "nodeTypes": {
+        "n8n-nodes-base.set": {
+          "count": 2
+        },
+        "n8n-nodes-base.code": {
+          "count": 3
+        },
+        "n8n-nodes-base.wait": {
+          "count": 1
+        },
+        "n8n-nodes-base.merge": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 8
+        },
+        "n8n-nodes-base.httpRequest": {
+          "count": 2
+        },
+        "n8n-nodes-base.googleSheets": {
+          "count": 3
+        },
+        "n8n-nodes-base.manualTrigger": {
+          "count": 1
+        },
+        "n8n-nodes-base.splitInBatches": {
+          "count": 2
+        },
+        "n8n-nodes-base.scheduleTrigger": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Davide Boizza",
+      "username": "n3witalia",
+      "bio": "Full-stack Web Developer based in Italy specialising in Marketing & AI-powered automations. For business enquiries, send me an email at info@n3w.it or add me on Linkedin.com/in/davideboizza and Youtube.com/@n3witalia",
+      "verified": true,
+      "links": [
+        "https://n3w.it"
+      ],
+      "avatar": "https://gravatar.com/avatar/d41b8a0aa81139243509c58870f5b4be292824a507ab57d10ed066d8628ed8da?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 18,
+        "icon": "file:googleSheets.svg",
+        "name": "n8n-nodes-base.googleSheets",
+        "codex": {
+          "data": {
+            "alias": [
+              "CSV",
+              "Sheet",
+              "Spreadsheet",
+              "GS"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/love-at-first-sight-ricardos-n8n-journey/",
+                  "icon": "\u2764\ufe0f",
+                  "label": "Love at first sight: Ricardo\u2019s n8n journey"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-triggers-for-n8n-workflows-using-polling/",
+                  "icon": "\u23f2",
+                  "label": "Creating triggers for n8n workflows using polling"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/migrating-community-metrics-to-orbit-using-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Migrating Community Metrics to Orbit using n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-honest-burgers-use-automation-to-save-100k-per-year/",
+                  "icon": "\ud83c\udf54",
+                  "label": "How Honest Burgers Use Automation to Save $100k per year"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "\ud83d\udcbb",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googlesheets/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage",
+              "Productivity"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\",\"output\"]",
+        "defaults": {
+          "name": "Google Sheets"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNS42OSAxIDUyIDE3LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0OC4yOTMgNjBIMTIuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDkgNTYuMzEyVjQuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTIuNzA3IDF6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM1LjY5IDEgNTIgMTcuMjI1SDM5LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzkuMjExIDE3LjIyNSA1MiAyMi40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTIwLjEyIDMxLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMS42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzEuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNC42OSAwIDUxIDE2LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0Ny4yOTMgNTlIMTEuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDggNTUuMzEyVjMuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTEuNzA3IDB6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM0LjY5IDAgNTEgMTYuMjI1SDM4LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzguMjExIDE2LjIyNSA1MSAyMS40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTE5LjEyIDMwLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMC42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzAuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjwvZz48L3N2Zz4="
+        },
+        "displayName": "Google Sheets",
+        "typeVersion": 5,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          },
+          {
+            "id": 4,
+            "name": "Productivity"
+          }
+        ]
+      },
+      {
+        "id": 19,
+        "icon": "file:httprequest.svg",
+        "name": "n8n-nodes-base.httpRequest",
+        "codex": {
+          "data": {
+            "alias": [
+              "API",
+              "Request",
+              "URL",
+              "Build",
+              "cURL"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-designs-with-bannerbear-and-n8n/",
+                  "icon": "\ud83c\udfa8",
+                  "label": "Automate Designs with Bannerbear and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-use-the-http-request-node-the-swiss-army-knife-for-workflow-automation/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "How to use the HTTP Request Node - The Swiss Army Knife for Workflow Automation"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HTTP Request",
+          "color": "#0004F5"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MCAyMEM0MCA4Ljk1MzE0IDMxLjA0NjkgMCAyMCAwQzguOTUzMTQgMCAwIDguOTUzMTQgMCAyMEMwIDMxLjA0NjkgOC45NTMxNCA0MCAyMCA0MEMzMS4wNDY5IDQwIDQwIDMxLjA0NjkgNDAgMjBaTTIwIDM2Ljk0NThDMTguODg1MiAzNi45NDU4IDE3LjEzNzggMzUuOTY3IDE1LjQ5OTggMzIuNjk4NUMxNC43OTY0IDMxLjI5MTggMTQuMTk2MSAyOS41NDMxIDEzLjc1MjYgMjcuNjg0N0gyNi4xODk4QzI1LjgwNDUgMjkuNTQwMyAyNS4yMDQ0IDMxLjI5MDEgMjQuNTAwMiAzMi42OTg1QzIyLjg2MjIgMzUuOTY3IDIxLjExNDggMzYuOTQ1OCAyMCAzNi45NDU4Wk0xMi45MDY0IDIwQzEyLjkwNjQgMjEuNjA5NyAxMy4wMDg3IDIzLjE2NCAxMy4yMDAzIDI0LjYzMDVIMjYuNzk5N0MyNi45OTEzIDIzLjE2NCAyNy4wOTM2IDIxLjYwOTcgMjcuMDkzNiAyMEMyNy4wOTM2IDE4LjM5MDMgMjYuOTkxMyAxNi44MzYgMjYuNzk5NyAxNS4zNjk1SDEzLjIwMDNDMTMuMDA4NyAxNi44MzYgMTIuOTA2NCAxOC4zOTAzIDEyLjkwNjQgMjBaTTIwIDMuMDU0MTlDMjEuMTE0OSAzLjA1NDE5IDIyLjg2MjIgNC4wMzA3OCAyNC41MDAxIDcuMzAwMzlDMjUuMjA2NiA4LjcxNDA4IDI1LjgwNzIgMTAuNDA2NyAyNi4xOTIgMTIuMzE1M0gxMy43NTAxQzE0LjE5MzMgMTAuNDA0NyAxNC43OTQyIDguNzEyNTQgMTUuNDk5OCA3LjMwMDY0QzE3LjEzNzcgNC4wMzA4MyAxOC44ODUxIDMuMDU0MTkgMjAgMy4wNTQxOVpNMzAuMTQ3OCAyMEMzMC4xNDc4IDE4LjQwOTkgMzAuMDU0MyAxNi44NjE3IDI5LjgyMjcgMTUuMzY5NUgzNi4zMDQyQzM2LjcyNTIgMTYuODQyIDM2Ljk0NTggMTguMzk2NCAzNi45NDU4IDIwQzM2Ljk0NTggMjEuNjAzNiAzNi43MjUyIDIzLjE1OCAzNi4zMDQyIDI0LjYzMDVIMjkuODIyN0MzMC4wNTQzIDIzLjEzODMgMzAuMTQ3OCAyMS41OTAxIDMwLjE0NzggMjBaTTI2LjI3NjcgNC4yNTUxMkMyNy42MzY1IDYuMzYwMTkgMjguNzExIDkuMTMyIDI5LjM3NzQgMTIuMzE1M0gzNS4xMDQ2QzMzLjI1MTEgOC42NjggMzAuMTA3IDUuNzgzNDYgMjYuMjc2NyA0LjI1NTEyWk0xMC42MjI2IDEyLjMxNTNINC44OTI5M0M2Ljc1MTQ3IDguNjY3ODQgOS44OTM1MSA1Ljc4MzQxIDEzLjcyMzIgNC4yNTUxM0MxMi4zNjM1IDYuMzYwMjEgMTEuMjg5IDkuMTMyMDEgMTAuNjIyNiAxMi4zMTUzWk0zLjA1NDE5IDIwQzMuMDU0MTkgMjEuNjAzIDMuMjc3NDMgMjMuMTU3NSAzLjY5NDg0IDI0LjYzMDVIMTAuMTIxN0M5Ljk0NjE5IDIzLjE0MiA5Ljg1MjIyIDIxLjU5NDMgOS44NTIyMiAyMEM5Ljg1MjIyIDE4LjQwNTcgOS45NDYxOSAxNi44NTggMTAuMTIxNyAxNS4zNjk1SDMuNjk0ODRDMy4yNzc0MyAxNi44NDI1IDMuMDU0MTkgMTguMzk3IDMuMDU0MTkgMjBaTTI2LjI3NjYgMzUuNzQyN0MyNy42MzY1IDMzLjYzOTMgMjguNzExIDMwLjg2OCAyOS4zNzc0IDI3LjY4NDdIMzUuMTA0NkMzMy4yNTEgMzEuMzMyMiAzMC4xMDY4IDM0LjIxNzkgMjYuMjc2NiAzNS43NDI3Wk0xMy43MjM0IDM1Ljc0MjdDOS44OTM2OSAzNC4yMTc5IDYuNzUxNTUgMzEuMzMyNCA0Ljg5MjkzIDI3LjY4NDdIMTAuNjIyNkMxMS4yODkgMzAuODY4IDEyLjM2MzUgMzMuNjM5MyAxMy43MjM0IDM1Ljc0MjdaIiBmaWxsPSIjM0E0MkU5Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "HTTP Request",
+        "typeVersion": 4,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 24,
+        "icon": "file:merge.svg",
+        "name": "n8n-nodes-base.merge",
+        "codex": {
+          "data": {
+            "alias": [
+              "Join",
+              "Concatenate",
+              "Wait"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-sync-data-between-two-systems/",
+                  "icon": "\ud83c\udfec",
+                  "label": "How to synchronize data between two systems (one-way vs. two-way sync"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/migrating-community-metrics-to-orbit-using-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Migrating Community Metrics to Orbit using n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.merge/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Merge"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTc3XzUxOCkiPgo8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTAgNDhDMCAyMS40OTAzIDIxLjQ5MDMgMCA0OCAwSDExMkMxMzguNTEgMCAxNjAgMjEuNDkwMyAxNjAgNDhWNTZIMTk2LjI1MkMyNDAuNDM1IDU2IDI3Ni4yNTIgOTEuODE3MiAyNzYuMjUyIDEzNlYxOTJDMjc2LjI1MiAyMTQuMDkxIDI5NC4xNjEgMjMyIDMxNi4yNTIgMjMySDM1MlYyMjRDMzUyIDE5Ny40OSAzNzMuNDkgMTc2IDQwMCAxNzZINDY0QzQ5MC41MSAxNzYgNTEyIDE5Ny40OSA1MTIgMjI0VjI4OEM1MTIgMzE0LjUxIDQ5MC41MSAzMzYgNDY0IDMzNkg0MDBDMzczLjQ5IDMzNiAzNTIgMzE0LjUxIDM1MiAyODhWMjgwSDMxNi4yNTJDMjk0LjE2MSAyODAgMjc2LjI1MiAyOTcuOTA5IDI3Ni4yNTIgMzIwVjM3NkMyNzYuMjUyIDQyMC4xODMgMjQwLjQzNSA0NTYgMTk2LjI1MiA0NTZIMTYwVjQ2NEMxNjAgNDkwLjUxIDEzOC41MSA1MTIgMTEyIDUxMkg0OEMyMS40OTAzIDUxMiAwIDQ5MC41MSAwIDQ2NFY0MDBDMCAzNzMuNDkgMjEuNDkwMyAzNTIgNDggMzUySDExMkMxMzguNTEgMzUyIDE2MCAzNzMuNDkgMTYwIDQwMFY0MDhIMTk2LjI1MkMyMTMuOTI1IDQwOCAyMjguMjUyIDM5My42NzMgMjI4LjI1MiAzNzZWMzIwQzIyOC4yNTIgMjk0Ljc4NCAyMzguODU5IDI3Mi4wNDQgMjU1Ljg1MyAyNTZDMjM4Ljg1OSAyMzkuOTU2IDIyOC4yNTIgMjE3LjIxNiAyMjguMjUyIDE5MlYxMzZDMjI4LjI1MiAxMTguMzI3IDIxMy45MjUgMTA0IDE5Ni4yNTIgMTA0SDE2MFYxMTJDMTYwIDEzOC41MSAxMzguNTEgMTYwIDExMiAxNjBINDhDMjEuNDkwMyAxNjAgMCAxMzguNTEgMCAxMTJWNDhaTTEwNCA0OEMxMDguNDE4IDQ4IDExMiA1MS41ODE3IDExMiA1NlYxMDRDMTEyIDEwOC40MTggMTA4LjQxOCAxMTIgMTA0IDExMkg1NkM1MS41ODE3IDExMiA0OCAxMDguNDE4IDQ4IDEwNFY1NkM0OCA1MS41ODE3IDUxLjU4MTcgNDggNTYgNDhIMTA0Wk00NTYgMjI0QzQ2MC40MTggMjI0IDQ2NCAyMjcuNTgyIDQ2NCAyMzJWMjgwQzQ2NCAyODQuNDE4IDQ2MC40MTggMjg4IDQ1NiAyODhINDA4QzQwMy41ODIgMjg4IDQwMCAyODQuNDE4IDQwMCAyODBWMjMyQzQwMCAyMjcuNTgyIDQwMy41ODIgMjI0IDQwOCAyMjRINDU2Wk0xMTIgNDA4QzExMiA0MDMuNTgyIDEwOC40MTggNDAwIDEwNCA0MDBINTZDNTEuNTgxNyA0MDAgNDggNDAzLjU4MiA0OCA0MDhWNDU2QzQ4IDQ2MC40MTggNTEuNTgxNyA0NjQgNTYgNDY0SDEwNEMxMDguNDE4IDQ2NCAxMTIgNDYwLjQxOCAxMTIgNDU2VjQwOFoiIGZpbGw9IiM1NEI4QzkiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTc3XzUxOCI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Merge",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 39,
+        "icon": "fa:sync",
+        "name": "n8n-nodes-base.splitInBatches",
+        "codex": {
+          "data": {
+            "alias": [
+              "Loop",
+              "Concatenate",
+              "Batch",
+              "Split",
+              "Split In Batches"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Loop Over Items",
+          "color": "#007755"
+        },
+        "iconData": {
+          "icon": "sync",
+          "type": "icon"
+        },
+        "displayName": "Loop Over Items (Split in Batches)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 514,
+        "icon": "fa:pause-circle",
+        "name": "n8n-nodes-base.wait",
+        "codex": {
+          "data": {
+            "alias": [
+              "pause",
+              "sleep",
+              "delay",
+              "timeout"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.wait/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Wait",
+          "color": "#804050"
+        },
+        "iconData": {
+          "icon": "pause-circle",
+          "type": "icon"
+        },
+        "displayName": "Wait",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 838,
+        "icon": "fa:mouse-pointer",
+        "name": "n8n-nodes-base.manualTrigger",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.manualworkflowtrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "When clicking \u2018Execute workflow\u2019",
+          "color": "#909298"
+        },
+        "iconData": {
+          "icon": "mouse-pointer",
+          "type": "icon"
+        },
+        "displayName": "Manual Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 839,
+        "icon": "fa:clock",
+        "name": "n8n-nodes-base.scheduleTrigger",
+        "codex": {
+          "data": {
+            "alias": [
+              "Time",
+              "Scheduler",
+              "Polling",
+              "Cron",
+              "Interval"
+            ],
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\",\"schedule\"]",
+        "defaults": {
+          "name": "Schedule Trigger",
+          "color": "#31C49F"
+        },
+        "iconData": {
+          "icon": "clock",
+          "type": "icon"
+        },
+        "displayName": "Schedule Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 46,
+        "name": "Project Management"
+      }
+    ],
+    "image": []
+  }
+}

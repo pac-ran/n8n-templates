@@ -1,0 +1,1403 @@
+{
+  "workflow": {
+    "id": 15567,
+    "name": "Build employee onboarding clip libraries with WayinVideo, Google Drive and Gmail",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-09T07:56:56.648Z",
+    "description": "### Description\n\nSubmit a new employee's details and your onboarding recording URL via a simple form and the workflow automatically extracts the specific training moments relevant to that employee. WayinVideo's Find Moments API scans the full recording and returns up to 5 matching clips in HD 720 quality with animated captions and download links \u2014 which are downloaded immediately before the export links expire and uploaded to Google Drive with a structured filename. Every clip is saved to the Onboarding Clip Library Google Sheet with the Drive link, and a personalized HTML welcome email is sent to the new employee with the full recording link and instructions. Built for HR teams, learning and development managers, and People Operations teams who run recurring onboarding sessions and want to deliver specific training clips to each new employee automatically \u2014 without manually editing recordings.\n\n---\n\n## What This Workflow Does\n\n- **Finds up to 5 topic-specific training moments per recording** \u2014 [WayinVideo](https://wayin.ai/api/) scans the full onboarding session and returns only the clips that match your training topic query \u2014 not the entire recording\n- **Exports clips in HD 720 with animated captions** \u2014 Every clip is generated with animated captions in the original language so new employees can watch silently or with sound\n- **Downloads clips before export links expire** \u2014 WayinVideo export links last only 24 hours \u2014 the workflow downloads and uploads to Drive immediately so clips are available permanently\n- **Creates structured Drive filenames per clip** \u2014 Each file is named `EmployeeName_Department_Clip_N_Score_S.mp4` so your Drive folder is organized and searchable by employee and topic\n- **Saves 15 metadata fields to Google Sheets** \u2014 Employee name, email, department, start date, clip title, description, timestamp, score, tags, and a direct Drive link are all logged per clip\n- **Sends a personalized HTML welcome email** \u2014 The new employee receives a branded HTML email addressed by first name with the full recording link, their department, start date, and instructions to access their clips\n- **Polls automatically until clips are ready** \u2014 Waits 90 seconds then checks every 30 seconds until WayinVideo finishes processing the recording\n\n---\n\n## Setup Requirements\n\n### Tools Needed\n- n8n instance (self-hosted or cloud)\n- WayinVideo account with API access\n- Google Drive (one folder for onboarding clips)\n- Google Sheets (one sheet with a tab named **Onboarding Clip Library**)\n- Gmail account\n\n### Credentials Required\n- WayinVideo API key (pasted into **2. WayinVideo \u2014 Submit Find Moments** and **4. WayinVideo \u2014 Get Clips Result**)\n- Google Drive OAuth2\n- Google Sheets OAuth2\n- Gmail OAuth2\n\n&gt; \u26a0\ufe0f **WayinVideo API key appears in 2 steps** \u2014 replace `YOUR_WAYINVIDEO_API_KEY` in both **2. WayinVideo \u2014 Submit Find Moments** and **4. WayinVideo \u2014 Get Clips Result**. Missing either one will cause the workflow to fail.\n\n&gt; \u26a0\ufe0f **Query tip** \u2014 The Training Topic to Extract field works best with 4\u20136 descriptive words. Examples that work well: \"company culture and team values explanation\", \"HR leave policy and benefits overview\", \"tools and software walkthrough for new employees\". Single words like \"culture\" or \"HR\" will return poor results.\n\n**Estimated Setup Time: 20\u201325 minutes**\n\n---\n\n## Step-by-Step Setup\n\n1. **Import the workflow** \u2014 Open n8n \u2192 Workflows \u2192 Import from JSON \u2192 paste the workflow JSON \u2192 click Import\n\n2. **Get your WayinVideo API key** \u2014 Log in to your WayinVideo account \u2192 go to Account Settings \u2192 copy your API key\n\n3. **Add your WayinVideo API key to node 2** \u2014 Open node **2. WayinVideo \u2014 Submit Find Moments** \u2192 find the `Authorization` header value `Bearer YOUR_WAYINVIDEO_API_KEY` \u2192 replace `YOUR_WAYINVIDEO_API_KEY` with your actual key\n\n4. **Add your WayinVideo API key to node 4** \u2014 Open node **4. WayinVideo \u2014 Get Clips Result** \u2192 find the same `Authorization` header \u2192 replace `YOUR_WAYINVIDEO_API_KEY` with the same key\n\n5. **Get your Google Drive folder ID** \u2014 Open your target Google Drive folder in a browser \u2192 the folder ID is the string at the end of the URL after `/folders/`\n\n6. **Connect Google Drive** \u2014 Open node **9. Google Drive \u2014 Upload Clip** \u2192 click the credential dropdown \u2192 add Google Drive OAuth2 \u2192 authorize access \u2192 replace `YOUR_GDRIVE_FOLDER_ID` in the folder field with your actual folder ID\n\n7. **Create your Google Sheet tab** \u2014 Open your Google Sheet \u2192 add a tab named exactly **Onboarding Clip Library** \u2192 add these 15 column headers in row 1: `Employee Name`, `Employee Email`, `Department`, `Start Date`, `Company`, `Topic`, `Clip Title`, `Description`, `Timestamp`, `Score`, `Tags`, `Drive Link`, `Drive File ID`, `Onboarding Recording URL`, `Date Added`\n\n8. **Get your Google Sheet ID** \u2014 Open your Google Sheet in a browser \u2192 copy the string between `/d/` and `/edit` in the URL\n\n9. **Connect Google Sheets** \u2014 Open node **10. Google Sheets \u2014 Save to Library** \u2192 click the document field \u2192 replace `YOUR_GOOGLE_SHEET_ID` by selecting your spreadsheet or entering the Sheet ID manually \u2192 click the credential dropdown \u2192 add Google Sheets OAuth2 \u2192 authorize access\n\n10. **Connect Gmail** \u2014 Open node **11. Gmail \u2014 Send Welcome Email** \u2192 click the credential dropdown \u2192 add Gmail OAuth2 \u2192 complete the Google authorization flow\n\n11. **Activate the workflow** \u2014 Toggle the workflow to Active \u2192 copy the Form URL from node **1. Form \u2014 New Employee + Onboarding Details** \u2192 open it in a browser to submit your first new employee\n\n---\n\n## How It Works (Step by Step)\n\n**Step 1 \u2014 Form: New Employee + Onboarding Details**\nYour HR team opens the form URL and fills in seven fields: the onboarding recording URL, the new employee's full name, their email address, their department, their start date, the training topic to extract (4\u20136 descriptive words), and the company name. Submitting the form starts the entire pipeline.\n\n**Step 2 \u2014 HTTP: WayinVideo \u2014 Submit Find Moments**\nThe recording URL, training topic query, and a project name (auto-built as `Onboarding \u2014 EmployeeName \u2014 Department`) are sent to WayinVideo's Find Moments API. The request asks for up to 5 clips at HD 720 quality, animated captions in the original language using caption template `temp-7`, export enabled so download links are generated, and AI reframe disabled so the clips stay in their original aspect ratio. WayinVideo returns a task ID.\n\n**Step 3 \u2014 Wait: 90 Seconds**\nThe workflow pauses 90 seconds before the first status check, giving WayinVideo time to scan the full recording.\n\n**Step 4 \u2014 HTTP: WayinVideo \u2014 Get Clips Result**\nA GET request checks the find-moments results endpoint using the task ID from step 2. It returns the current status and, once complete, the full clips array with title, description, export download link, relevance score, tags, and timestamps for each matched moment.\n\n**Step 5 \u2014 IF: Find Moments Complete?**\nThis is the polling gate. If the status equals `SUCCEEDED` (YES path), the clips are ready and the workflow moves forward to splitting. If still processing (NO path), the workflow routes to **6. Wait \u2014 30 Seconds Retry** which pauses 30 seconds then loops back to step 4 to check again. This repeats until SUCCEEDED.\n\n**Step 6 \u2014 Wait: 30 Seconds Retry**\nWhen clips are not yet ready, the workflow waits 30 seconds then returns to step 4 for another check.\n\n**Step 7 \u2014 Code: Split Each Clip**\nThe clips array is split into individual rows \u2014 one per clip. Each row carries the clip title, export link, relevance score, tags, description, start time in milliseconds, end time in milliseconds, and clip index number. If no clips are returned, the step throws a clear error with a suggestion to try a more descriptive query.\n\n**Step 8 \u2014 HTTP: Download Clip File**\nFor each clip, the workflow fetches the .mp4 file from the WayinVideo export link and downloads it as a binary file. This step runs immediately after splitting so no time is wasted before export links expire.\n\n**Step 9 \u2014 Google Drive: Upload Clip**\nThe downloaded clip is uploaded to your specified Google Drive folder. The filename is auto-generated as `EmployeeName_Department_Clip_N_Score_S.mp4` \u2014 for example `Sarah_Johnson_Marketing_Clip_1_Score_87.mp4`. Spaces in the employee name and department are replaced with underscores. Google Drive returns the file ID and web view link.\n\n**Step 10 \u2014 Google Sheets: Save to Library**\nOne row is appended to your Onboarding Clip Library tab with all 15 columns. The Drive Link is constructed directly from the file ID as `https://drive.google.com/file/d/FILE_ID/view` \u2014 so every row has a clickable link to the clip without any manual copying. The timestamp column shows the clip's start and end time in seconds.\n\n**Step 11 \u2014 Gmail: Send Welcome Email**\nAfter all clips are saved to the sheet, a personalized HTML email is sent to the new employee's email address. The email is addressed by their first name (extracted from the full name), confirms their training clips are ready, shows the topic, department, and start date, includes a link to the full onboarding recording, and instructs them to check the Onboarding Clip Library sheet for their clip links. The sender name is set to the company name from the form.\n\nThe final result is up to 5 clips in Google Drive, a fully populated sheet row per clip, and a branded welcome email in the new employee's inbox \u2014 all triggered by one HR form submission.\n\n---\n\n## Key Features\n\n\u2705 **Training topic query drives clip selection** \u2014 You describe what training content to extract using plain English \u2014 WayinVideo finds only the relevant moments rather than clipping the entire recording\n\u2705 **HD 720 with animated captions on every clip** \u2014 Every exported clip has animated captions built in using caption template `temp-7` \u2014 ready to share without any post-processing\n\u2705 **Clips downloaded before 24-hour expiry** \u2014 WayinVideo export links expire \u2014 the workflow downloads and uploads to Drive immediately so your library is permanent\n\u2705 **Structured Drive filename per employee** \u2014 Files are named with the employee name, department, clip number, and score so any team member can search Drive and instantly know what each file is\n\u2705 **Drive link constructed from file ID** \u2014 The Google Sheets row includes a ready-to-click Drive link built directly from the uploaded file's ID \u2014 no manual copying or linking required\n\u2705 **Personalized first-name HTML email** \u2014 The welcome email addresses the employee by their first name, includes their specific department and start date, and links to the full recording\n\u2705 **WayinVideo project named per employee** \u2014 Each submission creates a named WayinVideo project (`Onboarding \u2014 Employee \u2014 Department`) so your WayinVideo dashboard stays organized across all employees\n\n---\n\n## Customisation Options\n\n**Increase the number of clips per employee** \u2014 In node **2. WayinVideo \u2014 Submit Find Moments**, change `\"limit\": 5` to a higher number such as `8` to extract more training moments \u2014 useful for longer onboarding sessions covering many topics.\n\n**Upgrade clips to Full HD** \u2014 In node **2. WayinVideo \u2014 Submit Find Moments**, change `\"resolution\": \"HD_720\"` to `\"resolution\": \"FULL_HD_1080\"` for higher quality clips \u2014 useful when sharing onboarding recordings with enterprise clients or executives.\n\n**Add a Slack notification to the HR team** \u2014 After node **11. Gmail \u2014 Send Welcome Email**, add a Slack step that posts the employee name, department, start date, and number of clips created to a `#hr-team` or `#onboarding` channel so your team is notified every time a new employee's clips are ready.\n\n**Sort clips into employee-specific Drive subfolders** \u2014 In node **9. Google Drive \u2014 Upload Clip**, change the folder ID to a dynamic expression that creates or selects a subfolder named after the employee \u2014 so each new hire's clips are in their own folder rather than all together.\n\n**Add a retry limit to stop infinite polling** \u2014 Before node **6. Wait \u2014 30 Seconds Retry**, add a Set step that increments a poll counter, then add a second IF check to stop after 15 polls and send a Gmail error notification to HR instead of looping indefinitely.\n\n---\n\n## Troubleshooting\n\n**WayinVideo returning an error on submission:**\n- Confirm `YOUR_WAYINVIDEO_API_KEY` in node **2. WayinVideo \u2014 Submit Find Moments** is replaced with your actual API key \u2014 not the placeholder text\n- Confirm the same replacement was made in node **4. WayinVideo \u2014 Get Clips Result** \u2014 both steps require the key\n- Check the execution log of node 2 for the raw error \u2014 a 401 means wrong key, a 422 means the URL or request body format is invalid\n\n**No clips returned (empty clips array):**\n- The training topic query is likely too short or too vague \u2014 WayinVideo's Find Moments needs descriptive phrases of 4\u20136 words; try \"company culture and team values explanation\" instead of just \"culture\"\n- Check that the recording URL is publicly accessible \u2014 private Zoom links, expired recordings, or login-required videos will not be processed\n- Review the execution log of node **4. WayinVideo \u2014 Get Clips Result** for the full WayinVideo response \u2014 it may contain a specific error or an empty clips array with a reason\n\n**Workflow stuck in the polling loop:**\n- Open the execution log of node **4. WayinVideo \u2014 Get Clips Result** and check the raw response status \u2014 WayinVideo may have returned FAILED with a specific reason\n- If the loop runs indefinitely, deactivate the workflow, fix the recording URL or query, and resubmit the form\n- Confirm the recording URL does not require authentication \u2014 Zoom recordings with password protection or region-blocked videos will cause processing to stall\n\n**Google Drive upload failing:**\n- Confirm the Google Drive OAuth2 credential in node **9. Google Drive \u2014 Upload Clip** is connected and not expired \u2014 re-authorize if needed\n- Confirm `YOUR_GDRIVE_FOLDER_ID` is replaced with just the folder ID from the URL \u2014 not the full Drive URL\n- If step 8 fails to download the clip file (e.g. the export link expired before download), step 9 will also fail \u2014 check the execution log of step 8 first\n\n**Google Sheets not saving rows or Gmail not sending:**\n- Confirm `YOUR_GOOGLE_SHEET_ID` in node **10. Google Sheets \u2014 Save to Library** is replaced with your actual Sheet ID and the tab is named **Onboarding Clip Library** exactly\n- Confirm the Gmail OAuth2 credential in node **11. Gmail \u2014 Send Welcome Email** is connected \u2014 re-authorize if you see an authentication error in the execution log\n- Check that the New Employee Email field in the form contains a valid email address \u2014 an invalid or missing address will cause the Gmail step to fail\n\n---\n\n## Support\n\nNeed help setting this up or want a custom version built for your team or agency?\n\n\ud83d\udce7 Email: [info@incrementors.com](info@incrementors.com)\n\ud83c\udf10 Website: [https://www.incrementors.com/](https://www.incrementors.com/)",
+    "workflow": {
+      "meta": {
+        "instanceId": "bc8ca75c203589705ae2e446cad7181d6f2a7cc1766f958ef9f34810e53b8cb2",
+        "templateCredsSetupCompleted": true
+      },
+      "nodes": [
+        {
+          "id": "41504202-bee4-4d1d-b899-b18cc5c7f090",
+          "name": "Overview",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -1072,
+            -512
+          ],
+          "parameters": {
+            "color": 4,
+            "width": 524,
+            "height": 1252,
+            "content": "## Employee Onboarding Video to Training Clip Library \u2014 WayinVideo Find Moments + Google Drive + Sheets + Gmail\n\nFor HR teams, L&D managers, and People Operations teams who run recurring onboarding sessions and want to automatically clip and deliver specific training moments to new employees \u2014 without manually editing recordings or sending full hour-long videos. Submit the onboarding recording URL and a 4\u20136 word training topic query via the form. WayinVideo Find Moments API scans the full recording and returns up to 5 matching clips with HD 720 resolution, animated captions, and download links. Each clip is downloaded immediately (export links expire in 24 hours) and uploaded to Google Drive with a structured filename containing the employee name, department, clip index, and score. Every clip is saved to the Onboarding Clip Library Google Sheet with the Drive link. Gmail sends a personalized HTML welcome email to the new employee with the recording link and instructions to check their clips.\n\n## How it works\n- **1. Form \u2014 New Employee + Onboarding Details** collects the recording URL, employee name, email, department, start date, training topic query, and company name\n- **2. WayinVideo \u2014 Submit Find Moments** submits the URL and query \u2014 limit 5, HD 720, captions enabled, export enabled, no reframe\n- **3. Wait \u2014 90 Seconds** gives the API initial processing time\n- **4. WayinVideo \u2014 Get Clips Result** polls the find-moments results endpoint\n- **5. IF \u2014 Find Moments Complete?** checks for SUCCEEDED \u2014 if not, retries via 30-second wait\n- **7. Code \u2014 Split Each Clip** splits the clips array into one item per clip with title, export link, score, tags, description, and timestamps\n- **8. HTTP \u2014 Download Clip File** downloads each clip immediately before the export link expires\n- **9. Google Drive \u2014 Upload Clip** uploads each clip with a structured filename: EmployeeName_Department_Clip_N_Score_S.mp4\n- **10. Google Sheets \u2014 Save to Library** appends one row per clip with all 15 metadata fields including the constructed Drive link\n- **11. Gmail \u2014 Send Welcome Email** sends a personalized HTML email to the new employee with the recording URL and instructions\n\n## Set up steps\n1. In **2** and **4** \u2014 replace `YOUR_WAYINVIDEO_API_KEY`\n2. In **9. Google Drive \u2014 Upload Clip** \u2014 connect your Google Drive OAuth2 credential and replace `YOUR_GDRIVE_FOLDER_ID`\n3. In **10. Google Sheets \u2014 Save to Library** \u2014 connect your Google Sheets OAuth2 credential and replace `YOUR_GOOGLE_SHEET_ID`\n4. In **11. Gmail \u2014 Send Welcome Email** \u2014 connect your Gmail OAuth2 credential\n5. Create a Google Sheet tab named Onboarding Clip Library with columns: Employee Name, Employee Email, Department, Start Date, Company, Topic, Clip Title, Description, Timestamp, Score, Tags, Drive Link, Drive File ID, Onboarding Recording URL, Date Added\n\n## Query tips \u2014 use 4 to 6 descriptive words\nWorks: company culture and team values explanation \u2014 Works: HR policy and leave management overview \u2014 Works: tools and software walkthrough for new employees \u2014 Too vague: culture or HR or tools"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "937f7253-1618-4713-904f-cbf94a828fe1",
+          "name": "Section \u2014 Form Input",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -512,
+            -144
+          ],
+          "parameters": {
+            "color": 5,
+            "width": 296,
+            "height": 388,
+            "content": "## Form Input\nHR team submits the onboarding recording URL, employee name, email, department, start date, training topic query (4\u20136 descriptive words), and company name."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "08e8100b-819c-4b64-b7f5-6c466dcc3de7",
+          "name": "Section \u2014 Find Moments Submit and Poll",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -192,
+            -96
+          ],
+          "parameters": {
+            "color": 6,
+            "width": 692,
+            "height": 308,
+            "content": "## WayinVideo Find Moments Submit and Poll\nSubmits the recording URL and training topic query \u2014 limit 5, HD 720, animated captions enabled, export enabled, no AI reframe. Waits 90 seconds then polls until SUCCEEDED."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "7c00ea55-c244-45b7-9351-54bf22561941",
+          "name": "Section \u2014 Status Check and Retry Loop",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            528,
+            -208
+          ],
+          "parameters": {
+            "color": 6,
+            "width": 292,
+            "height": 644,
+            "content": "## Find Moments Status Check and Retry Loop\nIF checks for SUCCEEDED status. TRUE proceeds to clip splitting. FALSE waits 30 seconds and polls again. Loop continues until results are ready."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "1b3e6c88-19d1-4792-857d-fd812bfb3f96",
+          "name": "Section \u2014 Clip Split, Download, Drive Upload, and Sheet Save",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            896,
+            -128
+          ],
+          "parameters": {
+            "color": 6,
+            "width": 980,
+            "height": 324,
+            "content": "## Clip Split, Download, Drive Upload, and Sheet Save\nSplits clips into one item each. Downloads each clip immediately before export links expire. Uploads to Google Drive with a structured filename. Saves all 15 metadata fields to Google Sheets with the constructed Drive link."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "5f8a4f46-fb41-4c78-86cc-75789bf92b21",
+          "name": "Section \u2014 Gmail Welcome Email",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1920,
+            -208
+          ],
+          "parameters": {
+            "color": 4,
+            "width": 260,
+            "height": 436,
+            "content": "## Gmail Welcome Email\nSends a personalized HTML email to the new employee with the full recording link and instructions to check their training clips in the shared Google Sheet."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "0fb6158d-939a-4ddd-8059-14075a47261d",
+          "name": "1. Form \u2014 New Employee + Onboarding Details",
+          "type": "n8n-nodes-base.formTrigger",
+          "position": [
+            -448,
+            16
+          ],
+          "webhookId": "449bbb45-0a68-439e-b2dd-fcc2297db4a5",
+          "parameters": {
+            "options": {},
+            "formTitle": "Employee Onboarding Clip Library Builder",
+            "formFields": {
+              "values": [
+                {
+                  "fieldLabel": "Onboarding Recording URL",
+                  "placeholder": "https://zoom.us/rec/xxxxxxx or YouTube/Loom link",
+                  "requiredField": true
+                },
+                {
+                  "fieldLabel": "New Employee Name",
+                  "placeholder": "e.g. Sarah Johnson",
+                  "requiredField": true
+                },
+                {
+                  "fieldLabel": "New Employee Email",
+                  "placeholder": "user@example.com",
+                  "requiredField": true
+                },
+                {
+                  "fieldLabel": "Department",
+                  "placeholder": "e.g. Marketing, Engineering, Sales, Customer Success",
+                  "requiredField": true
+                },
+                {
+                  "fieldLabel": "Start Date",
+                  "placeholder": "e.g. 2025-05-01",
+                  "requiredField": true
+                },
+                {
+                  "fieldLabel": "Training Topic to Extract",
+                  "placeholder": "e.g. company culture and team values explanation",
+                  "requiredField": true
+                },
+                {
+                  "fieldLabel": "Company Name",
+                  "placeholder": "e.g. Incrementors, Acme Corp",
+                  "requiredField": true
+                }
+              ]
+            },
+            "formDescription": "Submit a new employee's details and the onboarding recording URL. AI will extract their specific training clips, upload to Drive, and email them the links automatically. Query tip: use 4-6 descriptive words \u2014 'company culture and team values', 'HR leave policy overview', 'tools and software walkthrough'"
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "7fa18e2a-ca89-4814-9d33-0cbf8b8626a8",
+          "name": "2. WayinVideo \u2014 Submit Find Moments",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            -128,
+            16
+          ],
+          "parameters": {
+            "url": "https://wayinvideo-api.wayin.ai/api/v2/clips/find-moments",
+            "method": "POST",
+            "options": {},
+            "jsonBody": "={\n  \"video_url\": \"{{ $json['Onboarding Recording URL'] }}\",\n  \"query\": \"{{ $json['Training Topic to Extract'] }}\",\n  \"project_name\": \"Onboarding \u2014 {{ $json['New Employee Name'] }} \u2014 {{ $json['Department'] }}\",\n  \"limit\": 5,\n  \"enable_export\": true,\n  \"resolution\": \"HD_720\",\n  \"enable_caption\": true,\n  \"caption_display\": \"original\",\n  \"cc_style_tpl\": \"temp-7\",\n  \"enable_ai_reframe\": false,\n  \"target_lang\": \"en\"\n}",
+            "sendBody": true,
+            "sendHeaders": true,
+            "specifyBody": "json",
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer YOUR_TOKEN_HERE"
+                },
+                {
+                  "name": "x-wayinvideo-api-version",
+                  "value": "v2"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "cbac85f2-e030-47a6-9e8e-ae45ad1ea7bf",
+          "name": "3. Wait \u2014 90 Seconds",
+          "type": "n8n-nodes-base.wait",
+          "position": [
+            128,
+            16
+          ],
+          "webhookId": "wait-onboarding-90s",
+          "parameters": {
+            "amount": 90
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "cfa7a7db-a805-44a0-b32a-42b1817743c5",
+          "name": "4. WayinVideo \u2014 Get Clips Result",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            368,
+            16
+          ],
+          "parameters": {
+            "url": "=https://wayinvideo-api.wayin.ai/api/v2/clips/find-moments/results/{{ $('2. WayinVideo \u2014 Submit Find Moments').item.json.data.id }}",
+            "options": {},
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "Bearer YOUR_TOKEN_HERE"
+                },
+                {
+                  "name": "x-wayinvideo-api-version",
+                  "value": "v2"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "4595cc8a-ce00-4e3a-942e-b260c029cb1d",
+          "name": "5. IF \u2014 Find Moments Complete?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            608,
+            16
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": false,
+                "typeValidation": "loose"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "status-check",
+                  "operator": {
+                    "type": "string",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $json.data.status }}",
+                  "rightValue": "SUCCEEDED"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "70ac3a20-d6d6-42bf-88dd-b3ea42d88daf",
+          "name": "6. Wait \u2014 30 Seconds Retry",
+          "type": "n8n-nodes-base.wait",
+          "position": [
+            608,
+            208
+          ],
+          "webhookId": "wait-onboarding-retry-30s",
+          "parameters": {
+            "amount": 30
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "4ee7cd7a-1a4e-49d2-bd94-633c9e76cd1f",
+          "name": "7. Code \u2014 Split Each Clip",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            944,
+            0
+          ],
+          "parameters": {
+            "jsCode": "// Split clips array into individual items\nconst clips = $json.data.clips || [];\n\nif (clips.length === 0) {\n  throw new Error('No clips found \u2014 try a more descriptive query (4-6 words). Check: https://wayin.ai/api-docs/find-moments/');\n}\n\nreturn clips.map(clip => ({\n  json: {\n    title: clip.title || 'Onboarding Clip',\n    export_link: clip.export_link || '',\n    score: clip.score || 0,\n    tags: Array.isArray(clip.tags) ? clip.tags : [],\n    desc: clip.desc || '',\n    begin_ms: clip.begin_ms || 0,\n    end_ms: clip.end_ms || 0,\n    idx: clip.idx || 0\n  }\n}));"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "9cc288e9-f2e9-405b-8a43-f5bb9b289c73",
+          "name": "8. HTTP \u2014 Download Clip File",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            1184,
+            0
+          ],
+          "parameters": {
+            "url": "={{ $json.export_link }}",
+            "options": {
+              "response": {
+                "response": {
+                  "responseFormat": "file"
+                }
+              }
+            }
+          },
+          "typeVersion": 4.4
+        },
+        {
+          "id": "cbe94489-2753-4a85-ac03-470af90a133e",
+          "name": "9. Google Drive \u2014 Upload Clip",
+          "type": "n8n-nodes-base.googleDrive",
+          "position": [
+            1424,
+            0
+          ],
+          "parameters": {
+            "name": "={{ $('1. Form \u2014 New Employee + Onboarding Details').item.json['New Employee Name'].replace(/ /g,'_') + '_' + $('1. Form \u2014 New Employee + Onboarding Details').item.json['Department'].replace(/ /g,'_') + '_Clip_' + ($('7. Code \u2014 Split Each Clip').item.json.idx + 1) + '_Score_' + $('7. Code \u2014 Split Each Clip').item.json.score + '.mp4' }}",
+            "driveId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "My Drive",
+              "cachedResultName": "My Drive"
+            },
+            "options": {},
+            "folderId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "YOUR_GDRIVE_FOLDER_ID"
+            },
+            "inputDataFieldName": "=data"
+          },
+          "typeVersion": 3
+        },
+        {
+          "id": "1b74f017-4a80-46d2-a5f1-3777b4438720",
+          "name": "10. Google Sheets \u2014 Save to Library",
+          "type": "n8n-nodes-base.googleSheets",
+          "position": [
+            1664,
+            0
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "Tags": "={{ $('7. Code \u2014 Split Each Clip').item.json.tags.join(', ') }}",
+                "Score": "={{ $('7. Code \u2014 Split Each Clip').item.json.score }}",
+                "Topic": "={{ $('1. Form \u2014 New Employee + Onboarding Details').item.json['Training Topic to Extract'] }}",
+                "Company": "={{ $('1. Form \u2014 New Employee + Onboarding Details').item.json['Company Name'] }}",
+                "Timestamp": "={{ Math.floor($('7. Code \u2014 Split Each Clip').item.json.begin_ms/1000) }}s \u2014 {{ Math.floor($('7. Code \u2014 Split Each Clip').item.json.end_ms/1000) }}s",
+                "Clip Title": "={{ $('7. Code \u2014 Split Each Clip').item.json.title }}",
+                "Date Added": "={{ $now.toFormat('dd MMMM yyyy HH:mm') }}",
+                "Department": "={{ $('1. Form \u2014 New Employee + Onboarding Details').item.json['Department'] }}",
+                "Drive Link": "=https://drive.google.com/file/d/{{ $json.id }}/view",
+                "Start Date": "={{ $('1. Form \u2014 New Employee + Onboarding Details').item.json['Start Date'] }}",
+                "Description": "={{ $('7. Code \u2014 Split Each Clip').item.json.desc }}",
+                "Drive File ID": "={{ $json.id }}",
+                "Employee Name": "={{ $('1. Form \u2014 New Employee + Onboarding Details').item.json['New Employee Name'] }}",
+                "Employee Email": "={{ $('1. Form \u2014 New Employee + Onboarding Details').item.json['New Employee Email'] }}",
+                "Onboarding Recording URL": "={{ $('1. Form \u2014 New Employee + Onboarding Details').item.json['Onboarding Recording URL'] }}"
+              },
+              "schema": [],
+              "mappingMode": "defineBelow",
+              "matchingColumns": []
+            },
+            "options": {},
+            "operation": "append",
+            "sheetName": {
+              "__rl": true,
+              "mode": "name",
+              "value": "Onboarding Clip Library"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "YOUR_GOOGLE_SHEET_ID"
+            }
+          },
+          "typeVersion": 4.5
+        },
+        {
+          "id": "d8cf84de-de67-41a5-acfe-cf2033955a16",
+          "name": "11. Gmail \u2014 Send Welcome Email",
+          "type": "n8n-nodes-base.gmail",
+          "position": [
+            2000,
+            0
+          ],
+          "webhookId": "805f1b0d-da0c-4abb-a55d-acd5369b5389",
+          "parameters": {
+            "sendTo": "={{ $('1. Form \u2014 New Employee + Onboarding Details').item.json['New Employee Email'] }}",
+            "message": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222;\">\n<div style=\"background:#1a1a1a;padding:24px;text-align:center;\">\n  <h1 style=\"color:#fff;font-size:22px;margin:0;\">Your Training Clips Are Ready</h1>\n  <p style=\"color:#aaa;font-size:13px;margin:8px 0 0;\">{{ $('1. Form \u2014 New Employee + Onboarding Details').item.json['Company Name'] }} \u2014 Onboarding Library</p>\n</div>\n<div style=\"padding:24px;\">\n  <p>Hi {{ $('1. Form \u2014 New Employee + Onboarding Details').item.json['New Employee Name'].split(' ')[0] }},</p>\n  <p>Welcome to the team! Your personalized onboarding training clips have been prepared and uploaded to Google Drive.</p>\n  <p><strong>Topic:</strong> {{ $('1. Form \u2014 New Employee + Onboarding Details').item.json['Training Topic to Extract'] }}</p>\n  <p><strong>Department:</strong> {{ $('1. Form \u2014 New Employee + Onboarding Details').item.json['Department'] }}</p>\n  <p><strong>Start Date:</strong> {{ $('1. Form \u2014 New Employee + Onboarding Details').item.json['Start Date'] }}</p>\n  <p style=\"font-size:13px;color:#555;\">Your HR team has shared your clip links in the <strong>Onboarding Clip Library</strong> Google Sheet. Please reach out to HR if you need access.</p>\n  <p><strong>Full Recording:</strong> <a href=\"{{ $('1. Form \u2014 New Employee + Onboarding Details').item.json['Onboarding Recording URL'] }}\" style=\"color:#1a1a1a;\">View Full Onboarding Session</a></p>\n</div>\n<div style=\"padding:16px 24px;background:#f9f9f9;\">\n  <p style=\"font-size:12px;color:#999;margin:0;\">Powered by WayinVideo Find Moments API \u2014 <a href=\"https://wayin.ai/api-docs/find-moments/\" style=\"color:#999;\">wayin.ai</a></p>\n</div>\n</div>",
+            "options": {},
+            "subject": "=Your Onboarding Training Clips Are Ready \u2014 Welcome to {{ $('1. Form \u2014 New Employee + Onboarding Details').item.json['Company Name'] }}"
+          },
+          "typeVersion": 2.1
+        }
+      ],
+      "pinData": {},
+      "connections": {
+        "3. Wait \u2014 90 Seconds": {
+          "main": [
+            [
+              {
+                "node": "4. WayinVideo \u2014 Get Clips Result",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "7. Code \u2014 Split Each Clip": {
+          "main": [
+            [
+              {
+                "node": "8. HTTP \u2014 Download Clip File",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "6. Wait \u2014 30 Seconds Retry": {
+          "main": [
+            [
+              {
+                "node": "4. WayinVideo \u2014 Get Clips Result",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "8. HTTP \u2014 Download Clip File": {
+          "main": [
+            [
+              {
+                "node": "9. Google Drive \u2014 Upload Clip",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "9. Google Drive \u2014 Upload Clip": {
+          "main": [
+            [
+              {
+                "node": "10. Google Sheets \u2014 Save to Library",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "5. IF \u2014 Find Moments Complete?": {
+          "main": [
+            [
+              {
+                "node": "7. Code \u2014 Split Each Clip",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "6. Wait \u2014 30 Seconds Retry",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "4. WayinVideo \u2014 Get Clips Result": {
+          "main": [
+            [
+              {
+                "node": "5. IF \u2014 Find Moments Complete?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "10. Google Sheets \u2014 Save to Library": {
+          "main": [
+            [
+              {
+                "node": "11. Gmail \u2014 Send Welcome Email",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "2. WayinVideo \u2014 Submit Find Moments": {
+          "main": [
+            [
+              {
+                "node": "3. Wait \u2014 90 Seconds",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "1. Form \u2014 New Employee + Onboarding Details": {
+          "main": [
+            [
+              {
+                "node": "2. WayinVideo \u2014 Submit Find Moments",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 17,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 1
+        },
+        "n8n-nodes-base.code": {
+          "count": 1
+        },
+        "n8n-nodes-base.wait": {
+          "count": 2
+        },
+        "n8n-nodes-base.gmail": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 6
+        },
+        "n8n-nodes-base.formTrigger": {
+          "count": 1
+        },
+        "n8n-nodes-base.googleDrive": {
+          "count": 1
+        },
+        "n8n-nodes-base.httpRequest": {
+          "count": 3
+        },
+        "n8n-nodes-base.googleSheets": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Incrementors",
+      "username": "incrementors",
+      "bio": "",
+      "verified": true,
+      "links": [
+        "https://www.incrementors.com/"
+      ],
+      "avatar": "https://gravatar.com/avatar/e09b4b6a8c5a00f886a9eedf3be23a4af5a50cc216cd6b2aee2a12c2dfba99dd?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 18,
+        "icon": "file:googleSheets.svg",
+        "name": "n8n-nodes-base.googleSheets",
+        "codex": {
+          "data": {
+            "alias": [
+              "CSV",
+              "Sheet",
+              "Spreadsheet",
+              "GS"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/love-at-first-sight-ricardos-n8n-journey/",
+                  "icon": "\u2764\ufe0f",
+                  "label": "Love at first sight: Ricardo\u2019s n8n journey"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-triggers-for-n8n-workflows-using-polling/",
+                  "icon": "\u23f2",
+                  "label": "Creating triggers for n8n workflows using polling"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/migrating-community-metrics-to-orbit-using-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Migrating Community Metrics to Orbit using n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-honest-burgers-use-automation-to-save-100k-per-year/",
+                  "icon": "\ud83c\udf54",
+                  "label": "How Honest Burgers Use Automation to Save $100k per year"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "\ud83d\udcbb",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googlesheets/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage",
+              "Productivity"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\",\"output\"]",
+        "defaults": {
+          "name": "Google Sheets"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNS42OSAxIDUyIDE3LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0OC4yOTMgNjBIMTIuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDkgNTYuMzEyVjQuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTIuNzA3IDF6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM1LjY5IDEgNTIgMTcuMjI1SDM5LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzkuMjExIDE3LjIyNSA1MiAyMi40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTIwLjEyIDMxLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMS42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzEuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNC42OSAwIDUxIDE2LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0Ny4yOTMgNTlIMTEuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDggNTUuMzEyVjMuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTEuNzA3IDB6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM0LjY5IDAgNTEgMTYuMjI1SDM4LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzguMjExIDE2LjIyNSA1MSAyMS40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTE5LjEyIDMwLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMC42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzAuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjwvZz48L3N2Zz4="
+        },
+        "displayName": "Google Sheets",
+        "typeVersion": 5,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          },
+          {
+            "id": 4,
+            "name": "Productivity"
+          }
+        ]
+      },
+      {
+        "id": 19,
+        "icon": "file:httprequest.svg",
+        "name": "n8n-nodes-base.httpRequest",
+        "codex": {
+          "data": {
+            "alias": [
+              "API",
+              "Request",
+              "URL",
+              "Build",
+              "cURL"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-designs-with-bannerbear-and-n8n/",
+                  "icon": "\ud83c\udfa8",
+                  "label": "Automate Designs with Bannerbear and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-use-the-http-request-node-the-swiss-army-knife-for-workflow-automation/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "How to use the HTTP Request Node - The Swiss Army Knife for Workflow Automation"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HTTP Request",
+          "color": "#0004F5"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MCAyMEM0MCA4Ljk1MzE0IDMxLjA0NjkgMCAyMCAwQzguOTUzMTQgMCAwIDguOTUzMTQgMCAyMEMwIDMxLjA0NjkgOC45NTMxNCA0MCAyMCA0MEMzMS4wNDY5IDQwIDQwIDMxLjA0NjkgNDAgMjBaTTIwIDM2Ljk0NThDMTguODg1MiAzNi45NDU4IDE3LjEzNzggMzUuOTY3IDE1LjQ5OTggMzIuNjk4NUMxNC43OTY0IDMxLjI5MTggMTQuMTk2MSAyOS41NDMxIDEzLjc1MjYgMjcuNjg0N0gyNi4xODk4QzI1LjgwNDUgMjkuNTQwMyAyNS4yMDQ0IDMxLjI5MDEgMjQuNTAwMiAzMi42OTg1QzIyLjg2MjIgMzUuOTY3IDIxLjExNDggMzYuOTQ1OCAyMCAzNi45NDU4Wk0xMi45MDY0IDIwQzEyLjkwNjQgMjEuNjA5NyAxMy4wMDg3IDIzLjE2NCAxMy4yMDAzIDI0LjYzMDVIMjYuNzk5N0MyNi45OTEzIDIzLjE2NCAyNy4wOTM2IDIxLjYwOTcgMjcuMDkzNiAyMEMyNy4wOTM2IDE4LjM5MDMgMjYuOTkxMyAxNi44MzYgMjYuNzk5NyAxNS4zNjk1SDEzLjIwMDNDMTMuMDA4NyAxNi44MzYgMTIuOTA2NCAxOC4zOTAzIDEyLjkwNjQgMjBaTTIwIDMuMDU0MTlDMjEuMTE0OSAzLjA1NDE5IDIyLjg2MjIgNC4wMzA3OCAyNC41MDAxIDcuMzAwMzlDMjUuMjA2NiA4LjcxNDA4IDI1LjgwNzIgMTAuNDA2NyAyNi4xOTIgMTIuMzE1M0gxMy43NTAxQzE0LjE5MzMgMTAuNDA0NyAxNC43OTQyIDguNzEyNTQgMTUuNDk5OCA3LjMwMDY0QzE3LjEzNzcgNC4wMzA4MyAxOC44ODUxIDMuMDU0MTkgMjAgMy4wNTQxOVpNMzAuMTQ3OCAyMEMzMC4xNDc4IDE4LjQwOTkgMzAuMDU0MyAxNi44NjE3IDI5LjgyMjcgMTUuMzY5NUgzNi4zMDQyQzM2LjcyNTIgMTYuODQyIDM2Ljk0NTggMTguMzk2NCAzNi45NDU4IDIwQzM2Ljk0NTggMjEuNjAzNiAzNi43MjUyIDIzLjE1OCAzNi4zMDQyIDI0LjYzMDVIMjkuODIyN0MzMC4wNTQzIDIzLjEzODMgMzAuMTQ3OCAyMS41OTAxIDMwLjE0NzggMjBaTTI2LjI3NjcgNC4yNTUxMkMyNy42MzY1IDYuMzYwMTkgMjguNzExIDkuMTMyIDI5LjM3NzQgMTIuMzE1M0gzNS4xMDQ2QzMzLjI1MTEgOC42NjggMzAuMTA3IDUuNzgzNDYgMjYuMjc2NyA0LjI1NTEyWk0xMC42MjI2IDEyLjMxNTNINC44OTI5M0M2Ljc1MTQ3IDguNjY3ODQgOS44OTM1MSA1Ljc4MzQxIDEzLjcyMzIgNC4yNTUxM0MxMi4zNjM1IDYuMzYwMjEgMTEuMjg5IDkuMTMyMDEgMTAuNjIyNiAxMi4zMTUzWk0zLjA1NDE5IDIwQzMuMDU0MTkgMjEuNjAzIDMuMjc3NDMgMjMuMTU3NSAzLjY5NDg0IDI0LjYzMDVIMTAuMTIxN0M5Ljk0NjE5IDIzLjE0MiA5Ljg1MjIyIDIxLjU5NDMgOS44NTIyMiAyMEM5Ljg1MjIyIDE4LjQwNTcgOS45NDYxOSAxNi44NTggMTAuMTIxNyAxNS4zNjk1SDMuNjk0ODRDMy4yNzc0MyAxNi44NDI1IDMuMDU0MTkgMTguMzk3IDMuMDU0MTkgMjBaTTI2LjI3NjYgMzUuNzQyN0MyNy42MzY1IDMzLjYzOTMgMjguNzExIDMwLjg2OCAyOS4zNzc0IDI3LjY4NDdIMzUuMTA0NkMzMy4yNTEgMzEuMzMyMiAzMC4xMDY4IDM0LjIxNzkgMjYuMjc2NiAzNS43NDI3Wk0xMy43MjM0IDM1Ljc0MjdDOS44OTM2OSAzNC4yMTc5IDYuNzUxNTUgMzEuMzMyNCA0Ljg5MjkzIDI3LjY4NDdIMTAuNjIyNkMxMS4yODkgMzAuODY4IDEyLjM2MzUgMzMuNjM5MyAxMy43MjM0IDM1Ljc0MjdaIiBmaWxsPSIjM0E0MkU5Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "HTTP Request",
+        "typeVersion": 4,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 58,
+        "icon": "file:googleDrive.svg",
+        "name": "n8n-nodes-base.googleDrive",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googledrive/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Google Drive"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgODEgNzMiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48ZyBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSI+PHBhdGggZmlsbD0iIzAwNjZkYSIgZD0ibTYuMDQ4IDYxLjI2IDMuNTI4IDYuMDk0Yy43MzMgMS4yODMgMS43ODcgMi4yOTEgMy4wMjQgMy4wMjRsMTIuNi0yMS44MUgwYTguMyA4LjMgMCAwIDAgMS4xIDQuMTI0eiIvPjxwYXRoIGZpbGw9IiMwMGFjNDciIGQ9Ik00MCAyMi45MSAyNy40IDEuMWMtMS4yMzcuNzMzLTIuMjkxIDEuNzQxLTMuMDI0IDMuMDI0TDEuMSA0NC40NDVBOC4zIDguMyAwIDAgMCAwIDQ4LjU2OGgyNS4yeiIvPjxwYXRoIGZpbGw9IiNlYTQzMzUiIGQ9Ik02Ny40IDcwLjM3OGMxLjIzNy0uNzMzIDIuMjkxLTEuNzQxIDMuMDI0LTMuMDI0bDEuNDY2LTIuNTIgNy4wMS0xMi4xNDJhOC4zIDguMyAwIDAgMCAxLjEtNC4xMjRINTQuNzk4bDUuMzYzIDEwLjUzOHoiLz48cGF0aCBmaWxsPSIjMDA4MzJkIiBkPSJNNDAgMjIuOTEgNTIuNiAxLjFDNTEuMzYzLjM2NyA0OS45NDMgMCA0OC40NzcgMEgzMS41MjRjLTEuNDY2IDAtMi44ODcuNDEyLTQuMTI0IDEuMXoiLz48cGF0aCBmaWxsPSIjMjY4NGZjIiBkPSJNNTQuNzk5IDQ4LjU2OEgyNS4ybC0xMi42IDIxLjgxYzEuMjM3LjczMyAyLjY1NyAxLjEgNC4xMjQgMS4xaDQ2LjU1MmMxLjQ2NiAwIDIuODg3LS40MTIgNC4xMjQtMS4xeiIvPjxwYXRoIGZpbGw9IiNmZmJhMDAiIGQ9Ik02Ny4yNjIgMjQuMjg0IDU1LjYyNCA0LjEyNEM1NC44OTEgMi44NDEgNTMuODM3IDEuODMzIDUyLjYgMS4xTDQwIDIyLjkxbDE0LjggMjUuNjU5aDI1LjE1NWE4LjMgOC4zIDAgMCAwLTEuMS00LjEyNHoiLz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Google Drive",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          }
+        ]
+      },
+      {
+        "id": 356,
+        "icon": "file:gmail.svg",
+        "name": "n8n-nodes-base.gmail",
+        "codex": {
+          "data": {
+            "alias": [
+              "email",
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/using-automation-to-boost-productivity-in-the-workplace/",
+                  "icon": "\ud83d\udcaa",
+                  "label": "Using Automation to Boost Productivity in the Workplace"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.gmail/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Gmail"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMTkzIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCI+PHBhdGggZmlsbD0iIzQyODVGNCIgZD0iTTU4LjE4MiAxOTIuMDVWOTMuMTRMMjcuNTA3IDY1LjA3NyAwIDQ5LjUwNHYxMjUuMDkxYzAgOS42NTggNy44MjUgMTcuNDU1IDE3LjQ1NSAxNy40NTV6Ii8+PHBhdGggZmlsbD0iIzM0QTg1MyIgZD0iTTE5Ny44MTggMTkyLjA1aDQwLjcyN2M5LjY1OSAwIDE3LjQ1NS03LjgyNiAxNy40NTUtMTcuNDU1VjQ5LjUwNWwtMzEuMTU2IDE3LjgzNy0yNy4wMjYgMjUuNzk4eiIvPjxwYXRoIGZpbGw9IiNFQTQzMzUiIGQ9Im01OC4xODIgOTMuMTQtNC4xNzQtMzguNjQ3IDQuMTc0LTM2Ljk4OUwxMjggNjkuODY4bDY5LjgxOC01Mi4zNjQgNC42NyAzNC45OTItNC42NyA0MC42NDRMMTI4IDE0NS41MDR6Ii8+PHBhdGggZmlsbD0iI0ZCQkMwNCIgZD0iTTE5Ny44MTggMTcuNTA0VjkzLjE0TDI1NiA0OS41MDRWMjYuMjMxYzAtMjEuNTg1LTI0LjY0LTMzLjg5LTQxLjg5LTIwLjk0NXoiLz48cGF0aCBmaWxsPSIjQzUyMjFGIiBkPSJtMCA0OS41MDQgMjYuNzU5IDIwLjA3TDU4LjE4MiA5My4xNFYxNy41MDRMNDEuODkgNS4yODZDMjQuNjEtNy42NiAwIDQuNjQ2IDAgMjYuMjN6Ii8+PC9zdmc+"
+        },
+        "displayName": "Gmail",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 514,
+        "icon": "fa:pause-circle",
+        "name": "n8n-nodes-base.wait",
+        "codex": {
+          "data": {
+            "alias": [
+              "pause",
+              "sleep",
+              "delay",
+              "timeout"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.wait/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Wait",
+          "color": "#804050"
+        },
+        "iconData": {
+          "icon": "pause-circle",
+          "type": "icon"
+        },
+        "displayName": "Wait",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1225,
+        "icon": "file:form.svg",
+        "name": "n8n-nodes-base.formTrigger",
+        "codex": {
+          "data": {
+            "alias": [
+              "table",
+              "submit",
+              "post"
+            ],
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.formtrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Other Trigger Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "On form submission"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NiIgaGVpZ2h0PSI0MCIgZmlsbD0ibm9uZSI+PHBhdGggZmlsbD0iIzAwQjdCQyIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzQuOTc4IDM3LjczMmExLjU2IDEuNTYgMCAwIDEtMS41NjIgMS41NjNINi4yNmExLjU2IDEuNTYgMCAwIDEtMS41NjMtMS41NjNWOS42MDdjMC0uNDA1LjE1Ny0uNzk0LjQzOC0xLjA4Nmw2LjMwNC02LjUzMXY1LjM0NEg4LjIxM2ExLjE3MiAxLjE3MiAwIDEgMCAwIDIuMzQzaDQuNDNhMS4xNyAxLjE3IDAgMCAwIDEuMTcxLTEuMTcxVi4yMzJoMTkuNjAyYTEuNTYgMS41NiAwIDAgMSAxLjU2MiAxLjU2M3YxMC4zMjdsLTIuODYgMi44Ni04LjI1MiA4LjI3NmE0MTMuMDA2IDQxMy4wMDYgMCAwIDEtMS42NTQgMS42NjJsLS4zMzcuMzM3YTIgMiAwIDAgMC0uNTU3IDEuMDhMMjAuMyAzMS45MjJjLS4xMDguNjM4LS4yMTUgMS4wNzkuMjExIDEuNDE4LjQwMy4zMi45LjE3NCAxLjU0LjA2Nmw1LjQwOC0uOTI4YTIgMiAwIDAgMCAxLjA4LS41NTZsNi40NC02LjQyOXptLTI0LjAzLTIxLjI2NWExLjE4IDEuMTggMCAwIDAgMS4xNzEgMS4xNzJoMTMuMTYzYTEuMTcyIDEuMTcyIDAgMSAwIDAtMi4zNDRIMTIuMTE5YTEuMTcgMS4xNyAwIDAgMC0xLjE3MiAxLjE3Mm03LjI5NCAxNC43NjZhMS4xNyAxLjE3IDAgMCAwLTEuMTcyLTEuMTcySDEyLjEyYTEuMTcyIDEuMTcyIDAgMSAwIDAgMi4zNDNoNC45NTFhMS4xNyAxLjE3IDAgMCAwIDEuMTcyLTEuMTcybS44Ni03LjM5MWExLjE3IDEuMTcgMCAwIDAtMS4xNzItMS4xNzJoLTUuODExYTEuMTcyIDEuMTcyIDAgMSAwIDAgMi4zNDNoNS44MWExLjE2NCAxLjE2NCAwIDAgMCAxLjE3My0xLjE3MSIgY2xpcC1ydWxlPSJldmVub2RkIi8+PHBhdGggZmlsbD0iIzAwQjdCQyIgZD0ibTMzLjUzMiAxNi4zOTcgNC4yODktNC4yODkgMy43NTggMy43MSAxLjYxNy0xLjYxNiAyLjI1OCAyLjI1N2MuMjE4LjIxOC4zNC41MTMuMzQzLjgyLS4wMDIuMzExLS4xMjUuNjA4LS4zNDQuODNsLTYuODA0IDYuNzk2YTEuMTMgMS4xMyAwIDAgMS0uODI4LjM0MyAxLjE1IDEuMTUgMCAwIDEtLjgyOC0uMzQzIDEuMTggMS4xOCAwIDAgMSAwLTEuNjU3bDUuOTc2LTUuOTY4LTEuMzEyLTEuMzEzLTEuMzgzIDEuNDE0LTEzLjE0OSAxMy4xMjUtNC42MTcuNzgyLjc4Mi00LjYxNy4zMzYtLjMzNyAyLjU2MiAyLjU1NWExLjEgMS4xIDAgMCAwIC44MjguMzQ0Yy4zMTIuMDA1LjYxMi0uMTIuODI4LS4zNDRhMS4xOCAxLjE4IDAgMCAwIDAtMS42NTZsLTIuNTYyLTIuNTYyek00NC43MzYgMTIuMjRjMCAuNDE0LS4xNjMuODEtLjQ1NCAxLjEwMmwtLjkyMi45MTQtMy44NTItMy44MjguOTMtLjkzYTEuNTYzIDEuNTYzIDAgMCAxIDIuMjAzIDBsMS42NCAxLjY0MWMuMjkxLjI5My40NTUuNjkuNDU1IDEuMTAyIi8+PC9zdmc+"
+        },
+        "displayName": "n8n Form Trigger",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 17,
+        "name": "HR"
+      },
+      {
+        "id": 49,
+        "name": "AI Summarization"
+      }
+    ],
+    "image": []
+  }
+}

@@ -1,0 +1,1359 @@
+{
+  "workflow": {
+    "id": 15461,
+    "name": "Send daily crypto market insights with Google Gemini to Telegram",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-04T06:55:56.927Z",
+    "description": "## **Daily Crypto AI Market Insight to Telegram**\n\nThis workflow generates a daily AI-powered crypto market insight and sends it to Telegram using Binance public market data, the Crypto Fear & Greed Index, and Google Gemini.\n\nIt fetches BTC/USDT daily OHLCV data, calculates technical indicators, builds a structured analysis payload, asks Gemini for a buy/hold/sell confidence breakdown, and delivers the result as a clean Telegram report.\n\nIt is useful for traders, builders, and crypto enthusiasts who want an automated daily technical summary without manually checking charts.\n\n## **Common use cases:**\n\n- Send a daily BTC market insight to your Telegram\n- Monitor crypto technical indicators automatically\n- Build a personal AI crypto analyst bot\n- Create a lightweight daily trading signal workflow\n- Learn how to combine market data, technical indicators, LLMs, and Telegram in n8n\n\n## **How it works**\n\n- Starts from a Schedule Trigger, which you can customize\n- Sets the trading pair, for example `BTCUSDT`\n- Fetches 300 daily OHLCV candles from Binance public API\n- Normalizes Binance candle data into readable fields\n- Fetches the latest market price and merges it into the latest candle\n- Fetches the Crypto Fear & Greed Index from Alternative.me\n- Calculates EMA(20), EMA(50), EMA(100), RSI(14), MACD histogram, ADX(14), +DI, and -DI\n- Builds a structured technical payload\n- Sends the payload to Google Gemini\n- Parses Gemini\u2019s response into structured JSON\n- Formats the result into a Telegram message\n- Sends the AI-generated insight to Telegram\n\n## **Setup steps**\n\n- Choose your trading pair in the **Set Trading Pair** node\n- Connect your Google Gemini credentials\n- Connect your Telegram credentials\n- Set your Telegram chat ID in the Telegram node\n- Adjust the Schedule Trigger if you want a different run time\n- Test the workflow manually\n- Activate the workflow\n\n## **Notes**\n\nThis workflow uses Binance public API data and does not require a Binance API key.\nThe AI insight is generated only from the provided technical payload and should not be treated as financial advice.\n\n## **Need Help?**  \nHave questions or want to connect? Reach me on [LinkedIn](https://www.linkedin.com/in/athaahsan/).",
+    "workflow": {
+      "id": "zgYQTjMDJyj6gOTV",
+      "meta": {
+        "instanceId": "295d4a7d333d7aa95a78f37492548561d9c7f9ef47d3e764b3734cc6a62abfc7",
+        "templateCredsSetupCompleted": true
+      },
+      "name": "Daily Crypto AI Market Insight to Telegram",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "231a550f-42af-412c-826a-1158d9a7e42e",
+          "name": "Schedule Trigger",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "notes": "Start the workflow manually or configure your own schedule. For a daily report, set this to run once per day.",
+          "position": [
+            1264,
+            -112
+          ],
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "triggerAtHour": 12
+                }
+              ]
+            }
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "8f0383fb-0f7c-4383-aafc-1c357bdd1217",
+          "name": "Google Gemini Chat Model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+          "position": [
+            3504,
+            112
+          ],
+          "parameters": {
+            "options": {},
+            "modelName": "models/gemini-3-flash-preview"
+          },
+          "credentials": {
+            "googlePalmApi": {
+              "id": "Gc7P2Tc9s4PRe4PU",
+              "name": "Google Gemini(PaLM) Api account"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "d07fbc23-f739-426e-9f76-16fe48dab37b",
+          "name": "Structured Output Parser",
+          "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+          "position": [
+            3696,
+            112
+          ],
+          "parameters": {
+            "schemaType": "manual",
+            "inputSchema": "{\n        \"type\": \"object\",\n        \"properties\": {\n          \"buy_confidence\": {\n            \"type\": \"number\",\n            \"minimum\": 0,\n            \"maximum\": 1,\n            \"description\": \"Probability score favoring a buy decision.\"\n          },\n          \"hold_confidence\": {\n            \"type\": \"number\",\n            \"minimum\": 0,\n            \"maximum\": 1,\n            \"description\": \"Probability score favoring a hold decision.\"\n          },\n          \"sell_confidence\": {\n            \"type\": \"number\",\n            \"minimum\": 0,\n            \"maximum\": 1,\n            \"description\": \"Probability score favoring a sell decision.\"\n          },\n          \"reasoning\": {\n            \"type\": \"string\",\n            \"description\": \"Brief technical explanation supporting the dominant decision. Keep it concise and signal-focused.\"\n          }\n        },\n        \"required\": [\"buy_confidence\", \"hold_confidence\", \"sell_confidence\", \"reasoning\"]\n      }"
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "23d9e204-bfa2-4a8e-9952-366d5104376f",
+          "name": "Send a text message",
+          "type": "n8n-nodes-base.telegram",
+          "position": [
+            4080,
+            -112
+          ],
+          "webhookId": "7330f608-5e3e-4263-b5bd-19f3e4edd7ac",
+          "parameters": {
+            "text": "={{ $json.telegramMessage }}",
+            "additionalFields": {
+              "parse_mode": "Markdown",
+              "appendAttribution": false
+            }
+          },
+          "credentials": {
+            "telegramApi": {
+              "id": "S4RqhQi2Pe7bsAj8",
+              "name": "Telegram account"
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "ec1969c0-229c-40db-866b-92480f4d0f8f",
+          "name": "Format Telegram Message",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            3856,
+            -112
+          ],
+          "parameters": {
+            "jsCode": "const payload = $('Calculate Indicators & Build AI Payload').first().json.payload;\n\n// n8n structured parser usually returns parsed result in $json.output\nconst aiResult = $json.output ?? $json;\n\nconst timestamp = new Date().toISOString().replace('T', ' ').replace(/\\.\\d{3}Z$/, ' UTC');\n\nfunction getFngEmoji(fngClass) {\n  if (fngClass === \"Extreme Fear\") return \"\ud83d\ude31\";\n  if (fngClass === \"Fear\") return \"\ud83d\ude1f\";\n  if (fngClass === \"Neutral\") return \"\ud83d\ude10\";\n  if (fngClass === \"Greed\") return \"\ud83d\ude42\";\n  return \"\ud83d\ude04\";\n}\n\nconst buy = (aiResult.buy_confidence * 100).toFixed(1);\nconst hold = (aiResult.hold_confidence * 100).toFixed(1);\nconst sell = (aiResult.sell_confidence * 100).toFixed(1);\n\nconst maxConf = Math.max(\n  aiResult.buy_confidence,\n  aiResult.hold_confidence,\n  aiResult.sell_confidence\n);\n\nlet signal = \"HOLD\";\nlet signalEmoji = \"\ud83d\udfe1\";\n\nif (maxConf === aiResult.buy_confidence) {\n  signal = \"BUY\";\n  signalEmoji = \"\ud83d\udfe2\";\n}\n\nif (maxConf === aiResult.sell_confidence) {\n  signal = \"SELL\";\n  signalEmoji = \"\ud83d\udd34\";\n}\n\nconst fngEmoji = getFngEmoji(payload.crypto_fng_class);\n\nconst resultJson = JSON.stringify({\n  timestamp,\n  source: \"binance\",\n  instrument: payload.instrument,\n  price_last_14: payload.price_last_14,\n  fear_and_greed: payload.crypto_fng_value + \" (\" + payload.crypto_fng_class + \")\",\n  ema_20: payload.ema_20,\n  ema_50: payload.ema_50,\n  ema_100: payload.ema_100,\n  price_vs_ema20_percent: payload.price_vs_ema20_percent,\n  price_vs_ema50_percent: payload.price_vs_ema50_percent,\n  price_vs_ema100_percent: payload.price_vs_ema100_percent,\n  rsi_14_last_7: payload.rsi_14_last_7,\n  macd_histogram_12_26_9_last_7: payload.macd_histogram_12_26_9_last_7,\n  adx_14: payload.adx_14,\n  plus_di_14: payload.positive_di_14,\n  minus_di_14: payload.negative_di_14,\n  di_delta: payload.di_delta_14,\n  signal,\n  buy_confidence: aiResult.buy_confidence,\n  hold_confidence: aiResult.hold_confidence,\n  sell_confidence: aiResult.sell_confidence,\n  reasoning: aiResult.reasoning\n}, null, 2);\n\nconst telegramMessage =\n  \"\ud83d\udcca AI BTC Daily Insight \u2014 \" + signalEmoji + \" \" + signal + \"\\n\" +\n  fngEmoji + \" Fear & Greed: \" + payload.crypto_fng_value + \" (\" + payload.crypto_fng_class + \")\\n\" +\n  \"\ud83d\udfe2 Buy: \" + buy + \"% \ud83d\udfe1 Hold: \" + hold + \"% \ud83d\udd34 Sell: \" + sell + \"%\\n\\n\" +\n  \"```json\\n\" +\n  resultJson +\n  \"\\n```\\n\" +\n  \"\u26a0\ufe0f AI-generated technical analysis. Not financial advice.\";\n\nreturn [\n  {\n    json: {\n      payload,\n      aiResult,\n      signal,\n      telegramMessage\n    }\n  }\n];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "a9f05c55-1181-4fd0-855c-ca8f779b61bb",
+          "name": "Fetch 300 Daily OHLCV Candles",
+          "type": "n8n-nodes-base.httpRequest",
+          "notes": "Fetches 300 daily candles from Binance public API. These candles are used to calculate EMA, RSI, MACD, ADX, and DI indicators.",
+          "position": [
+            1856,
+            -112
+          ],
+          "parameters": {
+            "url": "=https://data-api.binance.vision/api/v3/klines?symbol={{ $json.config.symbol }}&interval=1d&limit=300",
+            "options": {}
+          },
+          "typeVersion": 4.4
+        },
+        {
+          "id": "4f9c95ef-7be2-4d42-b0f2-2abe87e287c7",
+          "name": "Normalize OHLCV Candle Fields",
+          "type": "n8n-nodes-base.set",
+          "notes": "Converts Binance array format into readable candle fields: time, open, high, low, close, and volume.\n",
+          "position": [
+            2080,
+            -112
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "83746df8-611a-4c26-acfa-4914f0d042ed",
+                  "name": "time",
+                  "type": "number",
+                  "value": "={{ $json['0']/1000 }}"
+                },
+                {
+                  "id": "05893af6-25be-49c1-897f-7d7e8a9b139e",
+                  "name": "open",
+                  "type": "number",
+                  "value": "={{ $json['1'] }}"
+                },
+                {
+                  "id": "54bc5a58-ce58-4608-8b1e-f735b7ab8e8c",
+                  "name": "high",
+                  "type": "number",
+                  "value": "={{ $json['2'] }}"
+                },
+                {
+                  "id": "77b0c0ab-080b-4e17-bede-4417e7a344ed",
+                  "name": "low",
+                  "type": "number",
+                  "value": "={{ $json['3'] }}"
+                },
+                {
+                  "id": "ccf6b03a-3126-43b3-a411-facd080dccaa",
+                  "name": "close",
+                  "type": "number",
+                  "value": "={{ $json['4'] }}"
+                },
+                {
+                  "id": "15d66a67-896d-48c5-a5ab-9d0cb8b194de",
+                  "name": "volume",
+                  "type": "number",
+                  "value": "={{ $json['5'] }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "55cbe590-7589-4453-8210-031734708139",
+          "name": "Aggregate Candles Into Array",
+          "type": "n8n-nodes-base.aggregate",
+          "notes": "Combines all candle items into one array so the technical indicator Code node can process the full price history.\n",
+          "position": [
+            2304,
+            -112
+          ],
+          "parameters": {
+            "options": {},
+            "aggregate": "aggregateAllItemData",
+            "destinationFieldName": "candles"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "91cc9f08-ace0-4071-9c20-dfcb966d8839",
+          "name": "Fetch Latest Market Price",
+          "type": "n8n-nodes-base.httpRequest",
+          "notes": "Fetches the latest Binance ticker price and merges it into the latest daily candle for fresher analysis.\n",
+          "position": [
+            2528,
+            -112
+          ],
+          "parameters": {
+            "url": "=https://data-api.binance.vision/api/v3/ticker/price?symbol={{ $('Set Trading Pair').item.json.config.symbol }}",
+            "options": {}
+          },
+          "executeOnce": false,
+          "typeVersion": 4.4
+        },
+        {
+          "id": "58070ceb-bd13-40c2-acca-888a99370a48",
+          "name": "Fetch Crypto Fear & Greed Index",
+          "type": "n8n-nodes-base.httpRequest",
+          "notes": "Fetches recent Crypto Fear & Greed Index values from Alternative.me. The latest value is included in the AI analysis payload.\n",
+          "position": [
+            2752,
+            -112
+          ],
+          "parameters": {
+            "url": "=https://api.alternative.me/fng/?limit=30&format=json",
+            "options": {}
+          },
+          "executeOnce": false,
+          "typeVersion": 4.4
+        },
+        {
+          "id": "a063b0ef-210b-4f57-9b89-7950dbc2cfb3",
+          "name": "Calculate Indicators & Build AI Payload",
+          "type": "n8n-nodes-base.code",
+          "notes": "Calculates EMA(20/50/100), RSI(14), MACD histogram, ADX(14), +DI, -DI, and builds the exact technical payload sent to Gemini.\n",
+          "position": [
+            3120,
+            -112
+          ],
+          "parameters": {
+            "jsCode": "const config = $('Set Trading Pair').first().json.config;\nconst candlesRaw = $('Aggregate Candles Into Array').first().json.candles;\nconst tickRaw = $('Fetch Latest Market Price').first().json;\nconst fngRaw = $input.first().json;\n\n// Sort candles oldest -> newest, just to be safe\nconst df = candlesRaw\n  .map(d => ({\n    TIMESTAMP: d.time * 1000,\n    OPEN: parseFloat(d.open),\n    HIGH: parseFloat(d.high),\n    LOW: parseFloat(d.low),\n    CLOSE: parseFloat(d.close),\n    VOLUME: parseFloat(d.volume),\n  }))\n  .sort((a, b) => a.TIMESTAMP - b.TIMESTAMP);\n\n// Sort Fear & Greed oldest -> newest\nconst fngDataSorted = fngRaw.data.sort(\n  (a, b) => parseInt(a.timestamp) - parseInt(b.timestamp)\n);\n\nconst latestFng = fngDataSorted[fngDataSorted.length - 1];\n\nconst fngData = {\n  fngValue: parseInt(latestFng.value),\n  fngClass: latestFng.value_classification,\n};\n\n// Merge latest tick into last candle\nconst tickValue = parseFloat(tickRaw.price);\nconst lastIdx = df.length - 1;\n\ndf[lastIdx].CLOSE = tickValue;\nif (df[lastIdx].HIGH < tickValue) df[lastIdx].HIGH = tickValue;\nif (df[lastIdx].LOW > tickValue) df[lastIdx].LOW = tickValue;\n\nfunction r4(x) {\n  return Math.round(parseFloat(x) * 10000) / 10000;\n}\n\nfunction calculateEMA(closes, span) {\n  const alpha = 2 / (span + 1);\n  const ema = [];\n\n  closes.forEach((price, i) => {\n    if (i === 0) {\n      ema.push(price);\n    } else {\n      ema.push(alpha * price + (1 - alpha) * ema[i - 1]);\n    }\n  });\n\n  return ema;\n}\n\nfunction calculateRSI(closes, period) {\n  const rsi = new Array(closes.length).fill(null);\n  let avgGain = 0;\n  let avgLoss = 0;\n  const alpha = 1 / period;\n\n  for (let i = 1; i < closes.length; i++) {\n    const delta = closes[i] - closes[i - 1];\n    const gain = delta > 0 ? delta : 0;\n    const loss = delta < 0 ? -delta : 0;\n\n    if (i === 1) {\n      avgGain = gain;\n      avgLoss = loss;\n    } else {\n      avgGain = alpha * gain + (1 - alpha) * avgGain;\n      avgLoss = alpha * loss + (1 - alpha) * avgLoss;\n    }\n\n    const rs = avgLoss === 0 ? Infinity : avgGain / avgLoss;\n    rsi[i] = 100 - (100 / (1 + rs));\n  }\n\n  return rsi;\n}\n\nfunction calculateEMAFromArray(arr, span) {\n  const alpha = 2 / (span + 1);\n  const ema = [];\n\n  arr.forEach((v, i) => {\n    if (i === 0) ema.push(v);\n    else ema.push(alpha * v + (1 - alpha) * ema[i - 1]);\n  });\n\n  return ema;\n}\n\nfunction calculateMACD(closes, fast, slow, signal) {\n  const emaFast = calculateEMA(closes, fast);\n  const emaSlow = calculateEMA(closes, slow);\n  const macdLine = emaFast.map((v, i) => v - emaSlow[i]);\n  const signalLine = calculateEMAFromArray(macdLine, signal);\n  const histogram = macdLine.map((v, i) => v - signalLine[i]);\n\n  return { macdLine, signalLine, histogram };\n}\n\nfunction calculateADX(highs, lows, closes, period) {\n  const n = closes.length;\n  const alpha = 1 / period;\n\n  const plusDM = new Array(n).fill(0);\n  const minusDM = new Array(n).fill(0);\n  const tr = new Array(n).fill(0);\n\n  for (let i = 1; i < n; i++) {\n    const upMove = highs[i] - highs[i - 1];\n    const downMove = lows[i - 1] - lows[i];\n\n    plusDM[i] = upMove > downMove && upMove > 0 ? upMove : 0;\n    minusDM[i] = downMove > upMove && downMove > 0 ? downMove : 0;\n\n    const tr1 = highs[i] - lows[i];\n    const tr2 = Math.abs(highs[i] - closes[i - 1]);\n    const tr3 = Math.abs(lows[i] - closes[i - 1]);\n\n    tr[i] = Math.max(tr1, tr2, tr3);\n  }\n\n  let atr = tr[1];\n  let sPlusDM = plusDM[1];\n  let sMinusDM = minusDM[1];\n\n  const atrArr = new Array(n).fill(0);\n  const sPlusArr = new Array(n).fill(0);\n  const sMinusArr = new Array(n).fill(0);\n\n  atrArr[1] = atr;\n  sPlusArr[1] = sPlusDM;\n  sMinusArr[1] = sMinusDM;\n\n  for (let i = 2; i < n; i++) {\n    atr = alpha * tr[i] + (1 - alpha) * atr;\n    sPlusDM = alpha * plusDM[i] + (1 - alpha) * sPlusDM;\n    sMinusDM = alpha * minusDM[i] + (1 - alpha) * sMinusDM;\n\n    atrArr[i] = atr;\n    sPlusArr[i] = sPlusDM;\n    sMinusArr[i] = sMinusDM;\n  }\n\n  const plusDI = sPlusArr.map((v, i) =>\n    atrArr[i] ? 100 * v / atrArr[i] : 0\n  );\n\n  const minusDI = sMinusArr.map((v, i) =>\n    atrArr[i] ? 100 * v / atrArr[i] : 0\n  );\n\n  let adxVal = 0;\n  const adxArr = new Array(n).fill(0);\n\n  for (let i = 1; i < n; i++) {\n    const sum = plusDI[i] + minusDI[i];\n    const dx = sum\n      ? Math.abs(plusDI[i] - minusDI[i]) / sum * 100\n      : 0;\n\n    adxVal = alpha * dx + (1 - alpha) * adxVal;\n    adxArr[i] = adxVal;\n  }\n\n  return { adx: adxArr, plusDI, minusDI };\n}\n\nconst closes = df.map(d => parseFloat(d.CLOSE));\nconst highs = df.map(d => parseFloat(d.HIGH));\nconst lows = df.map(d => parseFloat(d.LOW));\n\nconst ema20Arr = calculateEMA(closes, 20);\nconst ema50Arr = calculateEMA(closes, 50);\nconst ema100Arr = calculateEMA(closes, 100);\nconst rsi14Arr = calculateRSI(closes, 14);\nconst { histogram } = calculateMACD(closes, 12, 26, 9);\nconst { adx, plusDI, minusDI } = calculateADX(highs, lows, closes, 14);\n\nconst last = closes.length - 1;\nconst lastClose = closes[last];\n\nconst ema20Last = ema20Arr[last];\nconst ema50Last = ema50Arr[last];\nconst ema100Last = ema100Arr[last];\n\nconst payload = {\n  source: \"binance\",\n  instrument: config.symbol,\n  price_last_14: closes.slice(-14).map(r4),\n  ema_20: r4(ema20Last),\n  ema_50: r4(ema50Last),\n  ema_100: r4(ema100Last),\n  price_vs_ema20_percent: r4(((lastClose - ema20Last) / ema20Last) * 100),\n  price_vs_ema50_percent: r4(((lastClose - ema50Last) / ema50Last) * 100),\n  price_vs_ema100_percent: r4(((lastClose - ema100Last) / ema100Last) * 100),\n  rsi_14_last_7: rsi14Arr.slice(-7).map(r4),\n  macd_histogram_12_26_9_last_7: histogram.slice(-7).map(r4),\n  adx_14: r4(adx[last]),\n  positive_di_14: r4(plusDI[last]),\n  negative_di_14: r4(minusDI[last]),\n  di_delta_14: r4(plusDI[last] - minusDI[last]),\n  crypto_fng_value: fngData.fngValue,\n  crypto_fng_class: fngData.fngClass,\n};\n\nreturn [\n  {\n    json: {\n      payload,\n    },\n  },\n];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "d8b66011-cc7f-4660-b170-a1ff068f614c",
+          "name": "Generate AI Trading Insight",
+          "type": "@n8n/n8n-nodes-langchain.chainLlm",
+          "notes": "Sends the technical payload to Gemini and asks for a structured JSON insight with buy, hold, and sell confidence scores.\n",
+          "position": [
+            3504,
+            -112
+          ],
+          "parameters": {
+            "text": "=You are analyzing crypto technical indicators on the DAILY timeframe.\n\nOUTPUT RULES:\n- buy_confidence + hold_confidence + sell_confidence MUST sum to 1.0\n- Higher value = stronger directional bias.\n\nDATA STRUCTURE:\n- Any field ending with \\`_last_N\\` is a LIST ordered chronologically.\n- The FIRST element is the OLDEST value.\n- The LAST element is the MOST RECENT value.\n\nPAYLOAD FIELD DESCRIPTIONS:\n- price_last_14: Closing prices of the last 14 daily candles ordered chronologically.\n- ema_20: Latest EMA(20) value representing short-term trend baseline.\n- ema_50: Latest EMA(50) value representing mid-term trend baseline.\n- ema_100: Latest EMA(100) value representing long-term trend baseline.\n- price_vs_ema20_percent: Percentage distance between latest price and EMA(20); positive means price above trend.\n- price_vs_ema50_percent: Percentage distance between latest price and EMA(50); positive means price above trend.\n- price_vs_ema100_percent: Percentage distance between latest price and EMA(100); positive means price above trend.\n- rsi_14_last_7: RSI(14) values from the last 7 candles showing momentum progression.\n- macd_histogram_12_26_9_last_7: MACD histogram values showing recent momentum acceleration or deceleration.\n- adx_14: ADX(14) value indicating current trend strength regardless of direction.\n- positive_di_14: Positive directional index measuring bullish directional pressure.\n- negative_di_14: Negative directional index measuring bearish directional pressure.\n- di_delta_14: Difference between positive_di_14 and negative_di_14 indicating directional dominance.\n- crypto_fng_value: Current Fear & Greed Index numerical sentiment value.\n- crypto_fng_class: Text classification of Fear & Greed sentiment state.\n\nCONTEXT:\n- Indicators derived from daily candles.\n- Latest candle contains live market tick update.\n- Use ONLY provided values.\n\nRespond ONLY with a raw JSON object (no markdown, no backticks) with exactly these keys:\n{\n \"buy_confidence\": <number 0-1>,\n \"hold_confidence\": <number 0-1>,\n \"sell_confidence\": <number 0-1>,\n \"reasoning\": \"<string>\"\n}\n\nTECHNICAL PAYLOAD:\n{{ JSON.stringify($json.payload, null, 2) }}",
+            "batching": {},
+            "messages": {
+              "messageValues": [
+                {
+                  "message": "=You are a professional crypto technical analyst.\n\nSTRICT RULES:\n- Analyze ONLY provided data\n- Do NOT assume external market context\n- Be consistent and deterministic in reasoning."
+                }
+              ]
+            },
+            "promptType": "define",
+            "hasOutputParser": true
+          },
+          "typeVersion": 1.9
+        },
+        {
+          "id": "da5de86b-711e-4685-91bd-1da367f9b29c",
+          "name": "Set Trading Pair",
+          "type": "n8n-nodes-base.set",
+          "notes": "Change the symbol here, e.g. BTCUSDT, ETHUSDT, SOLUSDT. The workflow uses Binance public market data.",
+          "position": [
+            1536,
+            -112
+          ],
+          "parameters": {
+            "mode": "raw",
+            "options": {},
+            "jsonOutput": "{\n  \"config\": {\n    \"symbol\": \"BTCUSDT\"\n  }\n}\n\n"
+          },
+          "notesInFlow": true,
+          "typeVersion": 3.4
+        },
+        {
+          "id": "f7ceddad-0578-4719-a50a-e9566c03f9f2",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1264,
+            -416
+          ],
+          "parameters": {
+            "color": 5,
+            "width": 512,
+            "height": 192,
+            "content": "## 1. Configure before running\n\n- Set your preferred schedule in the Schedule Trigger.\n- Change the trading pair in Set Trading Pair, e.g. BTCUSDT, ETHUSDT, SOLUSDT.\n- Connect your own Google Gemini credential.\n- Connect your own Telegram bot credential and set your chat ID.\n\nThis template uses public Binance + Alternative.me data."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "2fd8aad2-92a6-41af-9ae5-5fee57b93efd",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1792,
+            -416
+          ],
+          "parameters": {
+            "color": 5,
+            "width": 1136,
+            "height": 512,
+            "content": "## 2. Fetch market + sentiment data\n\nThis section fetches:\n- 300 daily OHLCV candles from Binance\n- Latest ticker price from Binance\n- Crypto Fear & Greed Index from Alternative.me\n\nThe latest ticker price is later merged into the newest daily candle for fresher analysis."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "dab77a29-e1e5-4a90-892b-943d6b6dfe97",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            2944,
+            -416
+          ],
+          "parameters": {
+            "color": 5,
+            "width": 496,
+            "height": 512,
+            "content": "## 3. Calculate technical indicators\n\nThis Code node calculates:\n- EMA(20), EMA(50), EMA(100)\n- RSI(14)\n- MACD histogram 12/26/9\n- ADX(14), +DI, -DI\n- Fear & Greed sentiment\n\nIt then builds the structured payload sent to Gemini."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "88b20cbf-c8b9-4e01-ac41-ab45939176c9",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            3456,
+            -416
+          ],
+          "parameters": {
+            "color": 5,
+            "width": 832,
+            "height": 688,
+            "content": "## 4. Generate AI insight and send to Telegram\n\nGemini receives only the calculated technical payload and returns:\n- buy_confidence\n- hold_confidence\n- sell_confidence\n- reasoning\n\nThe final Code node formats the result into a Telegram message.\n\nNot financial advice."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "391f44de-6fd5-46e4-9843-6cccee51ada0",
+          "name": "Sticky Note4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            512,
+            -704
+          ],
+          "parameters": {
+            "width": 704,
+            "height": 1040,
+            "content": "## **Daily Crypto AI Market Insight to Telegram**\n\nThis workflow generates a daily AI-powered crypto market insight and sends it to Telegram using Binance public market data, the Crypto Fear & Greed Index, and Google Gemini.\n\nIt fetches BTC/USDT daily OHLCV data, calculates technical indicators, builds a structured analysis payload, asks Gemini for a buy/hold/sell confidence breakdown, and delivers the result as a clean Telegram report.\n\nIt is useful for traders, builders, and crypto enthusiasts who want an automated daily technical summary without manually checking charts.\n\n## **Common use cases:**\n\n- Send a daily BTC market insight to your Telegram\n- Monitor crypto technical indicators automatically\n- Build a personal AI crypto analyst bot\n- Create a lightweight daily trading signal workflow\n- Learn how to combine market data, technical indicators, LLMs, and Telegram in n8n\n\n## **How it works**\n\n- Starts from a Schedule Trigger, which you can customize\n- Sets the trading pair, for example `BTCUSDT`\n- Fetches 300 daily OHLCV candles from Binance public API\n- Normalizes Binance candle data into readable fields\n- Fetches the latest market price and merges it into the latest candle\n- Fetches the Crypto Fear & Greed Index from Alternative.me\n- Calculates EMA(20), EMA(50), EMA(100), RSI(14), MACD histogram, ADX(14), +DI, and -DI\n- Builds a structured technical payload\n- Sends the payload to Google Gemini\n- Parses Gemini\u2019s response into structured JSON\n- Formats the result into a Telegram message\n- Sends the AI-generated insight to Telegram\n\n## **Setup steps**\n\n- Choose your trading pair in the **Set Trading Pair** node\n- Connect your Google Gemini credentials\n- Connect your Telegram credentials\n- Set your Telegram chat ID in the Telegram node\n- Adjust the Schedule Trigger if you want a different run time\n- Test the workflow manually\n- Activate the workflow\n\n## **Notes**\n\nThis workflow uses Binance public API data and does not require a Binance API key.\nThe AI insight is generated only from the provided technical payload and should not be treated as financial advice.\n\n## **Need Help?**  \nHave questions or want to connect? Reach me on [LinkedIn](https://www.linkedin.com/in/athaahsan/)."
+          },
+          "typeVersion": 1
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "f02ae429-9a91-4f77-95e8-f8a76e6dbaa8",
+      "connections": {
+        "Schedule Trigger": {
+          "main": [
+            [
+              {
+                "node": "Set Trading Pair",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Set Trading Pair": {
+          "main": [
+            [
+              {
+                "node": "Fetch 300 Daily OHLCV Candles",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Send a text message": {
+          "main": [
+            []
+          ]
+        },
+        "Format Telegram Message": {
+          "main": [
+            [
+              {
+                "node": "Send a text message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Google Gemini Chat Model": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "Generate AI Trading Insight",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Structured Output Parser": {
+          "ai_outputParser": [
+            [
+              {
+                "node": "Generate AI Trading Insight",
+                "type": "ai_outputParser",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch Latest Market Price": {
+          "main": [
+            [
+              {
+                "node": "Fetch Crypto Fear & Greed Index",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Generate AI Trading Insight": {
+          "main": [
+            [
+              {
+                "node": "Format Telegram Message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Aggregate Candles Into Array": {
+          "main": [
+            [
+              {
+                "node": "Fetch Latest Market Price",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch 300 Daily OHLCV Candles": {
+          "main": [
+            [
+              {
+                "node": "Normalize OHLCV Candle Fields",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Normalize OHLCV Candle Fields": {
+          "main": [
+            [
+              {
+                "node": "Aggregate Candles Into Array",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch Crypto Fear & Greed Index": {
+          "main": [
+            [
+              {
+                "node": "Calculate Indicators & Build AI Payload",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Calculate Indicators & Build AI Payload": {
+          "main": [
+            [
+              {
+                "node": "Generate AI Trading Insight",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 18,
+      "nodeTypes": {
+        "n8n-nodes-base.set": {
+          "count": 2
+        },
+        "n8n-nodes-base.code": {
+          "count": 2
+        },
+        "n8n-nodes-base.telegram": {
+          "count": 1
+        },
+        "n8n-nodes-base.aggregate": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 5
+        },
+        "n8n-nodes-base.httpRequest": {
+          "count": 3
+        },
+        "n8n-nodes-base.scheduleTrigger": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.chainLlm": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.lmChatGoogleGemini": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.outputParserStructured": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Atha Ahsan Xavier Haris",
+      "username": "athaahsan",
+      "bio": "Interdisciplinary AI, Data & Automation Developer",
+      "verified": true,
+      "links": [
+        "https://athaahsan.com/"
+      ],
+      "avatar": "https://gravatar.com/avatar/8347c766e2155f85480770e1eb37c87b70e097745c29c959b55e8c0b881659b5?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 19,
+        "icon": "file:httprequest.svg",
+        "name": "n8n-nodes-base.httpRequest",
+        "codex": {
+          "data": {
+            "alias": [
+              "API",
+              "Request",
+              "URL",
+              "Build",
+              "cURL"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-designs-with-bannerbear-and-n8n/",
+                  "icon": "\ud83c\udfa8",
+                  "label": "Automate Designs with Bannerbear and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-use-the-http-request-node-the-swiss-army-knife-for-workflow-automation/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "How to use the HTTP Request Node - The Swiss Army Knife for Workflow Automation"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HTTP Request",
+          "color": "#0004F5"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MCAyMEM0MCA4Ljk1MzE0IDMxLjA0NjkgMCAyMCAwQzguOTUzMTQgMCAwIDguOTUzMTQgMCAyMEMwIDMxLjA0NjkgOC45NTMxNCA0MCAyMCA0MEMzMS4wNDY5IDQwIDQwIDMxLjA0NjkgNDAgMjBaTTIwIDM2Ljk0NThDMTguODg1MiAzNi45NDU4IDE3LjEzNzggMzUuOTY3IDE1LjQ5OTggMzIuNjk4NUMxNC43OTY0IDMxLjI5MTggMTQuMTk2MSAyOS41NDMxIDEzLjc1MjYgMjcuNjg0N0gyNi4xODk4QzI1LjgwNDUgMjkuNTQwMyAyNS4yMDQ0IDMxLjI5MDEgMjQuNTAwMiAzMi42OTg1QzIyLjg2MjIgMzUuOTY3IDIxLjExNDggMzYuOTQ1OCAyMCAzNi45NDU4Wk0xMi45MDY0IDIwQzEyLjkwNjQgMjEuNjA5NyAxMy4wMDg3IDIzLjE2NCAxMy4yMDAzIDI0LjYzMDVIMjYuNzk5N0MyNi45OTEzIDIzLjE2NCAyNy4wOTM2IDIxLjYwOTcgMjcuMDkzNiAyMEMyNy4wOTM2IDE4LjM5MDMgMjYuOTkxMyAxNi44MzYgMjYuNzk5NyAxNS4zNjk1SDEzLjIwMDNDMTMuMDA4NyAxNi44MzYgMTIuOTA2NCAxOC4zOTAzIDEyLjkwNjQgMjBaTTIwIDMuMDU0MTlDMjEuMTE0OSAzLjA1NDE5IDIyLjg2MjIgNC4wMzA3OCAyNC41MDAxIDcuMzAwMzlDMjUuMjA2NiA4LjcxNDA4IDI1LjgwNzIgMTAuNDA2NyAyNi4xOTIgMTIuMzE1M0gxMy43NTAxQzE0LjE5MzMgMTAuNDA0NyAxNC43OTQyIDguNzEyNTQgMTUuNDk5OCA3LjMwMDY0QzE3LjEzNzcgNC4wMzA4MyAxOC44ODUxIDMuMDU0MTkgMjAgMy4wNTQxOVpNMzAuMTQ3OCAyMEMzMC4xNDc4IDE4LjQwOTkgMzAuMDU0MyAxNi44NjE3IDI5LjgyMjcgMTUuMzY5NUgzNi4zMDQyQzM2LjcyNTIgMTYuODQyIDM2Ljk0NTggMTguMzk2NCAzNi45NDU4IDIwQzM2Ljk0NTggMjEuNjAzNiAzNi43MjUyIDIzLjE1OCAzNi4zMDQyIDI0LjYzMDVIMjkuODIyN0MzMC4wNTQzIDIzLjEzODMgMzAuMTQ3OCAyMS41OTAxIDMwLjE0NzggMjBaTTI2LjI3NjcgNC4yNTUxMkMyNy42MzY1IDYuMzYwMTkgMjguNzExIDkuMTMyIDI5LjM3NzQgMTIuMzE1M0gzNS4xMDQ2QzMzLjI1MTEgOC42NjggMzAuMTA3IDUuNzgzNDYgMjYuMjc2NyA0LjI1NTEyWk0xMC42MjI2IDEyLjMxNTNINC44OTI5M0M2Ljc1MTQ3IDguNjY3ODQgOS44OTM1MSA1Ljc4MzQxIDEzLjcyMzIgNC4yNTUxM0MxMi4zNjM1IDYuMzYwMjEgMTEuMjg5IDkuMTMyMDEgMTAuNjIyNiAxMi4zMTUzWk0zLjA1NDE5IDIwQzMuMDU0MTkgMjEuNjAzIDMuMjc3NDMgMjMuMTU3NSAzLjY5NDg0IDI0LjYzMDVIMTAuMTIxN0M5Ljk0NjE5IDIzLjE0MiA5Ljg1MjIyIDIxLjU5NDMgOS44NTIyMiAyMEM5Ljg1MjIyIDE4LjQwNTcgOS45NDYxOSAxNi44NTggMTAuMTIxNyAxNS4zNjk1SDMuNjk0ODRDMy4yNzc0MyAxNi44NDI1IDMuMDU0MTkgMTguMzk3IDMuMDU0MTkgMjBaTTI2LjI3NjYgMzUuNzQyN0MyNy42MzY1IDMzLjYzOTMgMjguNzExIDMwLjg2OCAyOS4zNzc0IDI3LjY4NDdIMzUuMTA0NkMzMy4yNTEgMzEuMzMyMiAzMC4xMDY4IDM0LjIxNzkgMjYuMjc2NiAzNS43NDI3Wk0xMy43MjM0IDM1Ljc0MjdDOS44OTM2OSAzNC4yMTc5IDYuNzUxNTUgMzEuMzMyNCA0Ljg5MjkzIDI3LjY4NDdIMTAuNjIyNkMxMS4yODkgMzAuODY4IDEyLjM2MzUgMzMuNjM5MyAxMy43MjM0IDM1Ljc0MjdaIiBmaWxsPSIjM0E0MkU5Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "HTTP Request",
+        "typeVersion": 4,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 49,
+        "icon": "file:telegram.svg",
+        "name": "n8n-nodes-base.telegram",
+        "codex": {
+          "data": {
+            "alias": [
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/using-automation-to-boost-productivity-in-the-workplace/",
+                  "icon": "\ud83d\udcaa",
+                  "label": "Using Automation to Boost Productivity in the Workplace"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-telegram-bots-with-n8n-a-no-code-platform/",
+                  "icon": "\ud83d\udcac",
+                  "label": "Creating Telegram Bots with n8n, a No-Code Platform"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.telegram/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/telegram/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "Telegram"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgNjYgNjYiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48ZyBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSI+PHBhdGggZmlsbD0iIzM3YWVlMiIgZD0iTTAgMzJjMCAxNy42NzMgMTQuMzI3IDMyIDMyIDMyczMyLTE0LjMyNyAzMi0zMlM0OS42NzMgMCAzMiAwIDAgMTQuMzI3IDAgMzIiLz48cGF0aCBmaWxsPSIjYzhkYWVhIiBkPSJtMjEuNjYxIDM0LjMzOCAzLjc5NyAxMC41MDhzLjQ3NS45ODMuOTgzLjk4MyA4LjA2OC03Ljg2NCA4LjA2OC03Ljg2NGw4LjQwNy0xNi4yMzctMjEuMTE5IDkuODk4eiIvPjxwYXRoIGZpbGw9IiNhOWM2ZDgiIGQ9Im0yNi42OTUgMzcuMDM0LS43MjkgNy43NDZzLS4zMDUgMi4zNzMgMi4wNjggMGw0LjY0NC00LjIwMyIvPjxwYXRoIGQ9Im0yMS43MyAzNC43MTItNy44MDktMi41NDVzLS45MzItLjM3OC0uNjMzLTEuMjM3Yy4wNjItLjE3Ny4xODYtLjMyOC41NTktLjU4OCAxLjczMS0xLjIwNiAzMi4wMjgtMTIuMDk2IDMyLjAyOC0xMi4wOTZzLjg1Ni0uMjg4IDEuMzYxLS4wOTdjLjIzMS4wODguMzc4LjE4Ny41MDMuNTQ4LjA0NS4xMzIuMDcxLjQxMS4wNjguNjg5LS4wMDMuMjAxLS4wMjcuMzg2LS4wNDUuNjc4LS4xODQgMi45NzgtNS43MDYgMjUuMTk4LTUuNzA2IDI1LjE5OHMtLjMzIDEuMy0xLjUxNCAxLjM0NWMtLjQzMi4wMTYtLjk1Ni0uMDcxLTEuNTgyLS42MS0yLjMyMy0xLjk5OC0xMC4zNTItNy4zOTQtMTIuMTI2LTguNThhLjM0LjM0IDAgMCAxLS4xNDYtLjIzOWMtLjAyNS0uMTI1LjEwOC0uMjguMTA4LS4yOHMxMy45OC0xMi40MjcgMTQuMzUyLTEzLjczMWMuMDI5LS4xMDEtLjA3OS0uMTUxLS4yMjYtLjEwNy0uOTI5LjM0Mi0xNy4wMjUgMTAuNTA2LTE4LjgwMSAxMS42MjktLjEwNC4wNjYtLjM5NS4wMjMtLjM5NS4wMjMiLz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Telegram",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 839,
+        "icon": "fa:clock",
+        "name": "n8n-nodes-base.scheduleTrigger",
+        "codex": {
+          "data": {
+            "alias": [
+              "Time",
+              "Scheduler",
+              "Polling",
+              "Cron",
+              "Interval"
+            ],
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\",\"schedule\"]",
+        "defaults": {
+          "name": "Schedule Trigger",
+          "color": "#31C49F"
+        },
+        "iconData": {
+          "icon": "clock",
+          "type": "icon"
+        },
+        "displayName": "Schedule Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1123,
+        "icon": "fa:link",
+        "name": "@n8n/n8n-nodes-langchain.chainLlm",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.chainllm/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Chains",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Basic LLM Chain",
+          "color": "#909298"
+        },
+        "iconData": {
+          "icon": "link",
+          "type": "icon"
+        },
+        "displayName": "Basic LLM Chain",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1179,
+        "icon": "fa:code",
+        "name": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "codex": {
+          "data": {
+            "alias": [
+              "json",
+              "zod"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.outputparserstructured/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Output Parsers"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Structured Output Parser"
+        },
+        "iconData": {
+          "icon": "code",
+          "type": "icon"
+        },
+        "displayName": "Structured Output Parser",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1236,
+        "icon": "file:aggregate.svg",
+        "name": "n8n-nodes-base.aggregate",
+        "codex": {
+          "data": {
+            "alias": [
+              "Aggregate",
+              "Combine",
+              "Flatten",
+              "Transform",
+              "Array",
+              "List",
+              "Item"
+            ],
+            "details": "",
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.aggregate/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Aggregate"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJub25lIj48ZyBmaWxsPSIjRkY2RDVBIiBjbGlwLXBhdGg9InVybCgjYSkiPjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTMyIDE0OGMwLTYuNjI3IDUuMzczLTEyIDEyLTEyaDE0NmM2LjYyNyAwIDEyIDUuMzczIDEyIDEydjI0YzAgNi42MjctNS4zNzMgMTItMTIgMTJINDRjLTYuNjI3IDAtMTItNS4zNzMtMTItMTJ6bTAgOTZjMC02LjYyNyA1LjM3My0xMiAxMi0xMmgxNDZjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnYyNGMwIDYuNjI3LTUuMzczIDEyLTEyIDEySDQ0Yy02LjYyNyAwLTEyLTUuMzczLTEyLTEyem0wIDk2YzAtNi42MjcgNS4zNzMtMTIgMTItMTJoMTQ2YzYuNjI3IDAgMTIgNS4zNzMgMTIgMTJ2MjRjMCA2LjYyNy01LjM3MyAxMi0xMiAxMkg0NGMtNi42MjcgMC0xMi01LjM3My0xMi0xMnoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGQ9Ik03NCA3NmMwIDYuNjI3IDUuMzczIDEyIDEyIDEyaDExNi4yMTdjMTcuNjczIDAgMzIgMTQuMzI3IDMyIDMydjU2YzAgMjYuOTc4IDEwLjI3MiA1MS41NTcgMjcuMTE5IDcwLjAzOSA1LjA1NSA1LjU0NSA1LjA1NSAxNC4zNzcgMCAxOS45MjItMTYuODQ3IDE4LjQ4Mi0yNy4xMTkgNDMuMDYxLTI3LjExOSA3MC4wMzl2NTZjMCAxNy42NzMtMTQuMzI3IDMyLTMyIDMySDg2Yy02LjYyNyAwLTEyIDUuMzczLTEyIDEydjI0YzAgNi42MjcgNS4zNzMgMTIgMTIgMTJoMTE2LjIxN2M0NC4xODMgMCA4MC0zNS44MTcgODAtODB2LTU2YzAtMzAuOTI4IDI1LjA3Mi01NiA1Ni01NmE1Ljc4MyA1Ljc4MyAwIDAgMCA1Ljc4My01Ljc4M3YtMzYuNDM0YTUuNzgzIDUuNzgzIDAgMCAwLTUuNzgzLTUuNzgzYy0zMC45MjggMC01Ni0yNS4wNzItNTYtNTZ2LTU2YzAtNDQuMTgzLTM1LjgxNy04MC04MC04MEg4NmMtNi42MjcgMC0xMiA1LjM3My0xMiAxMnoiLz48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0zNzYgMjQ0YzAtNi42MjcgNS4zNzMtMTIgMTItMTJoMTEyYzYuNjI3IDAgMTIgNS4zNzMgMTIgMTJ2MjRjMCA2LjYyNy01LjM3MyAxMi0xMiAxMkgzODhjLTYuNjI3IDAtMTItNS4zNzMtMTItMTJ6IiBjbGlwLXJ1bGU9ImV2ZW5vZGQiLz48L2c+PGRlZnM+PGNsaXBQYXRoIGlkPSJhIj48cGF0aCBmaWxsPSIjZmZmIiBkPSJNMCAwaDUxMnY1MTJIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4="
+        },
+        "displayName": "Aggregate",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1262,
+        "icon": "file:google.svg",
+        "name": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmchatgooglegemini/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Language Models",
+                "Root Nodes"
+              ],
+              "Language Models": [
+                "Chat Models (Recommended)"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Google Gemini Chat Model"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2aWV3Qm94PSIwIDAgNDggNDgiPjxkZWZzPjxwYXRoIGlkPSJhIiBkPSJNNDQuNSAyMEgyNHY4LjVoMTEuOEMzNC43IDMzLjkgMzAuMSAzNyAyNCAzN2MtNy4yIDAtMTMtNS44LTEzLTEzczUuOC0xMyAxMy0xM2MzLjEgMCA1LjkgMS4xIDguMSAyLjlsNi40LTYuNEMzNC42IDQuMSAyOS42IDIgMjQgMiAxMS44IDIgMiAxMS44IDIgMjRzOS44IDIyIDIyIDIyYzExIDAgMjEtOCAyMS0yMiAwLTEuMy0uMi0yLjctLjUtNCIvPjwvZGVmcz48Y2xpcFBhdGggaWQ9ImIiPjx1c2UgeGxpbms6aHJlZj0iI2EiIG92ZXJmbG93PSJ2aXNpYmxlIi8+PC9jbGlwUGF0aD48cGF0aCBmaWxsPSIjRkJCQzA1IiBkPSJNMCAzN1YxMWwxNyAxM3oiIGNsaXAtcGF0aD0idXJsKCNiKSIvPjxwYXRoIGZpbGw9IiNFQTQzMzUiIGQ9Im0wIDExIDE3IDEzIDctNi4xTDQ4IDE0VjBIMHoiIGNsaXAtcGF0aD0idXJsKCNiKSIvPjxwYXRoIGZpbGw9IiMzNEE4NTMiIGQ9Im0wIDM3IDMwLTIzIDcuOSAxTDQ4IDB2NDhIMHoiIGNsaXAtcGF0aD0idXJsKCNiKSIvPjxwYXRoIGZpbGw9IiM0Mjg1RjQiIGQ9Ik00OCA0OCAxNyAyNGwtNC0zIDM1LTEweiIgY2xpcC1wYXRoPSJ1cmwoI2IpIi8+PC9zdmc+"
+        },
+        "displayName": "Google Gemini Chat Model",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 44,
+        "name": "Crypto Trading"
+      },
+      {
+        "id": 49,
+        "name": "AI Summarization"
+      }
+    ],
+    "image": []
+  }
+}

@@ -1,0 +1,292 @@
+{
+  "workflow": {
+    "id": 6327,
+    "name": "Real-time error monitoring with WhatsApp alerts & multi-language setup",
+    "views": 301,
+    "recentViews": 0,
+    "totalViews": 301,
+    "createdAt": "2025-07-23T16:44:15.236Z",
+    "description": "&gt; \u26a0\ufe0f Multi-language WhatsApp Error Notifier  \n\n**Get instant WhatsApp alerts** when any workflow fails \u2014 perfect for mobile-first monitoring and fast incident response.\n\n\u2705 No coding required  \n\u2705 Works with any workflow via *Error Workflow*  \n\u2705 Step-by-step setup instructions included in:\n- \ud83c\uddec\ud83c\udde7 English\n- \ud83c\uddea\ud83c\uddf8 Espa\u00f1ol\n- \ud83c\udde9\ud83c\uddea Deutsch\n- \ud83c\uddeb\ud83c\uddf7 Fran\u00e7ais\n- \ud83c\uddf7\ud83c\uddfa \u0420\u0443\u0441\u0441\u043a\u0438\u0439\n\n---\n\n## \ud83d\udce6 What This Template Does\n\nThis template sends real-time WhatsApp notifications when a workflow fails. It uses the **WhatsApp Business Cloud API** to deliver a preformatted error message directly to your phone. The message includes:\n\n- Workflow name  \n- Error message  \n- Last executed node  \n\nExample message:\nError on WorkFlow: {{ $json.workflow.name }}\nMessage: {{ $json.execution.error.message }}\nlastNodeExecuted: {{ $json.execution.lastNodeExecuted }}\n\n---\n\n## \u2699\ufe0f Prerequisites\n\nBefore using this template, make sure you have:\n\n- A verified Facebook Business account  \n- Access to WhatsApp Business Cloud API  \n- A sender phone number (registered in Meta)  \n- An access token (used as credentials in n8n)  \n- A pre-approved message template (or be within the 24h session window)\n\n[More info from Meta Docs \u2192](https://developers.facebook.com/docs/whatsapp)\n\n---\n\n## \ud83d\ude80 How to Use\n\n1. Open the template and insert your WhatsApp credentials  \n2. Enter your target phone number (e.g. your own) in international format  \n3. Customize the message body if needed  \n4. **Save the workflow but do not activate it**  \n5. In any other workflow \u2192 open **Settings** \u2192 set this as your **Error Workflow**\n\n---\n\n## \ud83c\udf10 Multi-language Setup Guide Included\n\nThis template includes full setup instructions with screenshots and message formatting help in:\n- \ud83c\uddec\ud83c\udde7 English\n- \ud83c\uddea\ud83c\uddf8 Espa\u00f1ol\n- \ud83c\udde9\ud83c\uddea Deutsch\n- \ud83c\uddeb\ud83c\uddf7 Fran\u00e7ais\n- \ud83c\uddf7\ud83c\uddfa \u0420\u0443\u0441\u0441\u043a\u0438\u0439\n\nChoose your language inside the embedded sticky note in the workflow.",
+    "workflow": {
+      "id": "O0C6dgSlC6BHD8cN",
+      "meta": {
+        "instanceId": "4933ec690637fb3b400e75b72209b423e4ae85e2088079d2359ab06d8bdb7716",
+        "templateCredsSetupCompleted": true
+      },
+      "name": "ErrorFlow WhatsApp Alarm",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "10c87315-4b50-4e87-81a0-3ed3e23648b5",
+          "name": "Error Trigger",
+          "type": "n8n-nodes-base.errorTrigger",
+          "position": [
+            0,
+            0
+          ],
+          "parameters": {},
+          "typeVersion": 1
+        },
+        {
+          "id": "8ebb8bdd-a2d2-4140-93d1-031eb7e52332",
+          "name": "SETUP INSTRUCTIONS",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            600,
+            -280
+          ],
+          "parameters": {
+            "width": 400,
+            "height": 4180,
+            "content": "# \ud83d\udea8 ERROR-MONITORING FLOW \u2014 WHATSAPP SETUP GUIDE  \n\n\ud83d\udd17 Jump to language:  \n\ud83c\uddec\ud83c\udde7 [English](#-english) | \ud83c\uddea\ud83c\uddf8 [Espa\u00f1ol](#-espa\u00f1ol) | \ud83c\udde9\ud83c\uddea [Deutsch](#-deutsch) | \ud83c\uddeb\ud83c\uddf7 [Fran\u00e7ais](#-fran\u00e7ais) | \ud83c\uddf7\ud83c\uddfa [\u0420\u0443\u0441\u0441\u043a\u0438\u0439](#-\u0440\u0443\u0441\u0441\u043a\u0438\u0439)  \n\n---\n\n> \u2757 This workflow must remain **INACTIVE**.  \n> You should select it as the **Error Workflow** inside other workflows where you want to receive error alerts.\n\n---\n\n## \ud83c\uddec\ud83c\udde7 English\n\n1. Make sure your **WhatsApp Business Cloud API** is properly connected to n8n.\n\n2. In the **Send Message** node:  \n   - Set your **WhatsApp credentials**  \n   - Resource: `Message`  \n   - Operation: `Send`  \n   - Sender phone number (or ID)  \n   - Recipient's phone number in international format (e.g. `+34612345678`)  \n   - Message type: `Text`  \n   - **Text Body**:  \n     ```\n     Error on WorkFlow: {{ $json.workflow.name }}  \n     Message: {{ $json.execution.error.message }}  \n     lastNodeExecuted: {{ $json.execution.lastNodeExecuted }}\n     ```\n\n3. Save this workflow but **do not activate it**.\n\n4. In the workflow(s) you want to monitor \u2192 open **Settings** \u2192 select this as **Error Workflow**.\n\n---\n\n## \ud83c\uddea\ud83c\uddf8 Espa\u00f1ol\n\n> \u2757 Este flujo debe permanecer **INACTIVO**.  \n> Debes seleccionarlo como **Error Workflow** en otros flujos.\n\n1. Aseg\u00farate de que la **API de WhatsApp Business Cloud** est\u00e9 conectada en n8n.\n\n2. En el nodo **Send Message**:  \n   - Credenciales de WhatsApp  \n   - Recurso: `Message`  \n   - Operaci\u00f3n: `Send`  \n   - N\u00famero del remitente  \n   - N\u00famero del destinatario en formato internacional  \n   - Tipo de mensaje: `Text`  \n   - **Cuerpo del mensaje**:  \n     ```\n     Error on WorkFlow: {{ $json.workflow.name }}  \n     Message: {{ $json.execution.error.message }}  \n     lastNodeExecuted: {{ $json.execution.lastNodeExecuted }}\n     ```\n\n3. Guarda el flujo pero **no lo actives**.\n\n4. En otros flujos \u2192 **Settings** \u2192 elige este como **Error Workflow**.\n\n---\n\n## \ud83c\udde9\ud83c\uddea Deutsch\n\n> \u2757 Dieser Workflow bleibt **INAKTIV**.  \n> In anderen Flows als **Error Workflow** einstellen.\n\n1. Stelle sicher, dass deine **WhatsApp Business Cloud API** mit n8n verbunden ist.\n\n2. Im Node **Send Message**:  \n   - WhatsApp-Zugangsdaten setzen  \n   - Ressource: `Message`  \n   - Operation: `Send`  \n   - Absendernummer  \n   - Empf\u00e4ngernummer im internationalen Format  \n   - Nachrichtentyp: `Text`  \n   - **Nachrichtentext**:  \n     ```\n     Error on WorkFlow: {{ $json.workflow.name }}  \n     Message: {{ $json.execution.error.message }}  \n     lastNodeExecuted: {{ $json.execution.lastNodeExecuted }}\n     ```\n\n3. Workflow speichern, aber **nicht aktivieren**.\n\n4. In anderen Workflows \u2192 **Einstellungen** \u2192 diesen als **Error Workflow** setzen.\n\n---\n\n## \ud83c\uddeb\ud83c\uddf7 Fran\u00e7ais\n\n> \u2757 Ce flux reste **INACTIF**.  \n> \u00c0 s\u00e9lectionner comme **Error Workflow** dans d'autres workflows.\n\n1. V\u00e9rifiez que votre **API WhatsApp Business Cloud** est bien connect\u00e9e \u00e0 n8n.\n\n2. Dans le n\u0153ud **Send Message** :  \n   - Identifiants WhatsApp  \n   - Ressource : `Message`  \n   - Op\u00e9ration : `Send`  \n   - Num\u00e9ro de l\u2019exp\u00e9diteur  \n   - Num\u00e9ro du destinataire au format international  \n   - Type de message : `Text`  \n   - **Texte du message** :  \n     ```\n     Error on WorkFlow: {{ $json.workflow.name }}  \n     Message: {{ $json.execution.error.message }}  \n     lastNodeExecuted: {{ $json.execution.lastNodeExecuted }}\n     ```\n\n3. Sauvegardez ce flux mais **ne l\u2019activez pas**.\n\n4. Dans d'autres workflows \u2192 **Param\u00e8tres** \u2192 d\u00e9finissez ce flux comme **Error Workflow**.\n\n---\n\n## \ud83c\uddf7\ud83c\uddfa \u0420\u0443\u0441\u0441\u043a\u0438\u0439\n\n> \u2757 \u042d\u0442\u043e\u0442 workflow \u0434\u043e\u043b\u0436\u0435\u043d \u0431\u044b\u0442\u044c **\u041d\u0415\u0410\u041a\u0422\u0418\u0412\u041d\u042b\u041c**.  \n> \u0415\u0433\u043e \u043d\u0443\u0436\u043d\u043e \u0432\u044b\u0431\u0440\u0430\u0442\u044c \u0432 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430\u0445 \u0434\u0440\u0443\u0433\u0438\u0445 workflow \u043a\u0430\u043a **Error Workflow**.\n\n1. \u0423\u0431\u0435\u0434\u0438\u0442\u0435\u0441\u044c, \u0447\u0442\u043e **WhatsApp Business Cloud API** \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0430 \u043a n8n.\n\n2. \u0412 \u043d\u043e\u0434\u0435 **Send Message**:  \n   - \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 credentials WhatsApp  \n   - \u0420\u0435\u0441\u0443\u0440\u0441: `Message`  \n   - \u041e\u043f\u0435\u0440\u0430\u0446\u0438\u044f: `Send`  \n   - \u041d\u043e\u043c\u0435\u0440 \u043e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u0435\u043b\u044f  \n   - \u041d\u043e\u043c\u0435\u0440 \u043f\u043e\u043b\u0443\u0447\u0430\u0442\u0435\u043b\u044f \u0432 \u043c\u0435\u0436\u0434\u0443\u043d\u0430\u0440\u043e\u0434\u043d\u043e\u043c \u0444\u043e\u0440\u043c\u0430\u0442\u0435 (\u043d\u0430\u043f\u0440\u0438\u043c\u0435\u0440, `+79261234567`)  \n   - \u0422\u0438\u043f \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u044f: `Text`  \n   - **\u0422\u0435\u043a\u0441\u0442 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u044f**:  \n     ```\n     Error on WorkFlow: {{ $json.workflow.name }}  \n     Message: {{ $json.execution.error.message }}  \n     lastNodeExecuted: {{ $json.execution.lastNodeExecuted }}\n     ```\n\n3. \u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u0435 workflow, \u043d\u043e **\u043d\u0435 \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u0443\u0439\u0442\u0435 \u0435\u0433\u043e**.\n\n4. \u0412 \u0434\u0440\u0443\u0433\u0438\u0445 workflow \u2192 **\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438** \u2192 \u0432\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u044d\u0442\u043e\u0442 \u043a\u0430\u043a **Error Workflow**."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "63f6e3e6-6f20-4d61-98cf-1c65f00b8381",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -120,
+            -140
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 300,
+            "height": 280,
+            "content": "## Listen\n\n**IMPORTANT**: In your other workflows \u2192 open **Settings** \u2192 select this as **Error Workflow**."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "57d9a111-52ba-40dd-afbc-11efeac099a3",
+          "name": "Send message",
+          "type": "n8n-nodes-base.whatsApp",
+          "position": [
+            320,
+            0
+          ],
+          "webhookId": "b25e2651-df9f-4713-b841-2668391f9398",
+          "parameters": {
+            "textBody": "=Error on WorkFlow: {{ $json.workflow.name }} Message: {{ $json.execution.error.message }}  lastNodeExecuted: {{ $json.execution.lastNodeExecuted }}",
+            "operation": "send",
+            "phoneNumberId": "708748555659713",
+            "additionalFields": {},
+            "recipientPhoneNumber": "!!!!!!!! Insert your number !!!!!!!!!"
+          },
+          "credentials": {
+            "whatsAppApi": {
+              "id": "credential-id",
+              "name": "whatsAppApi Credential"
+            }
+          },
+          "typeVersion": 1
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "executionOrder": "v1"
+      },
+      "versionId": "70f3761d-b1dd-4a0f-b472-380874b4f31c",
+      "connections": {
+        "Error Trigger": {
+          "main": [
+            [
+              {
+                "node": "Send message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 29,
+    "workflowInfo": {
+      "nodeCount": 4,
+      "nodeTypes": {
+        "n8n-nodes-base.whatsApp": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 2
+        },
+        "n8n-nodes-base.errorTrigger": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Vadym Nahornyi",
+      "username": "vadym-nahornyi",
+      "bio": "Automating what you hate doing.",
+      "verified": true,
+      "links": [
+        "www.linkedin.com/in/vadym-nahornyi-3b2959158"
+      ],
+      "avatar": "https://gravatar.com/avatar/7194a28e0b87ccecede9a89d8d3fb9e7d964ff444df908e4387fadba0a928d2c?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 12,
+        "icon": "fa:bug",
+        "name": "n8n-nodes-base.errorTrigger",
+        "codex": {
+          "data": {
+            "details": "In n8n, when a workflow execution fails, it can start another workflow. This second workflow can be any arbitrary workflow on your n8n instance. Use the Error Trigger node as your Trigger in the Error workflow.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/creating-error-workflows-in-n8n/",
+                  "icon": "\ud83c\udf2a",
+                  "label": "Creating Error Workflows in n8n"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.errortrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Other Trigger Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Error Trigger",
+          "color": "#0000FF"
+        },
+        "iconData": {
+          "icon": "bug",
+          "type": "icon"
+        },
+        "displayName": "Error Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 827,
+        "icon": "file:whatsapp.svg",
+        "name": "n8n-nodes-base.whatsApp",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.whatsapp/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/whatsapp/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "WhatsApp Business Cloud"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIHZpZXdCb3g9IjAgMCA0OCA0OCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0ibTQuODY4IDQzLjMwMyAyLjY5NC05LjgzNWExOC45NCAxOC45NCAwIDAgMS0yLjUzNS05LjQ4OUM1LjAzMiAxMy41MTQgMTMuNTQ4IDUgMjQuMDE0IDVhMTguODcgMTguODcgMCAwIDEgMTMuNDMgNS41NjZBMTguODcgMTguODcgMCAwIDEgNDMgMjMuOTk0Yy0uMDA0IDEwLjQ2NS04LjUyMiAxOC45OC0xOC45ODYgMTguOThoLS4wMDhhMTkgMTkgMCAwIDEtOS4wNzMtMi4zMTF6Ii8+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTQuODY4IDQzLjgwM2EuNS41IDAgMCAxLS40ODItLjYzMWwyLjYzOS05LjYzNmExOS41IDE5LjUgMCAwIDEtMi40OTctOS41NTZDNC41MzIgMTMuMjM4IDEzLjI3MyA0LjUgMjQuMDE0IDQuNWExOS4zNyAxOS4zNyAwIDAgMSAxMy43ODQgNS43MTNBMTkuMzYgMTkuMzYgMCAwIDEgNDMuNSAyMy45OTRjLS4wMDQgMTAuNzQxLTguNzQ2IDE5LjQ4LTE5LjQ4NiAxOS40OGExOS41NCAxOS41NCAwIDAgMS05LjE0NC0yLjI3N2wtOS44NzUgMi41ODlhLjUuNSAwIDAgMS0uMTI3LjAxNyIvPjxwYXRoIGZpbGw9IiNjZmQ4ZGMiIGQ9Ik0yNC4wMTQgNWExOC44NyAxOC44NyAwIDAgMSAxMy40MyA1LjU2NkExOC44NyAxOC44NyAwIDAgMSA0MyAyMy45OTRjLS4wMDQgMTAuNDY1LTguNTIyIDE4Ljk4LTE4Ljk4NiAxOC45OGgtLjAwOGExOSAxOSAwIDAgMS05LjA3My0yLjMxMWwtMTAuMDY1IDIuNjQgMi42OTQtOS44MzVhMTguOTQgMTguOTQgMCAwIDEtMi41MzUtOS40ODlDNS4wMzIgMTMuNTE0IDEzLjU0OCA1IDI0LjAxNCA1bTAtMUMxMi45OTggNCA0LjAzMiAxMi45NjIgNC4wMjcgMjMuOTc5YTIwIDIwIDAgMCAwIDIuNDYxIDkuNjIyTDMuOTAzIDQzLjA0YS45OTguOTk4IDAgMCAwIDEuMjE5IDEuMjMxbDkuNjg3LTIuNTRhMjAgMjAgMCAwIDAgOS4xOTcgMi4yNDRjMTEuMDI0IDAgMTkuOTktOC45NjMgMTkuOTk1LTE5Ljk4QTE5Ljg2IDE5Ljg2IDAgMCAwIDM4LjE1MyA5Ljg2IDE5Ljg3IDE5Ljg3IDAgMCAwIDI0LjAxNCA0Ii8+PHBhdGggZmlsbD0iIzQwYzM1MSIgZD0iTTM1LjE3NiAxMi44MzJhMTUuNjcgMTUuNjcgMCAwIDAtMTEuMTU3LTQuNjI2Yy04LjcwNCAwLTE1Ljc4MyA3LjA3Ni0xNS43ODcgMTUuNzc0YTE1Ljc0IDE1Ljc0IDAgMCAwIDIuNDEzIDguMzk2bC4zNzYuNTk3LTEuNTk1IDUuODIxIDUuOTczLTEuNTY2LjU3Ny4zNDJhMTUuNzUgMTUuNzUgMCAwIDAgOC4wMzIgMi4xOTloLjAwNmM4LjY5OCAwIDE1Ljc3Ny03LjA3NyAxNS43OC0xNS43NzZhMTUuNjggMTUuNjggMCAwIDAtNC42MTgtMTEuMTYxIi8+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTE5LjI2OCAxNi4wNDVjLS4zNTUtLjc5LS43MjktLjgwNi0xLjA2OC0uODItLjI3Ny0uMDEyLS41OTMtLjAxMS0uOTA5LS4wMTFzLS44My4xMTktMS4yNjUuNTk0LTEuNjYxIDEuNjIyLTEuNjYxIDMuOTU2IDEuNyA0LjU5IDEuOTM3IDQuOTA2IDMuMjgyIDUuMjU5IDguMTA0IDcuMTYxYzQuMDA3IDEuNTggNC44MjMgMS4yNjYgNS42OTMgMS4xODdzMi44MDctMS4xNDcgMy4yMDItMi4yNTUuMzk1LTIuMDU3LjI3Ny0yLjI1NWMtLjExOS0uMTk4LS40MzUtLjMxNi0uOTA5LS41NTRzLTIuODA3LTEuMzg1LTMuMjQyLTEuNTQzLS43NTEtLjIzNy0xLjA2OC4yMzhjLS4zMTYuNDc0LTEuMjI1IDEuNTQzLTEuNTAyIDEuODU5cy0uNTU0LjM1Ny0xLjAyOC4xMTktMi4wMDItLjczOC0zLjgxNS0yLjM1NGMtMS40MS0xLjI1Ny0yLjM2Mi0yLjgxLTIuNjM5LTMuMjg1LS4yNzctLjQ3NC0uMDMtLjczMS4yMDgtLjk2OC4yMTMtLjIxMy40NzQtLjU1NC43MTItLjgzMS4yMzctLjI3Ny4zMTYtLjQ3NS40NzQtLjc5MXMuMDc5LS41OTQtLjA0LS44MzFjLS4xMTctLjIzOC0xLjAzOS0yLjU4NC0xLjQ2MS0zLjUyMiIvPjwvc3ZnPg=="
+        },
+        "displayName": "WhatsApp Business Cloud",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 16,
+        "name": "DevOps"
+      }
+    ],
+    "image": []
+  }
+}

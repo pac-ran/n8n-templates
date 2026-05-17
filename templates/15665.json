@@ -1,0 +1,1490 @@
+{
+  "workflow": {
+    "id": 15665,
+    "name": "Analyze client portfolio diversification using Google Sheets, OpenAI and Slack",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-12T14:09:30.270Z",
+    "description": "# Client Portfolio Diversification Check using n8n, Google Sheets, OpenAI & Slack\n\nThis n8n workflow automatically analyzes client portfolio data from Google Sheets, evaluates sector allocation, risk level and diversification quality and generates AI-powered insights. It also sends real-time alerts to Slack for invalid data and overexposed sectors while saving reports back to Google Sheets.\n\n\n### Quick Implementation Steps\n\n1. Create a Google Sheet with columns: `Stock`, `Sector`, `Investment`\n2. Add another sheet for reports with columns: `timestamp`, `riskLevel`, `diversificationLevel`, `report`\n3. Connect Google Sheets credentials in n8n\n4. Add your OpenAI API key\n5. Connect Slack OAuth and select a channel\n6. [Activate the workflow](https://n8n.partnerlinks.io/om1efg2qgvwi)\n\n\n## What It Does\n\nThis workflow continuously monitors client portfolio data by fetching records from Google Sheets every hour. It cleans and validates the data, ensuring that only meaningful entries (valid sector and investment values) are processed. Any invalid entries are immediately flagged and reported via Slack.\n\nOnce validated, the workflow performs financial analysis by grouping investments by sector, calculating allocation percentages and determining the portfolio's risk level. It also detects overexposure in sectors exceeding 40% allocation and calculates a diversification score to measure balance.\n\nTo enhance decision-making, the workflow leverages AI to generate concise portfolio insights and actionable recommendations. These insights, along with computed metrics, are formatted into a report, sent to Slack and stored in Google Sheets for future reference.\n\n\n## Who It's For\n\n- Financial advisors managing client portfolios  \n- Investment analysts tracking diversification  \n- Wealth management firms  \n- FinTech teams building automated insights  \n- Individual investors seeking portfolio health checks  \n\n\n## Requirements\n\nTo use this workflow, ensure the following:\n\n### 1. Google Sheets\n\n- Input Sheet must include columns:\n  - `Stock`\n  - `Sector`\n  - `Investment`\n- Output Sheet must include:\n  - `timestamp`\n  - `riskLevel`\n  - `diversificationLevel`\n  - `report`\n\n### 2. n8n Setup\n\n- [Self-hosted or cloud n8n instance](https://n8n.partnerlinks.io/om1efg2qgvwi)\n\n### 3. Credentials Required\n\n- Google Sheets OAuth2 credentials  \n- OpenAI API key (used with `gpt-4o-mini`)  \n- Slack OAuth2 credentials  \n\n### 4. Slack Channel\n\n- A Slack channel must be selected for alerts and reports  \n\n\n## How It Works & Setup Guide\n\n### Step 1: Trigger Workflow\n\n- The workflow starts using **Google Sheets Trigger**\n- Runs automatically **every hour**\n\n### Step 2: Fetch Portfolio Data\n\n- Reads data from the configured Google Sheet\n\n### Step 3: Normalize Data\n\n- Converts:\n  - Stock \u2192 uppercase\n  - Sector \u2192 uppercase\n  - Investment \u2192 numeric value\n\n### Step 4: Validate Data\n\n- Conditions checked:\n  - Investment &gt; 0\n  - Sector is not empty\n  - Sector \u2260 \"UNKNOWN\"\n- Invalid data \u2192 Slack alert sent  \n- Valid data \u2192 continues processing  \n\n### Step 5: Compute Sector Allocation\n\n- Groups investments by sector  \n- Calculates total portfolio value  \n- Computes allocation percentage per sector  \n\n### Step 6: Risk & Exposure Analysis\n\n- Risk Levels:\n  - Low (&lt;30%)\n  - Medium (30\u201350%)\n  - High (&gt;50%)\n- Detects overexposed sectors (&gt;40%)\n\n### Step 7: Diversification Score\n\n- Measures how evenly investments are distributed  \n- Labels:\n  - Excellent (&gt;80)\n  - Good (&gt;60)\n  - Moderate (&gt;40)\n  - Poor (\u226440)\n\n### Step 8: AI Insights Generation\n\n- Uses OpenAI (`gpt-4o-mini`)\n- Generates:\n  - Portfolio summary\n  - Risks\n  - Diversification feedback\n  - Actionable recommendations\n\n### Step 9: Overexposure Decision\n\n- If overexposed \u2192 Slack alert triggered  \n\n### Step 10: Report Formatting\n\n- Combines:\n  - Risk level\n  - Diversification level\n  - Allocation breakdown\n  - AI insights\n\n### Step 11: Save & Notify\n\n- Saves report in Google Sheets  \n- Sends formatted report to Slack  \n\n\n## How To Customize Nodes\n\n- **Risk Logic**\n  - Modify thresholds in `Compute: Risk Score & Exposure`\n\n- **Diversification Calculation**\n  - Adjust scoring logic in `Compute: Diversification Score`\n\n- **AI Prompt**\n  - Customize system prompt in `AI: Portfolio Insights Generator`\n  - Change tone, length or recommendations style\n\n- **Slack Messages**\n  - Edit message templates in Slack nodes for alerts and reports\n\n- **Validation Rules**\n  - Add more conditions in `Validate Data` node (e.g., stock format)\n\n\n## Add-ons (Extend This Workflow)\n\n- Email alerts using SMTP node  \n- Dashboard integration (e.g., Power BI / Looker Studio)  \n- Historical trend analysis  \n- Multi-client portfolio tracking  \n- Automatic rebalancing suggestions  \n- Integration with market data APIs  \n\n\n## Use Case Examples\n\n1. **Client Portfolio Monitoring**\n   - Automatically track diversification and risk exposure  \n\n2. **Wealth Advisory Automation**\n   - Provide AI-generated insights without manual analysis  \n\n3. **Compliance & Risk Alerts**\n   - Detect and alert overexposed portfolios instantly  \n\n4. **Investment Reporting**\n   - Generate structured reports for clients regularly  \n\n5. **Personal Finance Tracking**\n   - Individuals monitoring their own investment portfolios  \n\nThese are just a few examples. This workflow can be adapted for many other financial automation scenarios.\n\n\n## Troubleshooting Guide\n\n| Issue | Possible Cause | Solution |\n|------|--------------|---------|\n| No data fetched | Incorrect Google Sheet ID | Verify document ID and sheet selection |\n| Invalid data alerts | Missing or incorrect values | Ensure all rows have valid `Sector` and `Investment` |\n| AI not generating insights | Missing OpenAI API key | Add and verify OpenAI credentials |\n| Slack messages not sent | wrong Slack credentials or channel | Reconnect Slack OAuth and verify channel |\n| Report not saved | wrong output sheet setup | Ensure output sheet exists with correct columns |\n| Workflow not running | Trigger inactive | Activate workflow in n8n |\n\n## Need Help?\n\nIf you need assistance with:\n\n- Setting up this workflow  \n- Customizing AI insights  \n- Adding advanced features  \n- Building similar automation workflows  \n\nFeel free to reach out to our [n8n workflow developers at **WeblineIndia**](https://www.weblineindia.com/hire-n8n-developers/) for expert support.\n\nWe specialize in building scalable automation workflows tailored to your business needs.\n",
+    "workflow": {
+      "meta": {
+        "instanceId": "9f24379abd1ca05a3f590fdaa874ca82fbc5e1188798d609d51d2a8f6bacb662"
+      },
+      "name": "Client Portfolio Diversification Check",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "8b0729e6-3b77-41f4-be6b-4908d0bbe2ca",
+          "name": "Fetch Portfolio Data",
+          "type": "n8n-nodes-base.googleSheets",
+          "position": [
+            1264,
+            736
+          ],
+          "parameters": {
+            "options": {},
+            "sheetName": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gid=0",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/13DZI16f7_J9_WbVlMyS8Y1Nj-1K6fhtnOBvUPHvk29Q/edit#gid=0",
+              "cachedResultName": "Client Portfolio "
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "13DZI16f7_J9_WbVlMyS8Y1Nj-1K6fhtnOBvUPHvk29Q",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/13DZI16f7_J9_WbVlMyS8Y1Nj-1K6fhtnOBvUPHvk29Q/edit?usp=drivesdk",
+              "cachedResultName": "Client Portfolio Diversification Check-task 3"
+            }
+          },
+          "executeOnce": true,
+          "typeVersion": 4.7
+        },
+        {
+          "id": "18e4e5ba-6b76-437f-87a0-0a4d24158564",
+          "name": "Slack Alert: Overexposure Warning",
+          "type": "n8n-nodes-base.slack",
+          "position": [
+            3296,
+            480
+          ],
+          "webhookId": "cbedad9b-c792-4e4f-920f-e62869315076",
+          "parameters": {
+            "text": "= Overexposure Alert!\n\nSectors:\n{{ $json.overexposedSectors?.length \n  ? $json.overexposedSectors.map(s => s.sector + \" (\" + s.percentage + \"%)\").join(\", \")\n  : \"None\"\n}}\n\nRisk Level: {{ $json.riskLevel }}",
+            "select": "channel",
+            "channelId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "C0APVTBS27Q",
+              "cachedResultName": "all-ujjwal"
+            },
+            "otherOptions": {},
+            "authentication": "oAuth2"
+          },
+          "typeVersion": 2.4
+        },
+        {
+          "id": "7d59a241-69c5-4497-9203-d0052c99abca",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1024,
+            352
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 790,
+            "height": 768,
+            "content": "## Data Ingestion & Validation\n\nThis section handles data collection and ensures quality before processing.\n\nTrigger workflow every hour from Google Sheets\nFetch latest portfolio records\nNormalize stock, sector and investment fields\nValidate data (remove empty/invalid entries)\nSend Slack alert if data is incorrect"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "aa23be8d-5442-4110-b653-eae4fddece27",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1856,
+            352
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 576,
+            "height": 560,
+            "content": "## Portfolio Analysis Engine\n\nThis section performs core financial calculations on the portfolio.\n\nGroup investments by sector\nCalculate sector-wise allocation (%)\nCompute risk score (Low / Medium / High)\nIdentify overexposed sectors (>40%)\nCalculate diversification score"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "8438d415-a76b-4cbd-a5e1-7f481147c6f5",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            2528,
+            352
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 630,
+            "height": 528,
+            "content": "## AI Insights & Decision Logic\n\nThis section generates intelligent insights and checks conditions.\n\nUse AI to analyze portfolio health\nGenerate insights and recommendations\nExtract AI response for further use\nCheck if portfolio is overexposed"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "8e865d2e-5946-4432-9c99-6d84ec3cc73a",
+          "name": "Validate Data (Sector + Investment)",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            1632,
+            736
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "77667fb9-a090-4d0b-a990-45b1515ff0bc",
+                  "operator": {
+                    "type": "number",
+                    "operation": "gt"
+                  },
+                  "leftValue": "={{ $json[\"Investment\"] }}",
+                  "rightValue": 0
+                },
+                {
+                  "id": "b01612f0-8d2f-4ea9-9809-5eed2092757d",
+                  "operator": {
+                    "type": "string",
+                    "operation": "notEmpty",
+                    "singleValue": true
+                  },
+                  "leftValue": "={{ $json[\"Sector\"] }}",
+                  "rightValue": ""
+                },
+                {
+                  "id": "04dfcd89-0362-4945-8794-fa35fda0423a",
+                  "operator": {
+                    "type": "string",
+                    "operation": "notEquals"
+                  },
+                  "leftValue": "={{ $json[\"Sector\"] }}",
+                  "rightValue": "UNKNOWN"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "ef80e38c-0eff-499c-aa9d-3460b0413b12",
+          "name": "Portfolio Update (Hourly)",
+          "type": "n8n-nodes-base.googleSheetsTrigger",
+          "position": [
+            1056,
+            736
+          ],
+          "parameters": {
+            "options": {},
+            "pollTimes": {
+              "item": [
+                {
+                  "mode": "everyHour"
+                }
+              ]
+            },
+            "sheetName": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gid=0",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/13DZI16f7_J9_WbVlMyS8Y1Nj-1K6fhtnOBvUPHvk29Q/edit#gid=0",
+              "cachedResultName": "Client Portfolio "
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "13DZI16f7_J9_WbVlMyS8Y1Nj-1K6fhtnOBvUPHvk29Q",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/13DZI16f7_J9_WbVlMyS8Y1Nj-1K6fhtnOBvUPHvk29Q/edit?usp=drivesdk",
+              "cachedResultName": "Client Portfolio Diversification Check-task 3"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "445cc891-ec79-4fa1-b72d-40f247d59ad9",
+          "name": "Normalize Portfolio Data",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            1440,
+            736
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "791d9626-38e6-46b4-b473-9b7132121907",
+                  "name": "Stock",
+                  "type": "string",
+                  "value": "={{ $json[\"Stock\"] ? $json[\"Stock\"].toUpperCase().trim() : \"UNKNOWN\" }}"
+                },
+                {
+                  "id": "60106ede-820e-4e31-8a6a-56d92b2ed2a2",
+                  "name": "Sector",
+                  "type": "string",
+                  "value": "={{ $json[\"Sector\"] ? $json[\"Sector\"].toUpperCase().trim() : \"UNKNOWN\" }}"
+                },
+                {
+                  "id": "7adb5557-3639-48db-986d-69c560cafde1",
+                  "name": "Investment",
+                  "type": "number",
+                  "value": "={{ Number($json[\"Investment\"].toString().replace(/,/g, \"\")) || 0 }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "a6a4f31d-d7e9-4eb0-8f53-da40799b2f3b",
+          "name": "Alert: Invalid Data",
+          "type": "n8n-nodes-base.slack",
+          "position": [
+            1664,
+            976
+          ],
+          "webhookId": "115cdb60-fb46-4f95-b09c-e3aeccef14d9",
+          "parameters": {
+            "text": "=Data Validation Failed!\n\nStock: {{ $json[\"Stock\"] }}\nSector: {{ $json[\"Sector\"] }}\nInvestment: {{ $json[\"Investment\"] }}\n\nReason:\n{{ $json[\"Investment\"] <= 0 ? \"Invalid Investment\" : \"\" }}\n{{ !$json[\"Sector\"] || $json[\"Sector\"] === \"UNKNOWN\" ? \"Invalid Sector\" : \"\" }}",
+            "select": "channel",
+            "channelId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "C0APVTBS27Q",
+              "cachedResultName": "all-ujjwal"
+            },
+            "otherOptions": {},
+            "authentication": "oAuth2"
+          },
+          "typeVersion": 2.4
+        },
+        {
+          "id": "7dfc2d07-c433-41a1-a9c3-f21c61d387dc",
+          "name": "Compute: Sector Allocation Breakdown",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1904,
+            608
+          ],
+          "parameters": {
+            "jsCode": "const data = items.map(item => item.json);\n\n// Step 1: Group by sector\nconst sectorMap = {};\n\nfor (const row of data) {\n  const sector = row.Sector;\n  const value = parseFloat(row.Investment) || 0;\n\n  if (!sectorMap[sector]) {\n    sectorMap[sector] = 0;\n  }\n\n  sectorMap[sector] += value;\n}\n\n// Step 2: Total portfolio\nconst totalPortfolio = Object.values(sectorMap)\n  .reduce((sum, val) => sum + val, 0);\n\n// Step 3: Allocation %\nconst allocation = Object.entries(sectorMap).map(([sector, value]) => {\n  return {\n    sector,\n    value,\n    percentage: totalPortfolio === 0 \n  ? 0 \n  : parseFloat(((value / totalPortfolio) * 100).toFixed(2))\n  };\n});\n\nreturn [\n  {\n    json: {\n      allocation,\n      totalPortfolio\n    }\n  }\n];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "5679d3ef-9a10-4d2e-ad8f-aacde3b497ba",
+          "name": "Compute: Risk Score & Exposure",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            2112,
+            608
+          ],
+          "parameters": {
+            "jsCode": "\nconst data = items[0].json;\n\nconst allocation = data.allocation || [];\n\nlet highestRisk = 0;\nlet riskLevel = \"Low\";\n\nif (allocation.length === 0) {\n  return [{\n    json: {\n      ...data,\n      riskScore: 0,\n      riskLevel: \"No Data\",\n      isOverexposed: false,\n      overexposedSectors: []\n    }\n  }];\n}\n// Loop through each sector\nfor (const sector of allocation) {\n  const percentage = sector.percentage;\n\n  if (percentage > 50) {\n    highestRisk = Math.max(highestRisk, 3);\n  } else if (percentage >= 30) {\n    highestRisk = Math.max(highestRisk, 2);\n  } else {\n    highestRisk = Math.max(highestRisk, 1);\n  }\n}\n\n// Assign label\nif (highestRisk === 3) {\n  riskLevel = \"High\";\n} else if (highestRisk === 2) {\n  riskLevel = \"Medium\";\n}\nconst overexposedSectors = allocation.filter(s => s.percentage > 40);\nconst isOverexposed = overexposedSectors.length > 0;\n// Return enriched data\nreturn [\n  {\n    json: {\n      ...data,\n      riskScore: highestRisk,\n      riskLevel,\n      isOverexposed,\n      overexposedSectors\n    }\n  }\n];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "0903c37d-f952-460d-94fc-42c29b0c9c41",
+          "name": "Compute: Diversification Score",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            2288,
+            608
+          ],
+          "parameters": {
+            "jsCode": "const data = items[0].json;\nconst allocation = data.allocation || [];\n\n// Number of sectors\nconst numSectors = allocation.length;\n\nif (numSectors === 0) {\n  return [{\n    json: {\n      ...data,\n      diversificationScore: 0,\n      diversificationLevel: \"Poor\"\n    }\n  }];\n}\n\n// Balance factor\nlet balanceFactor = 0;\n\nfor (const sector of allocation) {\n  const ideal = 100 / numSectors;\n  const diff = Math.abs(sector.percentage - ideal);\n  balanceFactor += diff;\n}\n\nbalanceFactor = balanceFactor / numSectors;\n\n// Score\nconst diversificationScore = Math.max(0, (100 - balanceFactor)).toFixed(2);\n\n// Label\nlet diversificationLevel = \"Poor\";\n\nif (diversificationScore > 80) {\n  diversificationLevel = \"Excellent\";\n} else if (diversificationScore > 60) {\n  diversificationLevel = \"Good\";\n} else if (diversificationScore > 40) {\n  diversificationLevel = \"Moderate\";\n}\n\nreturn [{\n  json: {\n    ...data,\n    diversificationScore: Number(diversificationScore),\n    diversificationLevel\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "19918755-b5e5-471e-a9eb-b459898817dc",
+          "name": "AI: Portfolio Insights Generator",
+          "type": "@n8n/n8n-nodes-langchain.openAi",
+          "position": [
+            2544,
+            592
+          ],
+          "parameters": {
+            "modelId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gpt-4o-mini",
+              "cachedResultName": "GPT-4O-MINI"
+            },
+            "options": {},
+            "responses": {
+              "values": [
+                {
+                  "role": "system",
+                  "content": "You are a senior financial portfolio advisor with expertise in asset allocation, risk management and diversification.\n\nYour job is to analyze client portfolios and provide:\n- Clear, concise insights\n- Risk-aware recommendations\n- Practical, actionable advice\n\nRules:\n- Be professional and client-friendly (non-technical language)\n- Be concise (max 120 words)\n- Do NOT repeat input data\n- Highlight risks clearly if present\n- Always give at least 2 actionable suggestions\n- Avoid generic advice (be specific to allocation)\n- If diversification is poor, suggest specific sectors to rebalance into\n- If overexposed, clearly name the sector\n\nOutput format:\n- 1\u20132 line summary\n- Bullet points for insights\n- Bullet points for recommendations"
+                },
+                {
+                  "content": "=Analyze this portfolio:\n\nSector Allocation:\n{{ JSON.stringify($json.allocation, null, 2) }}\n\nRisk Level: {{ $json.riskLevel }}\nDiversification Level: {{ $json.diversificationLevel }}\nOverexposed: {{ $json.isOverexposed }}\n\nProvide:\n\n1. A short summary of portfolio health\n2. Key risks or weaknesses (if any)\n3. Diversification feedback\n4. 2\u20133 specific actionable recommendations"
+                }
+              ]
+            },
+            "builtInTools": {}
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "0f0d2f22-a3a1-4c79-96cf-b39762440d41",
+          "name": "Transform: Extract AI Response",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            2848,
+            592
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "c026a3ac-9f84-41bd-900b-ce937eb6bc0d",
+                  "name": "ai_response ",
+                  "type": "string",
+                  "value": "= {{ $json.output[0].content[0].text }}\n"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "3994aee7-56d6-4c4e-9d51-ac73c88b20ac",
+          "name": "Decision: Overexposure Check",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            3040,
+            592
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "329dd6bc-ccfb-456c-9435-f9e9d986d61f",
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "true",
+                    "singleValue": true
+                  },
+                  "leftValue": "={{ $('Compute: Diversification Score').item.json.isOverexposed }}",
+                  "rightValue": "="
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "d1eba2ae-c0ab-4b51-a41f-83e36a73b753",
+          "name": "Format: Final Portfolio Report",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            3520,
+            608
+          ],
+          "parameters": {
+            "jsCode": "const data = items[0].json;\n\nconst allocation = data.allocation || [];\n\nconst report = `\n Portfolio Report\n\nRisk: ${data.riskLevel || \"N/A\"}\nDiversification: ${data.diversificationLevel || \"N/A\"}\n\nAllocation:\n${allocation.length \n  ? allocation.map(s => `- ${s.sector}: ${s.percentage}%`).join(\"\\n\")\n  : \"No allocation data available\"}\n\nInsights:\n${data.ai_response || \"No insights generated\"}\n`;\n\nreturn [{\n  json: {\n    ...data,\n    report,\n    timestamp: new Date().toISOString()\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "f6711444-8ad1-4d9d-a963-dbfbe1a02379",
+          "name": "Store: Save Report to Google Sheets",
+          "type": "n8n-nodes-base.googleSheets",
+          "position": [
+            3776,
+            512
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "report": "={{ $('AI: Portfolio Insights Generator').item.json.output[0].content[0].text }}",
+                "riskLevel": "={{ $('Compute: Diversification Score').item.json.riskLevel }}",
+                "timestamp": "={{ $json.timestamp }}",
+                "diversificationLevel": "={{ $('Compute: Diversification Score').item.json.diversificationLevel }}"
+              },
+              "schema": [
+                {
+                  "id": "timestamp",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "timestamp",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "riskLevel",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "riskLevel",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "diversificationLevel",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "diversificationLevel",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "report",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "required": false,
+                  "displayName": "report",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                }
+              ],
+              "mappingMode": "defineBelow",
+              "matchingColumns": [],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "options": {},
+            "operation": "append",
+            "sheetName": {
+              "__rl": true,
+              "mode": "list",
+              "value": 1077112945,
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/13DZI16f7_J9_WbVlMyS8Y1Nj-1K6fhtnOBvUPHvk29Q/edit#gid=1077112945",
+              "cachedResultName": "Save Report t-3"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "13DZI16f7_J9_WbVlMyS8Y1Nj-1K6fhtnOBvUPHvk29Q",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/13DZI16f7_J9_WbVlMyS8Y1Nj-1K6fhtnOBvUPHvk29Q/edit?usp=drivesdk",
+              "cachedResultName": "Client Portfolio Diversification Check-task 3"
+            }
+          },
+          "typeVersion": 4.7
+        },
+        {
+          "id": "b18a7e1f-8631-456a-ae9f-e8835b81d99b",
+          "name": "Report: Portfolio Summary",
+          "type": "n8n-nodes-base.slack",
+          "position": [
+            3760,
+            704
+          ],
+          "webhookId": "3d9164c9-0d5b-4abc-b043-3d1c0a12ac0b",
+          "parameters": {
+            "text": "= *Portfolio Analysis Report*\n\n{{ $('AI: Portfolio Insights Generator').item.json.output[0].content[0].text }}\n\n\u23f1 Generated at: {{$now}}",
+            "select": "channel",
+            "channelId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "C0APVTBS27Q",
+              "cachedResultName": "all-ujjwal"
+            },
+            "otherOptions": {},
+            "authentication": "oAuth2"
+          },
+          "typeVersion": 2.4
+        },
+        {
+          "id": "c7589f38-a68b-47d7-ab53-fb8eeeb0f36b",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            0,
+            0
+          ],
+          "parameters": {
+            "color": "#F0D02D",
+            "width": 672,
+            "height": 864,
+            "content": "##  Client Portfolio Risk & Diversification Analyzer\n\n### Overview\n\nThis workflow automatically analyzes client portfolio data to evaluate risk exposure, sector allocation and diversification quality. It uses AI to generate clear insights and actionable recommendations, while also triggering alerts for risky or overexposed portfolios. Results are saved and shared in real-time for continuous monitoring.\n\n###  How It Works\n\nThe workflow runs automatically every hour and performs the following steps:\n\nRetrieves latest portfolio data from Google Sheets\nCleans and validates stock, sector and investment data\nGroups investments by sector and calculates allocation percentages\nEvaluates risk level and diversification score\nUses AI to generate portfolio insights and recommendations\nDetects overexposure and triggers alerts if needed\nFormats a final report\nSends results to Slack and stores them in Google Sheets\n\n### Setup Steps\nTrigger\nRuns automatically every hour via Google Sheets\nFetch & Validate Data\nRetrieve and clean portfolio data (Stock, Sector, Investment)\nCompute Allocation\nGroup by sector and calculate allocation %\nRisk & Diversification Analysis\nCalculate risk level, detect overexposure (>40%) and score diversification\nAI Insights\nGenerate portfolio summary, risks and actionable recommendations\nAlerts\nSend Slack alert if overexposed\nReport & Share\nFormat report and send to Slack\nSave Results\nStore report and metrics in Google Sheets"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "84d9cd8f-88d2-48e2-a733-fa642b5eccb2",
+          "name": "Sticky Note4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            3216,
+            240
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 832,
+            "height": 704,
+            "content": "## Alerts, Reporting & Storage\n\nThis section communicates results and saves outputs.\n\nSend Slack alert for overexposure\nFormat final portfolio report\nSend full report to Slack\nSave report and metrics in Google Sheets"
+          },
+          "typeVersion": 1
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "executionOrder": "v1"
+      },
+      "versionId": "",
+      "connections": {
+        "Fetch Portfolio Data": {
+          "main": [
+            [
+              {
+                "node": "Normalize Portfolio Data",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Normalize Portfolio Data": {
+          "main": [
+            [
+              {
+                "node": "Validate Data (Sector + Investment)",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Portfolio Update (Hourly)": {
+          "main": [
+            [
+              {
+                "node": "Fetch Portfolio Data",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Decision: Overexposure Check": {
+          "main": [
+            [
+              {
+                "node": "Slack Alert: Overexposure Warning",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Format: Final Portfolio Report",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Compute: Diversification Score": {
+          "main": [
+            [
+              {
+                "node": "AI: Portfolio Insights Generator",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Compute: Risk Score & Exposure": {
+          "main": [
+            [
+              {
+                "node": "Compute: Diversification Score",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Format: Final Portfolio Report": {
+          "main": [
+            [
+              {
+                "node": "Store: Save Report to Google Sheets",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Report: Portfolio Summary",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Transform: Extract AI Response": {
+          "main": [
+            [
+              {
+                "node": "Decision: Overexposure Check",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "AI: Portfolio Insights Generator": {
+          "main": [
+            [
+              {
+                "node": "Transform: Extract AI Response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Slack Alert: Overexposure Warning": {
+          "main": [
+            [
+              {
+                "node": "Format: Final Portfolio Report",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Validate Data (Sector + Investment)": {
+          "main": [
+            [
+              {
+                "node": "Compute: Sector Allocation Breakdown",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Alert: Invalid Data",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Compute: Sector Allocation Breakdown": {
+          "main": [
+            [
+              {
+                "node": "Compute: Risk Score & Exposure",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 20,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 2
+        },
+        "n8n-nodes-base.set": {
+          "count": 2
+        },
+        "n8n-nodes-base.code": {
+          "count": 4
+        },
+        "n8n-nodes-base.slack": {
+          "count": 3
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 5
+        },
+        "n8n-nodes-base.googleSheets": {
+          "count": 2
+        },
+        "@n8n/n8n-nodes-langchain.openAi": {
+          "count": 1
+        },
+        "n8n-nodes-base.googleSheetsTrigger": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "WeblineIndia",
+      "username": "weblineindia",
+      "bio": "A Leading Software Engineering, Consulting & Outsourcing Services Company in USA & India serving Clients Globally since 1999.",
+      "verified": true,
+      "links": [
+        "https://www.weblineindia.com/hire-n8n-developers/"
+      ],
+      "avatar": "https://gravatar.com/avatar/a229d43aefca4588581583c58bb37b4773aebbdf4c1fef86a08bb1d38eae91fa?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 18,
+        "icon": "file:googleSheets.svg",
+        "name": "n8n-nodes-base.googleSheets",
+        "codex": {
+          "data": {
+            "alias": [
+              "CSV",
+              "Sheet",
+              "Spreadsheet",
+              "GS"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/love-at-first-sight-ricardos-n8n-journey/",
+                  "icon": "\u2764\ufe0f",
+                  "label": "Love at first sight: Ricardo\u2019s n8n journey"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-triggers-for-n8n-workflows-using-polling/",
+                  "icon": "\u23f2",
+                  "label": "Creating triggers for n8n workflows using polling"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/migrating-community-metrics-to-orbit-using-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Migrating Community Metrics to Orbit using n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-honest-burgers-use-automation-to-save-100k-per-year/",
+                  "icon": "\ud83c\udf54",
+                  "label": "How Honest Burgers Use Automation to Save $100k per year"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "\ud83d\udcbb",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googlesheets/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage",
+              "Productivity"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\",\"output\"]",
+        "defaults": {
+          "name": "Google Sheets"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNS42OSAxIDUyIDE3LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0OC4yOTMgNjBIMTIuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDkgNTYuMzEyVjQuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTIuNzA3IDF6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM1LjY5IDEgNTIgMTcuMjI1SDM5LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzkuMjExIDE3LjIyNSA1MiAyMi40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTIwLjEyIDMxLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMS42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzEuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNC42OSAwIDUxIDE2LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0Ny4yOTMgNTlIMTEuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDggNTUuMzEyVjMuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTEuNzA3IDB6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM0LjY5IDAgNTEgMTYuMjI1SDM4LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzguMjExIDE2LjIyNSA1MSAyMS40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTE5LjEyIDMwLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMC42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzAuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjwvZz48L3N2Zz4="
+        },
+        "displayName": "Google Sheets",
+        "typeVersion": 5,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          },
+          {
+            "id": 4,
+            "name": "Productivity"
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 40,
+        "icon": "file:slack.svg",
+        "name": "n8n-nodes-base.slack",
+        "codex": {
+          "data": {
+            "alias": [
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-automatically-give-kudos-to-contributors-with-github-slack-and-n8n/",
+                  "icon": "\ud83d\udc4f",
+                  "label": "How to automatically give kudos to contributors with GitHub, Slack, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.slack/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/slack/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "Slack"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgMTUwLjg1MiAxNTAuODUyIj48dXNlIHhsaW5rOmhyZWY9IiNhIiB4PSIuOTI2IiB5PSIuOTI2Ii8+PHN5bWJvbCBpZD0iYSIgb3ZlcmZsb3c9InZpc2libGUiPjxnIHN0cm9rZS13aWR0aD0iMS44NTIiPjxwYXRoIGZpbGw9IiNlMDFlNWEiIHN0cm9rZT0iI2UwMWU1YSIgZD0iTTQwLjc0MSA5My41NWMwLTguNzM1IDYuNjA3LTE1Ljc3MiAxNC44MTUtMTUuNzcyczE0LjgxNSA3LjAzNyAxNC44MTUgMTUuNzcydjM4LjgyNGMwIDguNzM3LTYuNjA3IDE1Ljc3NC0xNC44MTUgMTUuNzc0cy0xNC44MTUtNy4wMzctMTQuODE1LTE1Ljc3MnoiLz48cGF0aCBmaWxsPSIjZWNiMjJkIiBzdHJva2U9IiNlY2IyMmQiIGQ9Ik05My41NSAxMDcuNDA4Yy04LjczNSAwLTE1Ljc3Mi02LjYwNy0xNS43NzItMTQuODE1czcuMDM3LTE0LjgxNSAxNS43NzItMTQuODE1aDM4LjgyNmM4LjczNSAwIDE1Ljc3MiA2LjYwNyAxNS43NzIgMTQuODE1cy03LjAzNyAxNC44MTUtMTUuNzcyIDE0LjgxNXoiLz48cGF0aCBmaWxsPSIjMmZiNjdjIiBzdHJva2U9IiMyZmI2N2MiIGQ9Ik03Ny43NzggMTUuNzcyQzc3Ljc3OCA3LjAzNyA4NC4zODUgMCA5Mi41OTMgMHMxNC44MTUgNy4wMzcgMTQuODE1IDE1Ljc3MnYzOC44MjZjMCA4LjczNS02LjYwNyAxNS43NzItMTQuODE1IDE1Ljc3MnMtMTQuODE1LTcuMDM3LTE0LjgxNS0xNS43NzJ6Ii8+PHBhdGggZmlsbD0iIzM2YzVmMSIgc3Ryb2tlPSIjMzZjNWYxIiBkPSJNMTUuNzcyIDcwLjM3MUM3LjAzNyA3MC4zNzEgMCA2My43NjMgMCA1NS41NTZzNy4wMzctMTQuODE1IDE1Ljc3Mi0xNC44MTVoMzguODI2YzguNzM1IDAgMTUuNzcyIDYuNjA3IDE1Ljc3MiAxNC44MTVzLTcuMDM3IDE0LjgxNS0xNS43NzIgMTQuODE1eiIvPjxnIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiPjxwYXRoIGZpbGw9IiNlY2IyMmQiIHN0cm9rZT0iI2VjYjIyZCIgZD0iTTc3Ljc3OCAxMzMuMzMzYzAgOC4yMDggNi42MDcgMTQuODE1IDE0LjgxNSAxNC44MTVzMTQuODE1LTYuNjA3IDE0LjgxNS0xNC44MTUtNi42MDctMTQuODE1LTE0LjgxNS0xNC44MTVINzcuNzc4eiIvPjxwYXRoIGZpbGw9IiMyZmI2N2MiIHN0cm9rZT0iIzJmYjY3YyIgZD0iTTEzMy4zMzQgNzAuMzcxaC0xNC44MTVWNTUuNTU2YzAtOC4yMDcgNi42MDctMTQuODE1IDE0LjgxNS0xNC44MTVzMTQuODE1IDYuNjA3IDE0LjgxNSAxNC44MTUtNi42MDcgMTQuODE1LTE0LjgxNSAxNC44MTV6Ii8+PHBhdGggZmlsbD0iI2UwMWU1YSIgc3Ryb2tlPSIjZTAxZTVhIiBkPSJNMTQuODE1IDc3Ljc3OEgyOS42M3YxNC44MTVjMCA4LjIwNy02LjYwNyAxNC44MTUtMTQuODE1IDE0LjgxNVMwIDEwMC44IDAgOTIuNTkzczYuNjA3LTE0LjgxNSAxNC44MTUtMTQuODE1eiIvPjxwYXRoIGZpbGw9IiMzNmM1ZjEiIHN0cm9rZT0iIzM2YzVmMSIgZD0iTTcwLjM3MSAxNC44MTVWMjkuNjNINTUuNTU2Yy04LjIwNyAwLTE0LjgxNS02LjYwNy0xNC44MTUtMTQuODE1UzQ3LjM0OCAwIDU1LjU1NiAwczE0LjgxNSA2LjYwNyAxNC44MTUgMTQuODE1eiIvPjwvZz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Slack",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 841,
+        "icon": "file:googleSheets.svg",
+        "name": "n8n-nodes-base.googleSheetsTrigger",
+        "codex": {
+          "data": {
+            "alias": [
+              "CSV",
+              "Spreadsheet",
+              "GS"
+            ],
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/trigger-nodes/n8n-nodes-base.googlesheetstrigger/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage",
+              "Productivity"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Google Sheets Trigger"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNS42OSAxIDUyIDE3LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0OC4yOTMgNjBIMTIuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDkgNTYuMzEyVjQuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTIuNzA3IDF6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM1LjY5IDEgNTIgMTcuMjI1SDM5LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzkuMjExIDE3LjIyNSA1MiAyMi40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTIwLjEyIDMxLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMS42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzEuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNC42OSAwIDUxIDE2LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0Ny4yOTMgNTlIMTEuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDggNTUuMzEyVjMuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTEuNzA3IDB6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM0LjY5IDAgNTEgMTYuMjI1SDM4LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzguMjExIDE2LjIyNSA1MSAyMS40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTE5LjEyIDMwLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMC42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzAuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjwvZz48L3N2Zz4="
+        },
+        "displayName": "Google Sheets Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          },
+          {
+            "id": 4,
+            "name": "Productivity"
+          }
+        ]
+      },
+      {
+        "id": 1250,
+        "icon": "file:openAi.svg",
+        "name": "@n8n/n8n-nodes-langchain.openAi",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain",
+              "ChatGPT",
+              "Sora",
+              "DallE",
+              "whisper",
+              "audio",
+              "transcribe",
+              "tts",
+              "assistant"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-langchain.openai/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Agents",
+                "Miscellaneous",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "OpenAI"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTM2Ljg2NzEgMTYuMzcxOEMzNy43NzQ2IDEzLjY0OCAzNy40NjIxIDEwLjY2NDIgMzYuMDEwOCA4LjE4NjYxQzMzLjgyODIgNC4zODY1MyAyOS40NDA3IDIuNDMxNDkgMjUuMTU1NiAzLjM1MTUxQzIzLjI0OTMgMS4yMDM5NiAyMC41MTA1IC0wLjAxNzMxNDggMTcuNjM5MiAwLjAwMDE4NTUzM0MxMy4yNTkxIC0wLjAwOTgxNDY4IDkuMzcyNzMgMi44MTAyNSA4LjAyNTIgNi45Nzc4M0M1LjIxMTM5IDcuNTU0MSAyLjc4MjU4IDkuMzE1MzggMS4zNjEzIDExLjgxMTdDLTAuODM3NDkzIDE1LjYwMTggLTAuMzM2MjMyIDIwLjM3OTQgMi42MDEzMyAyMy42Mjk0QzEuNjkzODEgMjYuMzUzMiAyLjAwNjMyIDI5LjMzNzEgMy40NTc2IDMxLjgxNDZDNS42NDAxNSAzNS42MTQ3IDEwLjAyNzcgMzcuNTY5NyAxNC4zMTI4IDM2LjY0OTdDMTYuMjE3OSAzOC43OTczIDE4Ljk1NzkgNDAuMDE4NSAyMS44MjkyIDM5Ljk5OThDMjYuMjExOCA0MC4wMTEgMzAuMDk5NCAzNy4xODg1IDMxLjQ0NjkgMzMuMDE3MUMzNC4yNjA4IDMyLjQ0MDkgMzYuNjg5NiAzMC42Nzk2IDM4LjExMDggMjguMTgzM0M0MC4zMDcxIDI0LjM5MzIgMzkuODA0NiAxOS42MTk0IDM2Ljg2ODMgMTYuMzY5M0wzNi44NjcxIDE2LjM3MThaTTIxLjgzMTcgMzcuMzg2QzIwLjA3OCAzNy4zODg1IDE4LjM3OTIgMzYuNzc0NyAxNy4wMzI5IDM1LjY1MDlDMTcuMDk0MSAzNS42MTg1IDE3LjIwMDQgMzUuNTU5NyAxNy4yNjkxIDM1LjUxNzJMMjUuMjM0MyAzMC45MTcxQzI1LjY0MTggMzAuNjg1OCAyNS44OTE4IDMwLjI1MjEgMjUuODg5MyAyOS43ODMzVjE4LjU1NDNMMjkuMjU1NiAyMC40OTgxQzI5LjI5MTkgMjAuNTE1NiAyOS4zMTU3IDIwLjU1MDYgMjkuMzIwNyAyMC41OTA2VjI5Ljg4OTZDMjkuMzE1NyAzNC4wMjQ3IDI1Ljk2NjggMzcuMzc3MiAyMS44MzE3IDM3LjM4NlpNNS43MjY0IDMwLjUwNzFDNC44NDc2MyAyOC45ODk2IDQuNTMxMzcgMjcuMjEwOCA0LjgzMjYzIDI1LjQ4NDVDNC44OTEzOCAyNS41MTk1IDQuOTk1MTMgMjUuNTgzMiA1LjA2ODg4IDI1LjYyNTdMMTMuMDM0MSAzMC4yMjU4QzEzLjQzNzggMzAuNDYyMSAxMy45Mzc4IDMwLjQ2MjEgMTQuMzQyOCAzMC4yMjU4TDI0LjA2NjggMjQuNjEwN1YyOC40OTgzQzI0LjA2OTMgMjguNTM4MyAyNC4wNTA1IDI4LjU3NyAyNC4wMTkzIDI4LjYwMkwxNS45Njc5IDMzLjI1MDlDMTIuMzgxNSAzNS4zMTU5IDcuODAxNDQgMzQuMDg4NCA1LjcyNzY1IDMwLjUwNzFINS43MjY0Wk0zLjYzMDEgMTMuMTIwNUM0LjUwNTEyIDExLjYwMDQgNS44ODY0IDEwLjQzNzkgNy41MzE0NCA5LjgzNDE1QzcuNTMxNDQgOS45MDI5IDcuNTI3NjkgMTAuMDI0MSA3LjUyNzY5IDEwLjEwOTJWMTkuMzEwNkM3LjUyNTE5IDE5Ljc3ODEgNy43NzUxOSAyMC4yMTE5IDguMTgxNDUgMjAuNDQzMUwxNy45MDU0IDI2LjA1N0wxNC41MzkxIDI4LjAwMDhDMTQuNTA1MyAyOC4wMjMzIDE0LjQ2MjggMjguMDI3IDE0LjQyNTMgMjguMDEwOEw2LjM3MjY2IDIzLjM1ODJDMi43OTM4MyAyMS4yODU2IDEuNTY2MzEgMTYuNzA2OCAzLjYyODg1IDEzLjEyMTdMMy42MzAxIDEzLjEyMDVaTTMxLjI4ODIgMTkuNTU2OUwyMS41NjQyIDEzLjk0MTdMMjQuOTMwNiAxMS45OTkyQzI0Ljk2NDMgMTEuOTc2NyAyNS4wMDY4IDExLjk3MjkgMjUuMDQ0MyAxMS45ODkyTDMzLjA5NyAxNi42MzhDMzYuNjgyMSAxOC43MDkzIDM3LjkxMDggMjMuMjk1NyAzNS44Mzk1IDI2Ljg4MDhDMzQuOTYzMyAyOC4zOTgzIDMzLjU4MzIgMjkuNTYwOCAzMS45Mzk1IDMwLjE2NThWMjAuNjg5NEMzMS45NDMyIDIwLjIyMTkgMzEuNjk0NSAxOS43ODk0IDMxLjI4OTQgMTkuNTU2OUgzMS4yODgyWk0zNC42MzgzIDE0LjUxNDJDMzQuNTc5NSAxNC40NzggMzQuNDc1OCAxNC40MTU1IDM0LjQwMiAxNC4zNzNMMjYuNDM2OCA5Ljc3Mjg5QzI2LjAzMzEgOS41MzY2NCAyNS41MzMxIDkuNTM2NjQgMjUuMTI4MSA5Ljc3Mjg5TDE1LjQwNDEgMTUuMzg4VjExLjUwMDRDMTUuNDAxNiAxMS40NjA0IDE1LjQyMDQgMTEuNDIxNyAxNS40NTE2IDExLjM5NjdMMjMuNTAzIDYuNzUxNThDMjcuMDg5NCA0LjY4Mjc5IDMxLjY3NDUgNS45MTQwNiAzMy43NDIgOS41MDE2NEMzNC42MTU4IDExLjAxNjcgMzQuOTMyIDEyLjc5MDUgMzQuNjM1OCAxNC41MTQySDM0LjYzODNaTTEzLjU3NDEgMjEuNDQzMUwxMC4yMDY1IDE5LjQ5OTRDMTAuMTcwMiAxOS40ODE5IDEwLjE0NjUgMTkuNDQ2OCAxMC4xNDE1IDE5LjQwNjhWMTAuMTA3OUMxMC4xNDQgNS45Njc4MSAxMy41MDI4IDIuNjEyNzQgMTcuNjQyOSAyLjYxNTI0QzE5LjM5NDIgMi42MTUyNCAyMS4wODkyIDMuMjMwMjUgMjIuNDM1NSA0LjM1MDI4QzIyLjM3NDMgNC4zODI3OCAyMi4yNjkzIDQuNDQxNTMgMjIuMTk5MiA0LjQ4NDAzTDE0LjIzNDEgOS4wODQxM0MxMy44MjY2IDkuMzE1MzggMTMuNTc2NiA5Ljc0Nzg5IDEzLjU3OTEgMTAuMjE2N0wxMy41NzQxIDIxLjQ0MDZWMjEuNDQzMVpNMTUuNDAyOSAxNy41MDA2TDE5LjczNDIgMTQuOTk5M0wyNC4wNjU1IDE3LjQ5OTNWMjIuNTAwN0wxOS43MzQyIDI1LjAwMDdMMTUuNDAyOSAyMi41MDA3VjE3LjUwMDZaIiBmaWxsPSJibGFjayIvPgo8L3N2Zz4K"
+        },
+        "displayName": "OpenAI",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 32,
+        "name": "Market Research"
+      },
+      {
+        "id": 49,
+        "name": "AI Summarization"
+      }
+    ],
+    "image": []
+  }
+}

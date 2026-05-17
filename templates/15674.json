@@ -1,0 +1,1166 @@
+{
+  "workflow": {
+    "id": 15674,
+    "name": "Triage Microsoft 365 incidents into Jira with GPT-4o-mini, PagerDuty and Teams",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-12T17:56:46.315Z",
+    "description": "**Manual incident triage kills your MTTR. This workflow automates the first response so your engineers get actionable tickets instead of raw alerts.**\n\nThis workflow takes unstructured incident reports from Microsoft 365 and turns them into structured Jira tickets with severity, affected systems, root cause hypothesis, and recommended actions. It analyzes impact, routes critical failures to PagerDuty, and posts clear summaries to Teams.\n\n---\n\n### How it works\nThe workflow operates in four synchronized stages:\n\nThe workflow runs in four stages:\n\n1. **Reliable ingestion:** Webhook triggers and returns 202 Accepted immediately. This prevents the source system from timing out or sending duplicate retries while the AI processes the data.\nSecurity and deduplication:\n\n2. **Validation:** Checks webhook signatures and sanitizes input to block prompt injection.\nIdempotency: Compares incident ID against a 1,000-event rolling window in staticData. No duplicate tickets for the same issue.\n\n3. **AI analysis:** GPT-4o-mini analyzes the report. Extracts a title, assigns severity (P1-P4), identifies affected systems, generates root cause hypothesis and next steps. The Parse & Enrich node catches malformed AI output and fails gracefully into a \"Manual Review\" state.\nOrchestrated response:\n\n4. **Ticketing:** Creates a Jira Incident with mapped priorities and triage labels.\nEscalation: Triggers PagerDuty for P1 and P2 incidents only.  \t\n\n5. **Visibility:** Posts an Adaptive Card to Teams with summary and direct link to the Jira ticket.\n\n---\n\n### Key Benefits\n* Async handshake: 202 response prevents webhook timeout issues with Microsoft 365 and Teams.\n* Deduplication: Idempotency gate blocks duplicate alerts from flooding your ticketing system and on-call engineers.\n* Actionable output: Engineers get likely root cause and suggested actions, not just \"system down\" alerts.\n* Audit trail: Every execution logs structured data for tracking AI accuracy, execution time, and incident patterns.\n\n---\n\n### Setup Steps\n- [ ] **Credentials:** Add credentials for OpenAI (LangChain), Jira Software, PagerDuty, and Microsoft Teams.\n- [ ] **Environment Variables:** Define `WEBHOOK_SECRET`, `JIRA_PROJECT_KEY`, `JIRA_DOMAIN`, `PAGERDUTY_SERVICE_ID`, and `PAGERDUTY_EMAIL`.\n- [ ] **Jira Config:** Ensure your Jira project has the \"Incident\" issue type enabled and the priority levels match (Highest, High, Medium, Low).\n- [ ] **Webhook Link:** Copy the n8n Production Webhook URL and paste it into your Microsoft 365 outgoing webhook settings or Teams app configuration.\n\n---\n\n### Who this is for\n* **SRE & DevOps Teams:** Need to cut alert noise and automate first-line incident response.\n* **IT Operations Managers:** Want audit trails for incident handling (SOC 2 compliance).\n* **Managed Service Providers (MSPs):** Offering AI triage as a service to enterprise clients.\n\n---\n\n### Required APIs & Credentials\n* **ITSM & Alerts:** Jira Software, PagerDuty.\n* **Communication:** Microsoft Teams.\n* **AI Provider:** OpenAI (GPT-4o-mini).\n\n---\n\n### How to customise it\n* **Adjust Severity Logic:** Modify the \"Severity Guide\" in the AI Brain prompt to match your company's specific SLAs.\n* **Swap Ticketing Systems:** Replace the Jira node with ServiceNow, Zendesk, or GitHub Issues.\n* **Add Post-Mortem Prep:** Add a branch to automatically create a dedicated Slack or Teams channel and a Zoom/Teams bridge for P1 incidents.\n* **Local LLM Option:** Swap the OpenAI node for **Ollama** if you prefer to run triage on your own infrastructure for maximum data privacy.",
+    "workflow": {
+      "id": "suu7nqszPqVZBRvU",
+      "meta": {
+        "instanceId": "d1dc073e8e3059a23e2730f69cb1b90065a2ac39039fea0727fdf9bee77a9131",
+        "templateCredsSetupCompleted": true
+      },
+      "name": "Microsoft 365 AI Incident Triage",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "02a7ce1e-d0d1-4073-804f-753c9452667c",
+          "name": "Microsoft 365 Trigger",
+          "type": "n8n-nodes-base.webhook",
+          "position": [
+            -592,
+            1232
+          ],
+          "webhookId": "70148f92-0193-4d43-9405-47aff61a8617",
+          "parameters": {
+            "path": "m365-triage-trigger",
+            "options": {},
+            "httpMethod": "POST",
+            "responseMode": "responseNode"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "dfdfcd81-3cbd-4a77-8bbf-98fe5bc99a6d",
+          "name": "Webhook Response",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "position": [
+            -368,
+            1136
+          ],
+          "parameters": {
+            "options": {
+              "responseCode": 202,
+              "responseHeaders": {
+                "entries": [
+                  {
+                    "name": "X-Triage-Version",
+                    "value": "2.0"
+                  }
+                ]
+              }
+            },
+            "respondWith": "json",
+            "responseBody": "={{ { \"status\": \"processing\", \"incident_id\": $('Microsoft 365 Trigger').first().json.headers['x-request-id'] || Date.now().toString(), \"message\": \"Incident received and being triaged\", \"timestamp\": new Date().toISOString() } }}"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "107216c7-d103-4016-8e42-cd4313e2d2a2",
+          "name": "Extract & Validate",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            -368,
+            1328
+          ],
+          "parameters": {
+            "jsCode": "const body = $input.first().json.body || {};\nconst headers = $input.first().json.headers || {};\nconst text = body.message || '';\n\n// Webhook signature validation\nconst providedSignature = headers['x-teams-signature'];\nconst expectedSignature = $vars.WEBHOOK_SECRET || process.env.WEBHOOK_SECRET;\n\nif (!expectedSignature) {\n  throw new Error('\u274c SECURITY_ERROR: WEBHOOK_SECRET not configured');\n}\n\nif (providedSignature !== expectedSignature) {\n  throw new Error('\u274c SECURITY_ERROR: Invalid webhook signature');\n}\n\n// Strict validation\nif (!text || text.trim().length < 10) {\n  throw new Error('\u274c VALIDATION_ERROR: Message too short (min 10 chars)');\n}\n\nif (text.length > 5000) {\n  throw new Error('\u274c VALIDATION_ERROR: Message too long (max 5000 chars)');\n}\n\n// Aggressive sanitization - strip ALL HTML/script content\nconst sanitized = text\n  .replace(/<[^>]*>/g, '')\n  .trim();\n\n// Load from environment variables with strict validation\nconst JIRA_PROJECT = $vars.JIRA_PROJECT_KEY || process.env.JIRA_PROJECT_KEY;\nconst JIRA_DOMAIN = $vars.JIRA_DOMAIN || process.env.JIRA_DOMAIN;\nconst PAGERDUTY_SERVICE = $vars.PAGERDUTY_SERVICE_ID || process.env.PAGERDUTY_SERVICE_ID;\nconst PAGERDUTY_EMAIL = $vars.PAGERDUTY_EMAIL || process.env.PAGERDUTY_EMAIL;\nconst TIMEZONE = $vars.TIMEZONE || process.env.TIMEZONE || 'UTC';\n\n// Validate critical config - fail hard on missing values\nif (!JIRA_PROJECT) {\n  throw new Error('\u274c CONFIG_ERROR: JIRA_PROJECT_KEY not configured');\n}\n\nif (!JIRA_DOMAIN || JIRA_DOMAIN.includes('your-domain')) {\n  throw new Error('\u274c CONFIG_ERROR: JIRA_DOMAIN not configured or using placeholder');\n}\n\nif (!PAGERDUTY_SERVICE || PAGERDUTY_SERVICE === 'PXXXXXX') {\n  throw new Error('\u274c CONFIG_ERROR: PAGERDUTY_SERVICE_ID not configured or using placeholder');\n}\n\nif (!PAGERDUTY_EMAIL || !PAGERDUTY_EMAIL.includes('@') || PAGERDUTY_EMAIL.includes('company.com')) {\n  throw new Error('\u274c CONFIG_ERROR: PAGERDUTY_EMAIL not configured or using placeholder');\n}\n\n// Validate timezone format\nconst validTimezone = TIMEZONE.includes('/') || TIMEZONE === 'UTC';\nif (!validTimezone) {\n  console.warn(`\u26a0\ufe0f WARNING: Invalid timezone format '${TIMEZONE}', using UTC`);\n}\n\nconst incident_id = body.incident_id || `INC-${Date.now()}`;\n\nreturn {\n  json: {\n    sanitized_text: sanitized,\n    JIRA_PROJECT_KEY: JIRA_PROJECT,\n    JIRA_DOMAIN: JIRA_DOMAIN,\n    PAGERDUTY_SERVICE_ID: PAGERDUTY_SERVICE,\n    PAGERDUTY_EMAIL: PAGERDUTY_EMAIL,\n    TIMEZONE: validTimezone ? TIMEZONE : 'UTC',\n    channelId: body.channelId || 'general',\n    reporterName: body.userName || 'Engineer',\n    reporterEmail: body.userEmail || 'user@example.com',\n    timestamp: new Date().toISOString(),\n    incident_id: incident_id,\n    validation_passed: true\n  }\n};"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "ef82c47f-7cba-4311-835a-52291e370428",
+          "name": "Idempotency Check",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            -144,
+            1328
+          ],
+          "parameters": {
+            "jsCode": "// Check for duplicate incidents (idempotency)\nconst incident_id = $input.first().json.incident_id;\nconst REDIS_KEY = `incident:processed:${incident_id}`;\n\nconst recentIncidents = $getWorkflowStaticData('global').recentIncidents || [];\n\nif (recentIncidents.includes(incident_id)) {\n  throw new Error(`\u274c DUPLICATE: Incident ${incident_id} already processed`);\n}\n\n\nrecentIncidents.push(incident_id);\nif (recentIncidents.length > 1000) {\n  recentIncidents.shift();\n}\n$getWorkflowStaticData('global').recentIncidents = recentIncidents;\n\nreturn $input.all();"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "e38b5e62-bf8f-410e-9e08-a59f7b717bfa",
+          "name": "AI Brain (GPT-4o-mini)",
+          "type": "@n8n/n8n-nodes-langchain.openAi",
+          "maxTries": 2,
+          "position": [
+            80,
+            1328
+          ],
+          "parameters": {
+            "modelId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gpt-4o-mini"
+            },
+            "options": {
+              "maxTokens": 800,
+              "temperature": 0.3
+            },
+            "messages": {
+              "values": [
+                {
+                  "content": "=You are an incident triage AI. Analyze this incident report and return ONLY a JSON object with NO markdown fences, NO preamble, NO explanation.\n\nRequired JSON structure:\n{\n  \"title\": \"Brief incident title (max 100 chars)\",\n  \"severity\": \"P1|P2|P3|P4\",\n  \"requires_pagerduty\": true|false,\n  \"cause_hypothesis\": \"Likely root cause\",\n  \"affected_systems\": [\"system1\", \"system2\"],\n  \"actions\": [\"action1\", \"action2\"],\n  \"business_impact\": \"Impact description\",\n  \"estimated_users_affected\": \"number or range\",\n  \"affected_service\": \"Service name\",\n  \"customer_facing\": true|false\n}\n\nSeverity guide:\n- P1: Complete outage, customer-facing, >1000 users\n- P2: Major degradation, customer-facing, 100-1000 users\n- P3: Minor issue, internal or <100 users\n- P4: Cosmetic, no business impact\n\nIncident Report:\n{{ $json.sanitized_text }}\n\nContext:\n- Reporter: {{ $json.reporterName }}\n- Timestamp: {{ $json.timestamp }}\n\nRespond with ONLY the JSON object."
+                }
+              ]
+            }
+          },
+          "retryOnFail": true,
+          "typeVersion": 1.3,
+          "waitBetweenTries": 1000
+        },
+        {
+          "id": "d27e7b5b-1982-4284-b9bb-29792f3e41d7",
+          "name": "Parse & Enrich",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            432,
+            1328
+          ],
+          "parameters": {
+            "jsCode": "try {\n  const aiOutput = $input.first().json;\n  const aiContent = aiOutput.choices?.[0]?.message?.content || aiOutput.message?.content || aiOutput.content || '';\n  \n  const jsonMatch = aiContent.match(/\\{[\\s\\S]*\\}/);\n  if (!jsonMatch) {\n    throw new Error('No JSON object found in AI response');\n  }\n  \n  const cleanJson = jsonMatch[0];\n  const triage = JSON.parse(cleanJson);\n  const config = $('Extract & Validate').first().json;\n\n  \n  const required = {\n    'title': 'string',\n    'severity': 'string',\n    'requires_pagerduty': 'boolean',\n    'cause_hypothesis': 'string',\n    'affected_systems': 'array',\n    'actions': 'array',\n    'business_impact': 'string',\n    'estimated_users_affected': 'string',\n    'affected_service': 'string',\n    'customer_facing': 'boolean'\n  };\n  \n  for (const [field, type] of Object.entries(required)) {\n    if (triage[field] === undefined) {\n      throw new Error(`Missing required field: ${field}`);\n    }\n    const actualType = Array.isArray(triage[field]) ? 'array' : typeof triage[field];\n    if (actualType !== type) {\n      throw new Error(`Field ${field} should be ${type}, got ${actualType}`);\n    }\n  }\n\n  const validSeverities = ['P1', 'P2', 'P3', 'P4'];\n  if (!validSeverities.includes(triage.severity)) {\n    console.warn(`\u26a0\ufe0f Invalid severity ${triage.severity}, defaulting to P3`);\n    triage.severity = 'P3';\n  }\n\n  const priorityMap = {\n    'P1': 'Highest',\n    'P2': 'High',\n    'P3': 'Medium',\n    'P4': 'Low'\n  };\n\n  \n  return {\n    json: {\n      title: triage.title,\n      severity: triage.severity,\n      requires_pagerduty: triage.requires_pagerduty,\n      cause_hypothesis: triage.cause_hypothesis,\n      affected_systems: triage.affected_systems,\n      actions: triage.actions,\n      business_impact: triage.business_impact,\n      estimated_users_affected: triage.estimated_users_affected,\n      affected_service: triage.affected_service,\n      customer_facing: triage.customer_facing,\n      jira_priority: priorityMap[triage.severity],\n      JIRA_PROJECT_KEY: config.JIRA_PROJECT_KEY,\n      JIRA_DOMAIN: config.JIRA_DOMAIN,\n      PAGERDUTY_SERVICE_ID: config.PAGERDUTY_SERVICE_ID,\n      PAGERDUTY_EMAIL: config.PAGERDUTY_EMAIL,\n      TIMEZONE: config.TIMEZONE,\n      channelId: config.channelId,\n      reporterName: config.reporterName,\n      reporterEmail: config.reporterEmail,\n      timestamp: config.timestamp,\n      incident_id: config.incident_id,\n      parse_success: true,\n      parse_method: 'ai'\n    }\n  };\n} catch (e) {\n\n  const config = $('Extract & Validate').first().json;\n  \n  return {\n    json: {\n      title: \"AI Parse Failed - Manual Triage Required\",\n      severity: \"P3\",\n      requires_pagerduty: false,\n      cause_hypothesis: `AI parsing error: ${e.message}`,\n      affected_systems: [\"Unknown - Requires Manual Review\"],\n      actions: [\n        \"Review original message in Teams\",\n        \"Check AI response format\",\n        \"Manually classify severity\"\n      ],\n      business_impact: \"Unable to auto-triage, requires human review\",\n      estimated_users_affected: \"Unknown\",\n      affected_service: \"Unknown\",\n      customer_facing: false,\n      jira_priority: 'Medium',\n      JIRA_PROJECT_KEY: config.JIRA_PROJECT_KEY,\n      JIRA_DOMAIN: config.JIRA_DOMAIN,\n      PAGERDUTY_SERVICE_ID: config.PAGERDUTY_SERVICE_ID,\n      PAGERDUTY_EMAIL: config.PAGERDUTY_EMAIL,\n      TIMEZONE: config.TIMEZONE,\n      channelId: config.channelId,\n      reporterName: config.reporterName,\n      reporterEmail: config.reporterEmail,\n      timestamp: config.timestamp,\n      incident_id: config.incident_id,\n      parse_success: false,\n      parse_method: 'fallback',\n      parse_error: e.message\n    }\n  };\n}"
+          },
+          "typeVersion": 2,
+          "alwaysOutputData": true
+        },
+        {
+          "id": "105ec930-a31f-4363-a4af-838ed057a8d7",
+          "name": "Create Jira Incident",
+          "type": "n8n-nodes-base.jira",
+          "maxTries": 3,
+          "position": [
+            656,
+            1328
+          ],
+          "parameters": {
+            "project": {
+              "__rl": true,
+              "mode": "name",
+              "value": "={{ $json.JIRA_PROJECT_KEY }}"
+            },
+            "summary": "={{ $json.title }}",
+            "issueType": {
+              "__rl": true,
+              "mode": "name",
+              "value": "Incident"
+            },
+            "additionalFields": {
+              "labels": "={{ ['ai-triaged', 'automation', $json.severity.toLowerCase(), $json.parse_method].join(',') }}",
+              "priority": {
+                "__rl": true,
+                "mode": "name",
+                "value": "={{ $json.jira_priority }}"
+              }
+            }
+          },
+          "retryOnFail": true,
+          "typeVersion": 1,
+          "waitBetweenTries": 2000
+        },
+        {
+          "id": "11bd4368-e577-4b15-9364-31e424253592",
+          "name": "Build Enhanced Card",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            880,
+            1328
+          ],
+          "parameters": {
+            "jsCode": "const triage = $('Parse & Enrich').first().json;\nconst jira = $input.first().json;\nconst jiraUrl = `${triage.JIRA_DOMAIN}/browse/${jira.key || 'ERROR'}`;\n\nconst escape = (str) => {\n  if (typeof str !== 'string') return String(str);\n  return str.replace(/[{}[\\]\"\\\\]/g, '\\\\$&').replace(/\\n/g, '\\\\n');\n};\n\nconst severityConfig = {\n  'P1': { emoji: '\ud83d\udd34', color: 'attention', label: 'CRITICAL' },\n  'P2': { emoji: '\ud83d\udfe0', color: 'warning', label: 'HIGH' },\n  'P3': { emoji: '\ud83d\udfe1', color: 'good', label: 'MEDIUM' },\n  'P4': { emoji: '\ud83d\udfe2', color: 'default', label: 'LOW' }\n};\n\nconst config = severityConfig[triage.severity] || severityConfig['P3'];\n\nlet formattedTime;\ntry {\n  formattedTime = new Date(triage.timestamp).toLocaleString('en-US', {\n    timeZone: triage.TIMEZONE,\n    dateStyle: 'short',\n    timeStyle: 'short',\n    hour12: false\n  });\n} catch (e) {\n  console.warn(`\u26a0\ufe0f Timezone error: ${e.message}, using ISO format`);\n  formattedTime = new Date(triage.timestamp).toISOString();\n}\n\nconst card = {\n  type: 'AdaptiveCard',\n  version: '1.6',\n  body: [\n    {\n      type: 'Container',\n      style: config.color,\n      items: [\n        {\n          type: 'TextBlock',\n          text: `${config.emoji} ${config.label}: ${escape(triage.title)}`,\n          weight: 'Bolder',\n          size: 'Large',\n          wrap: true,\n          color: triage.severity === 'P1' ? 'attention' : 'default'\n        }\n      ]\n    },\n    {\n      type: 'ColumnSet',\n      separator: true,\n      spacing: 'Small',\n      columns: [\n        {\n          type: 'Column',\n          width: 'auto',\n          items: [\n            {\n              type: 'TextBlock',\n              text: `\ud83d\udc64 ${escape(triage.reporterName)}`,\n              size: 'Small',\n              wrap: true\n            }\n          ]\n        },\n        {\n          type: 'Column',\n          width: 'stretch',\n          items: [\n            {\n              type: 'TextBlock',\n              text: `\ud83d\udd50 ${formattedTime}`,\n              size: 'Small',\n              horizontalAlignment: 'Right'\n            }\n          ]\n        }\n      ]\n    },\n    {\n      type: 'FactSet',\n      separator: true,\n      facts: [\n        { title: '\ud83c\udfab Ticket', value: escape(jira.key || 'Creation failed') },\n        { title: '\ud83d\udcca Severity', value: `${triage.severity} (${triage.jira_priority})` },\n        { title: '\ud83d\udd27 Service', value: escape(triage.affected_service) },\n        { title: '\ud83d\udc65 Users', value: escape(triage.estimated_users_affected) },\n        { title: '\ud83c\udf10 Customer', value: triage.customer_facing ? 'Yes' : 'No' }\n      ]\n    },\n    {\n      type: 'TextBlock',\n      text: '**\ud83d\udca5 Business Impact**',\n      weight: 'Bolder',\n      size: 'Small',\n      separator: true\n    },\n    {\n      type: 'TextBlock',\n      text: escape(triage.business_impact),\n      wrap: true,\n      size: 'Small',\n      color: triage.customer_facing ? 'attention' : 'default'\n    },\n    {\n      type: 'TextBlock',\n      text: '**\ud83d\udd0d Systems Affected**',\n      weight: 'Bolder',\n      size: 'Small',\n      separator: true\n    },\n    {\n      type: 'TextBlock',\n      text: triage.affected_systems.map(s => `\u2022 ${escape(s)}`).join('\\\\n'),\n      wrap: true,\n      size: 'Small'\n    },\n    {\n      type: 'TextBlock',\n      text: '**\ud83d\udca1 Hypothesis**',\n      weight: 'Bolder',\n      size: 'Small',\n      separator: true\n    },\n    {\n      type: 'TextBlock',\n      text: escape(triage.cause_hypothesis),\n      wrap: true,\n      size: 'Small'\n    },\n    {\n      type: 'TextBlock',\n      text: '**\u2705 Recommended Actions**',\n      weight: 'Bolder',\n      size: 'Small',\n      separator: true\n    },\n    {\n      type: 'TextBlock',\n      text: triage.actions.map((a, i) => `${i + 1}. ${escape(a)}`).join('\\\\n'),\n      wrap: true,\n      size: 'Small'\n    }\n  ],\n  actions: [\n    {\n      type: 'Action.OpenUrl',\n      title: '\ud83d\udccb View Jira Ticket',\n      url: jiraUrl,\n      style: 'positive'\n    }\n  ]\n};\n\n// Add PagerDuty indicator if triggered\nif (triage.requires_pagerduty) {\n  card.body.splice(1, 0, {\n    type: 'TextBlock',\n    text: '\ud83d\udea8 **PagerDuty Alert Triggered**',\n    size: 'Small',\n    color: 'attention',\n    weight: 'Bolder'\n  });\n}\n\n// Add AI parse warning if fallback\nif (!triage.parse_success) {\n  card.body.push({\n    type: 'Container',\n    separator: true,\n    style: 'warning',\n    items: [\n      {\n        type: 'TextBlock',\n        text: '\u26a0\ufe0f AI parsing failed. This ticket requires manual review.',\n        size: 'Small',\n        weight: 'Bolder',\n        wrap: true\n      }\n    ]\n  });\n}\n\nreturn {\n  json: {\n    title: triage.title,\n    severity: triage.severity,\n    requires_pagerduty: triage.requires_pagerduty,\n    jira_key: jira.key,\n    jira_url: jiraUrl,\n    adaptive_card: card,\n    formatted_timestamp: formattedTime,\n    incident_id: triage.incident_id,\n    reporterName: triage.reporterName,\n    affected_service: triage.affected_service,\n    customer_facing: triage.customer_facing,\n    parse_success: triage.parse_success,\n    parse_method: triage.parse_method,\n    timestamp: triage.timestamp,\n    PAGERDUTY_SERVICE_ID: triage.PAGERDUTY_SERVICE_ID,\n    PAGERDUTY_EMAIL: triage.PAGERDUTY_EMAIL\n  }\n};"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "5966b500-7c65-408d-8178-0bfd45ef4c6d",
+          "name": "P1/P2 Check",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            1104,
+            1328
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "boolean": [
+                {
+                  "value1": "={{ $json.requires_pagerduty }}",
+                  "value2": true
+                }
+              ],
+              "options": {
+                "version": 1,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and"
+            }
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "6e01b262-fa1e-453b-929e-2c56f402f0eb",
+          "name": "Trigger PagerDuty",
+          "type": "n8n-nodes-base.pagerDuty",
+          "maxTries": 2,
+          "position": [
+            1328,
+            1216
+          ],
+          "parameters": {
+            "email": "={{ $json.PAGERDUTY_EMAIL }}",
+            "title": "={{ $json.severity }}: {{ $json.title }}",
+            "resource": "incident",
+            "operation": "create",
+            "serviceId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "={{ $json.PAGERDUTY_SERVICE_ID }}"
+            },
+            "authentication": "apiToken",
+            "additionalFields": {
+              "urgency": "={{ $json.severity === 'P1' ? 'high' : 'low' }}"
+            },
+            "conferenceBridgeUi": {}
+          },
+          "retryOnFail": true,
+          "typeVersion": 1,
+          "waitBetweenTries": 3000
+        },
+        {
+          "id": "5356f91a-b5c6-4192-acc3-ad5a24fce608",
+          "name": "Post to Teams",
+          "type": "n8n-nodes-base.microsoftTeams",
+          "maxTries": 2,
+          "position": [
+            1568,
+            1344
+          ],
+          "webhookId": "f88acbd9-ae80-4259-91d6-dd3ac676a034",
+          "parameters": {
+            "resource": "message"
+          },
+          "retryOnFail": true,
+          "typeVersion": 2
+        },
+        {
+          "id": "c6db6840-1e2a-4656-b435-686a5143cbc5",
+          "name": "Log Success",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1776,
+            1328
+          ],
+          "parameters": {
+            "jsCode": "const success = $input.first().json;\n\nconst logEntry = {\n  workflow: 'incident-triage',\n  version: '2.1',\n  status: 'success',\n  incident_id: success.incident_id,\n  jira_key: success.jira_key,\n  jira_url: success.jira_url,\n  severity: success.severity,\n  pagerduty_triggered: success.requires_pagerduty,\n  ai_parse_success: success.parse_success,\n  parse_method: success.parse_method,\n  reporter: success.reporterName,\n  affected_service: success.affected_service,\n  customer_facing: success.customer_facing,\n  timestamp: new Date().toISOString(),\n  execution_time_ms: Date.now() - new Date(success.timestamp).getTime()\n};\n\nconsole.log('\u2705 INCIDENT_TRIAGE_SUCCESS:', JSON.stringify(logEntry));\n\n\nreturn { json: logEntry };"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "1144844a-0fd7-42b7-ab87-9a5bc2094977",
+          "name": "Main Triage Documentation",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -1280,
+            1008
+          ],
+          "parameters": {
+            "width": 550,
+            "height": 532,
+            "content": "## AI-Powered Microsoft 365 Incident Triage\n\n### How it works\n1. **Trigger**: M365 webhook hits. Returns 202 Accepted immediately to prevent source timeout.\n2. **Deduplicate**: Idempotency check against staticData. Same incident won't process twice.\n3. **Analyze**: GPT-4o-mini transforms messy reports into structured JSON (severity, impact, root cause hypothesis).\n4. **Log and track**: Creates Jira Incident with normalized priorities and automated labels.\n5. **Escalate**: Routes P1/P2 to PagerDuty. Posts Adaptive Card to Teams for full visibility.\n\n### Setup steps\n- [ ] Set WEBHOOK_SECRET in environment variables\n- [ ] Configure JIRA_PROJECT_KEY and JIRA_DOMAIN\n- [ ] Add PagerDuty SERVICE_ID and EMAIL\n- [ ] Confirm OpenAI node uses GPT-4o-mini\n- [ ] Point Teams Outgoing Webhook to n8n production URL"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "17e56e89-8dc2-401d-8d95-ce62aa29e46a",
+          "name": "Sticky Note - Section 1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -688,
+            1008
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 696,
+            "height": 528,
+            "content": "### Ingestion & Security\nCaptures M365 webhook and returns 202 response immediately. JS logic validates Teams signature, sanitizes input to block injection, runs idempotency check against staticData to prevent duplicate tickets."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "78fec294-fb97-4fd0-930f-53704554f24b",
+          "name": "Sticky Note - Section 2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            48,
+            1008
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 520,
+            "height": 528,
+            "content": "### AI Analysis & Enrichment\nSends sanitized report to GPT-4o-mini for structured extraction (severity, impact, root cause). Parse & Enrich node handles JSON parsing with fallback. Flow continues even if AI output is malformed."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "0b94ce74-594a-4297-bf9c-74be838b4dd2",
+          "name": "Sticky Note - Section 3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            608,
+            1008
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1336,
+            "height": 528,
+            "content": "### Integration & Escalation\nCreates Jira incident and builds Adaptive Card for Teams. P1/P2 incidents trigger PagerDuty. Final node generates structured logs for performance tracking and observability."
+          },
+          "typeVersion": 1
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "cd1d7ff4-543f-4312-ad85-39e911f69c49",
+      "connections": {
+        "P1/P2 Check": {
+          "main": [
+            [
+              {
+                "node": "Trigger PagerDuty",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Post to Teams",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Post to Teams": {
+          "main": [
+            [
+              {
+                "node": "Log Success",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Parse & Enrich": {
+          "main": [
+            [
+              {
+                "node": "Create Jira Incident",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Idempotency Check": {
+          "main": [
+            [
+              {
+                "node": "AI Brain (GPT-4o-mini)",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Trigger PagerDuty": {
+          "main": [
+            [
+              {
+                "node": "Post to Teams",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Extract & Validate": {
+          "main": [
+            [
+              {
+                "node": "Idempotency Check",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Enhanced Card": {
+          "main": [
+            [
+              {
+                "node": "P1/P2 Check",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Create Jira Incident": {
+          "main": [
+            [
+              {
+                "node": "Build Enhanced Card",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Microsoft 365 Trigger": {
+          "main": [
+            [
+              {
+                "node": "Extract & Validate",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Webhook Response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "AI Brain (GPT-4o-mini)": {
+          "main": [
+            [
+              {
+                "node": "Parse & Enrich",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 16,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 1
+        },
+        "n8n-nodes-base.code": {
+          "count": 5
+        },
+        "n8n-nodes-base.jira": {
+          "count": 1
+        },
+        "n8n-nodes-base.webhook": {
+          "count": 1
+        },
+        "n8n-nodes-base.pagerDuty": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 4
+        },
+        "n8n-nodes-base.microsoftTeams": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.openAi": {
+          "count": 1
+        },
+        "n8n-nodes-base.respondToWebhook": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Mychel Garzon",
+      "username": "mychel-garzon",
+      "bio": "n8n Verified Creator and Junction 2025 n8n Tech Challenge Winner based in Helsinki, Finland. Full Stack Engineer specializing in AI automation workflows, multi-agent systems, RAG pipelines, and automated incident triage. Node.js, TypeScript, React, LLMs (OpenAI, Anthropic, Gemini, Groq). 99.9% production uptime.\n\nCustom n8n workflows: mychel.garzon@gmail.com",
+      "verified": true,
+      "links": [
+        "https://mychelgarzon.com/"
+      ],
+      "avatar": "https://gravatar.com/avatar/8937dc435f1eb7cc47cfc0139be315f5e28add64bc872edc5e5315137ee12b75?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 47,
+        "icon": "file:webhook.svg",
+        "name": "n8n-nodes-base.webhook",
+        "codex": {
+          "data": {
+            "alias": [
+              "HTTP",
+              "API",
+              "Build",
+              "WH"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "\ud83d\udcbb",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-automatically-give-kudos-to-contributors-with-github-slack-and-n8n/",
+                  "icon": "\ud83d\udc4f",
+                  "label": "How to automatically give kudos to contributors with GitHub, Slack, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-custom-incident-response-workflows-with-n8n/",
+                  "label": "How to automate every step of an incident response workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Webhook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTM1IDM3Yy0yLjIgMC00LTEuOC00LTRzMS44LTQgNC00IDQgMS44IDQgNC0xLjggNC00IDQiLz48cGF0aCBmaWxsPSIjMzc0NzRmIiBkPSJNMzUgNDNjLTMgMC01LjktMS40LTcuOC0zLjdsMy4xLTIuNWMxLjEgMS40IDIuOSAyLjMgNC43IDIuMyAzLjMgMCA2LTIuNyA2LTZzLTIuNy02LTYtNmMtMSAwLTIgLjMtMi45LjdsLTEuNyAxTDIzLjMgMTZsMy41LTEuOSA1LjMgOS40YzEtLjMgMi0uNSAzLS41IDUuNSAwIDEwIDQuNSAxMCAxMFM0MC41IDQzIDM1IDQzIi8+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTE0IDQzQzguNSA0MyA0IDM4LjUgNCAzM2MwLTQuNiAzLjEtOC41IDcuNS05LjdsMSAzLjlDOS45IDI3LjkgOCAzMC4zIDggMzNjMCAzLjMgMi43IDYgNiA2czYtMi43IDYtNnYtMmgxNXY0SDIzLjhjLS45IDQuNi01IDgtOS44IDgiLz48cGF0aCBmaWxsPSIjZTkxZTYzIiBkPSJNMTQgMzdjLTIuMiAwLTQtMS44LTQtNHMxLjgtNCA0LTQgNCAxLjggNCA0LTEuOCA0LTQgNCIvPjxwYXRoIGZpbGw9IiMzNzQ3NGYiIGQ9Ik0yNSAxOWMtMi4yIDAtNC0xLjgtNC00czEuOC00IDQtNCA0IDEuOCA0IDQtMS44IDQtNCA0Ii8+PHBhdGggZmlsbD0iI2U5MWU2MyIgZD0ibTE1LjcgMzQtMy40LTIgNS45LTkuN2MtMi0xLjktMy4yLTQuNS0zLjItNy4zIDAtNS41IDQuNS0xMCAxMC0xMHMxMCA0LjUgMTAgMTBjMCAuOS0uMSAxLjctLjMgMi41bC0zLjktMWMuMS0uNS4yLTEgLjItMS41IDAtMy4zLTIuNy02LTYtNnMtNiAyLjctNiA2YzAgMi4xIDEuMSA0IDIuOSA1LjFsMS43IDF6Ii8+PC9zdmc+"
+        },
+        "displayName": "Webhook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 77,
+        "icon": "file:jira.svg",
+        "name": "n8n-nodes-base.jira",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-custom-incident-response-workflows-with-n8n/",
+                  "label": "How to automate every step of an incident response workflow"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.jira/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/jira/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Productivity"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "Jira Software"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgNjguMjUgNzEuMjUiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9IjMuMTI1IiB5PSIzLjEyNSIvPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iYiIgeDE9IjkxLjklIiB4Mj0iMjguNDklIiB5MT0iNDAuMjIlIiB5Mj0iODEuNjMlIj48c3RvcCBvZmZzZXQ9IjE4JSIgc3RvcC1jb2xvcj0iIzAwNTJjYyIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzI2ODRmZiIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJjIiB4MT0iOC43JSIgeDI9IjcyLjI2JSIgeTE9IjU5LjE3JSIgeTI9IjE3Ljk5JSI+PHN0b3Agb2Zmc2V0PSIxOCUiIHN0b3AtY29sb3I9IiMwMDUyY2MiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMyNjg0ZmYiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48c3ltYm9sIGlkPSJhIiBvdmVyZmxvdz0idmlzaWJsZSI+PGcgZmlsbC1ydWxlPSJub256ZXJvIiBzdHJva2U9Im5vbmUiPjxwYXRoIGZpbGw9IiMyNjg0ZmYiIGQ9Ik02MS4xNjEgMzAuMjExIDMwLjk1IDAgLjc0IDMwLjIxMWEyLjU0IDIuNTQgMCAwIDAgMCAzLjU4MWwzMC4yMTEgMzAuMjEgMzAuMjExLTMwLjIxYTIuNTQgMi41NCAwIDAgMCAwLTMuNTgxek0zMC45NSA0MS40NmwtOS40NjItOS40NjIgOS40NjItOS40NjIgOS40NjIgOS40NjJ6Ii8+PHBhdGggZmlsbD0idXJsKCNiKSIgZD0iTTMwLjk1IDIyLjU5OUMyNC43NTUgMTYuNDA1IDI0LjcyNCA2LjM3IDMwLjg4MS4xMzhMMTAuMTE0IDIwLjc3NGwxMS4yNjggMTEuMjY4eiIvPjxwYXRoIGZpbGw9InVybCgjYykiIGQ9Ik00MC40MzcgMzEuOTczIDMwLjk1IDQxLjQ2YTE1LjkzIDE1LjkzIDAgMCAxIDAgMjIuNTM2bDIwLjc0OS0yMC43NDl6Ii8+PC9nPjwvc3ltYm9sPjwvc3ZnPg=="
+        },
+        "displayName": "Jira Software",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 4,
+            "name": "Productivity"
+          },
+          {
+            "id": 5,
+            "name": "Development"
+          }
+        ]
+      },
+      {
+        "id": 310,
+        "icon": "file:pagerDuty.svg",
+        "name": "n8n-nodes-base.pagerDuty",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-custom-incident-response-workflows-with-n8n/",
+                  "label": "How to automate every step of an incident response workflow"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.pagerduty/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/pagerduty/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "Development"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "PagerDuty"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgNjYgNTYiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48cGF0aCBmaWxsPSIjMjVjMTUxIiBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSIgZD0iTTYuNzA0IDU0LjQzNEgwdi0zMy42NWMwLTMuNDU1IDEuNDE4LTUuNTQ0IDIuNjA0LTYuNzA0IDIuNjMtMi41OCA2LjItMi42NTYgNi43ODItMi42NTZoMTAuNTQ2YzMuNzY1IDAgNS45MyAxLjUyIDcuMTE3IDIuOCAyLjM0NiAyLjU1MyAyLjM3MiA1Ljg1MyAyLjMyIDYuNzN2MTIuNjg3YzAgMy42NjItMS40OTYgNS44MjgtMi43MzMgNi45ODgtMi41NTMgMi4zOTgtNS45MyAyLjQ1LTYuNzMgMi40MjRINi43MDR6bTEzLjQ2LTE4LjEwMmMuMzYgMCAxLjM2Ny0uMTAzIDEuOTA4LS42Mi40MTMtLjM4Ny42Mi0xLjA4My42Mi0yLjF2LTEzLjAyYzAtLjM2LS4wNzctMS4zMTUtLjU5My0xLjg1Ny0uNS0uNTE2LTEuNDQ0LS42Mi0yLjE2Ni0uNjJoLTEwLjZjLTIuNjMgMC0yLjYzIDEuOTg1LTIuNjMgMi42NTZ2MTUuNTV6TTU3LjI5NiAwSDY0djMzLjY3N2MwIDMuNDU1LTEuNDE4IDUuNTQ0LTIuNjA0IDYuNzA0LTIuNjMgMi41OC02LjIgMi42NTYtNi43ODIgMi42NTZINDQuMDY4Yy0zLjc2NSAwLTUuOTMtMS41Mi03LjExNy0yLjgtMi4zNDYtMi41NTMtMi4zNzItNS44NTMtMi4zMi02Ljczdi0xMi42N2MwLTMuNjYyIDEuNDk2LTUuODI4IDIuNzMzLTYuOTg4IDIuNTUzLTIuMzk4IDUuOTMtMi40NSA2LjczLTIuNDI0aDEzLjIwMnptLTEzLjQ2IDE4LjExN2MtLjM2IDAtMS4zNjcuMTAzLTEuOTA4LjYyLS40MTMuMzg3LS42MiAxLjA4My0uNjIgMi4xdjEzLjAyYzAgLjM2LjA3NyAxLjMxNS41OTMgMS44NTcuNS41MTYgMS40NDQuNjIgMi4xNjYuNjJoMTAuNTk4YzIuNjU2LS4wMjYgMi42NTYtMiAyLjY1Ni0yLjY4MlYxOC4xMTd6Ii8+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "PagerDuty",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 6,
+            "name": "Communication"
+          }
+        ]
+      },
+      {
+        "id": 368,
+        "icon": "file:teams.svg",
+        "name": "n8n-nodes-base.microsoftTeams",
+        "codex": {
+          "data": {
+            "alias": [
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.microsoftteams/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/microsoft/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Microsoft Teams"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMzgxLjQgMjM1NC41Ij48cGF0aCBmaWxsPSIjNTU1OGFmIiBkPSJNMjAxNS42IDg5OS4yYzE5LjUgMTkuNSA0Mi41IDM1IDY3LjkgNDUuOCA1MyAyMi4yIDExMi43IDIyLjIgMTY1LjggMCA1MS4yLTIxLjggOTItNjIuNSAxMTMuNy0xMTMuNyAyMi4yLTUzIDIyLjItMTEyLjcgMC0xNjUuOC0yMS44LTUxLjItNjIuNS05Mi0xMTMuNy0xMTMuNy01My0yMi4yLTExMi43LTIyLjItMTY1LjggMC01MS4yIDIxLjgtOTIgNjIuNS0xMTMuNyAxMTMuNy0yMi4yIDUzLTIyLjIgMTEyLjcgMCAxNjUuOCAxMC44IDI1LjMgMjYuNCA0OC40IDQ1LjggNjcuOW0tNjIuNCAxOTcuOHY2NDIuMWgxMDdjMzYuOC0uMiA3My40LTMuNiAxMDkuNS0xMC40IDM2LjMtNi40IDcxLjMtMTguNiAxMDMuNy0zNi4yIDMwLjYtMTYuNiA1Ny00MCA3Ny4zLTY4LjIgMjEuMy0zMS4zIDMyLTY4LjYgMzAuNS0xMDYuNVYxMDk3em0tMzQ2LjgtMjY5LjJjMjguNC4yIDU2LjYtNS41IDgyLjgtMTYuNyA1MS4yLTIxLjggOTEuOS02Mi41IDExMy42LTExMy43IDIyLjItNTMgMjIuMi0xMTIuNy0uMS0xNjUuOC0yMS44LTUxLjItNjIuNS05Mi0xMTMuNy0xMTMuNy0yNi4yLTExLjItNTQuNC0xNi45LTgyLjktMTYuNy0yOC4zLS4yLTU2LjMgNS41LTgyLjMgMTYuNy0xOS40IDguMy0yNS41IDE5LjEtNTIuMiAzMi4xdjMyOWMyNi44IDEzLjEgMzIuOCAyMy44IDUyLjIgMzIuMSAyNi4xIDExLjMgNTQuMiAxNi45IDgyLjYgMTYuN20tMTM0LjggMTA4MS4xYzI2LjggNS44IDM2LjQgMTAuMyA1NS40IDEyLjkgMjAuOCAzIDQxLjggNC41IDYyLjggNC42IDMyLjQtLjIgNjQuOC0zLjYgOTYuNS0xMC40IDMyLjMtNi41IDYzLjMtMTguNiA5MS41LTM1LjcgMjcuNy0xNyA1MS00MC4yIDY4LjItNjcuNyAxOS0zMi4xIDI4LjMtNjkuMSAyNi45LTEwNi40di03NDNoLTQwMS4zek0wIDIxMTMuN2wxMzkxLjMgMjQwLjhWMEwwIDI0MC44eiIvPjxwYXRoIGZpbGw9IiNmZmYiIGQ9Im0xMDE2LjcgNzIyLjQtNjQyLjEgMzkuMXYxNDguMWwyNDAuOC05Ljd2Njg2LjdsMTYwLjUgOS40Vjg5My42bDI0MC44LTEwLjd6Ii8+PC9zdmc+"
+        },
+        "displayName": "Microsoft Teams",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 535,
+        "icon": "file:webhook.svg",
+        "name": "n8n-nodes-base.respondToWebhook",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.respondtowebhook/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes",
+              "Utility"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Respond to Webhook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTM1IDM3Yy0yLjIgMC00LTEuOC00LTRzMS44LTQgNC00IDQgMS44IDQgNC0xLjggNC00IDQiLz48cGF0aCBmaWxsPSIjMzc0NzRmIiBkPSJNMzUgNDNjLTMgMC01LjktMS40LTcuOC0zLjdsMy4xLTIuNWMxLjEgMS40IDIuOSAyLjMgNC43IDIuMyAzLjMgMCA2LTIuNyA2LTZzLTIuNy02LTYtNmMtMSAwLTIgLjMtMi45LjdsLTEuNyAxTDIzLjMgMTZsMy41LTEuOSA1LjMgOS40YzEtLjMgMi0uNSAzLS41IDUuNSAwIDEwIDQuNSAxMCAxMFM0MC41IDQzIDM1IDQzIi8+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTE0IDQzQzguNSA0MyA0IDM4LjUgNCAzM2MwLTQuNiAzLjEtOC41IDcuNS05LjdsMSAzLjlDOS45IDI3LjkgOCAzMC4zIDggMzNjMCAzLjMgMi43IDYgNiA2czYtMi43IDYtNnYtMmgxNXY0SDIzLjhjLS45IDQuNi01IDgtOS44IDgiLz48cGF0aCBmaWxsPSIjZTkxZTYzIiBkPSJNMTQgMzdjLTIuMiAwLTQtMS44LTQtNHMxLjgtNCA0LTQgNCAxLjggNCA0LTEuOCA0LTQgNCIvPjxwYXRoIGZpbGw9IiMzNzQ3NGYiIGQ9Ik0yNSAxOWMtMi4yIDAtNC0xLjgtNC00czEuOC00IDQtNCA0IDEuOCA0IDQtMS44IDQtNCA0Ii8+PHBhdGggZmlsbD0iI2U5MWU2MyIgZD0ibTE1LjcgMzQtMy40LTIgNS45LTkuN2MtMi0xLjktMy4yLTQuNS0zLjItNy4zIDAtNS41IDQuNS0xMCAxMC0xMHMxMCA0LjUgMTAgMTBjMCAuOS0uMSAxLjctLjMgMi41bC0zLjktMWMuMS0uNS4yLTEgLjItMS41IDAtMy4zLTIuNy02LTYtNnMtNiAyLjctNiA2YzAgMi4xIDEuMSA0IDIuOSA1LjFsMS43IDF6Ii8+PC9zdmc+"
+        },
+        "displayName": "Respond to Webhook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 7,
+            "name": "Utility"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1250,
+        "icon": "file:openAi.svg",
+        "name": "@n8n/n8n-nodes-langchain.openAi",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain",
+              "ChatGPT",
+              "Sora",
+              "DallE",
+              "whisper",
+              "audio",
+              "transcribe",
+              "tts",
+              "assistant"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-langchain.openai/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Agents",
+                "Miscellaneous",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "OpenAI"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTM2Ljg2NzEgMTYuMzcxOEMzNy43NzQ2IDEzLjY0OCAzNy40NjIxIDEwLjY2NDIgMzYuMDEwOCA4LjE4NjYxQzMzLjgyODIgNC4zODY1MyAyOS40NDA3IDIuNDMxNDkgMjUuMTU1NiAzLjM1MTUxQzIzLjI0OTMgMS4yMDM5NiAyMC41MTA1IC0wLjAxNzMxNDggMTcuNjM5MiAwLjAwMDE4NTUzM0MxMy4yNTkxIC0wLjAwOTgxNDY4IDkuMzcyNzMgMi44MTAyNSA4LjAyNTIgNi45Nzc4M0M1LjIxMTM5IDcuNTU0MSAyLjc4MjU4IDkuMzE1MzggMS4zNjEzIDExLjgxMTdDLTAuODM3NDkzIDE1LjYwMTggLTAuMzM2MjMyIDIwLjM3OTQgMi42MDEzMyAyMy42Mjk0QzEuNjkzODEgMjYuMzUzMiAyLjAwNjMyIDI5LjMzNzEgMy40NTc2IDMxLjgxNDZDNS42NDAxNSAzNS42MTQ3IDEwLjAyNzcgMzcuNTY5NyAxNC4zMTI4IDM2LjY0OTdDMTYuMjE3OSAzOC43OTczIDE4Ljk1NzkgNDAuMDE4NSAyMS44MjkyIDM5Ljk5OThDMjYuMjExOCA0MC4wMTEgMzAuMDk5NCAzNy4xODg1IDMxLjQ0NjkgMzMuMDE3MUMzNC4yNjA4IDMyLjQ0MDkgMzYuNjg5NiAzMC42Nzk2IDM4LjExMDggMjguMTgzM0M0MC4zMDcxIDI0LjM5MzIgMzkuODA0NiAxOS42MTk0IDM2Ljg2ODMgMTYuMzY5M0wzNi44NjcxIDE2LjM3MThaTTIxLjgzMTcgMzcuMzg2QzIwLjA3OCAzNy4zODg1IDE4LjM3OTIgMzYuNzc0NyAxNy4wMzI5IDM1LjY1MDlDMTcuMDk0MSAzNS42MTg1IDE3LjIwMDQgMzUuNTU5NyAxNy4yNjkxIDM1LjUxNzJMMjUuMjM0MyAzMC45MTcxQzI1LjY0MTggMzAuNjg1OCAyNS44OTE4IDMwLjI1MjEgMjUuODg5MyAyOS43ODMzVjE4LjU1NDNMMjkuMjU1NiAyMC40OTgxQzI5LjI5MTkgMjAuNTE1NiAyOS4zMTU3IDIwLjU1MDYgMjkuMzIwNyAyMC41OTA2VjI5Ljg4OTZDMjkuMzE1NyAzNC4wMjQ3IDI1Ljk2NjggMzcuMzc3MiAyMS44MzE3IDM3LjM4NlpNNS43MjY0IDMwLjUwNzFDNC44NDc2MyAyOC45ODk2IDQuNTMxMzcgMjcuMjEwOCA0LjgzMjYzIDI1LjQ4NDVDNC44OTEzOCAyNS41MTk1IDQuOTk1MTMgMjUuNTgzMiA1LjA2ODg4IDI1LjYyNTdMMTMuMDM0MSAzMC4yMjU4QzEzLjQzNzggMzAuNDYyMSAxMy45Mzc4IDMwLjQ2MjEgMTQuMzQyOCAzMC4yMjU4TDI0LjA2NjggMjQuNjEwN1YyOC40OTgzQzI0LjA2OTMgMjguNTM4MyAyNC4wNTA1IDI4LjU3NyAyNC4wMTkzIDI4LjYwMkwxNS45Njc5IDMzLjI1MDlDMTIuMzgxNSAzNS4zMTU5IDcuODAxNDQgMzQuMDg4NCA1LjcyNzY1IDMwLjUwNzFINS43MjY0Wk0zLjYzMDEgMTMuMTIwNUM0LjUwNTEyIDExLjYwMDQgNS44ODY0IDEwLjQzNzkgNy41MzE0NCA5LjgzNDE1QzcuNTMxNDQgOS45MDI5IDcuNTI3NjkgMTAuMDI0MSA3LjUyNzY5IDEwLjEwOTJWMTkuMzEwNkM3LjUyNTE5IDE5Ljc3ODEgNy43NzUxOSAyMC4yMTE5IDguMTgxNDUgMjAuNDQzMUwxNy45MDU0IDI2LjA1N0wxNC41MzkxIDI4LjAwMDhDMTQuNTA1MyAyOC4wMjMzIDE0LjQ2MjggMjguMDI3IDE0LjQyNTMgMjguMDEwOEw2LjM3MjY2IDIzLjM1ODJDMi43OTM4MyAyMS4yODU2IDEuNTY2MzEgMTYuNzA2OCAzLjYyODg1IDEzLjEyMTdMMy42MzAxIDEzLjEyMDVaTTMxLjI4ODIgMTkuNTU2OUwyMS41NjQyIDEzLjk0MTdMMjQuOTMwNiAxMS45OTkyQzI0Ljk2NDMgMTEuOTc2NyAyNS4wMDY4IDExLjk3MjkgMjUuMDQ0MyAxMS45ODkyTDMzLjA5NyAxNi42MzhDMzYuNjgyMSAxOC43MDkzIDM3LjkxMDggMjMuMjk1NyAzNS44Mzk1IDI2Ljg4MDhDMzQuOTYzMyAyOC4zOTgzIDMzLjU4MzIgMjkuNTYwOCAzMS45Mzk1IDMwLjE2NThWMjAuNjg5NEMzMS45NDMyIDIwLjIyMTkgMzEuNjk0NSAxOS43ODk0IDMxLjI4OTQgMTkuNTU2OUgzMS4yODgyWk0zNC42MzgzIDE0LjUxNDJDMzQuNTc5NSAxNC40NzggMzQuNDc1OCAxNC40MTU1IDM0LjQwMiAxNC4zNzNMMjYuNDM2OCA5Ljc3Mjg5QzI2LjAzMzEgOS41MzY2NCAyNS41MzMxIDkuNTM2NjQgMjUuMTI4MSA5Ljc3Mjg5TDE1LjQwNDEgMTUuMzg4VjExLjUwMDRDMTUuNDAxNiAxMS40NjA0IDE1LjQyMDQgMTEuNDIxNyAxNS40NTE2IDExLjM5NjdMMjMuNTAzIDYuNzUxNThDMjcuMDg5NCA0LjY4Mjc5IDMxLjY3NDUgNS45MTQwNiAzMy43NDIgOS41MDE2NEMzNC42MTU4IDExLjAxNjcgMzQuOTMyIDEyLjc5MDUgMzQuNjM1OCAxNC41MTQySDM0LjYzODNaTTEzLjU3NDEgMjEuNDQzMUwxMC4yMDY1IDE5LjQ5OTRDMTAuMTcwMiAxOS40ODE5IDEwLjE0NjUgMTkuNDQ2OCAxMC4xNDE1IDE5LjQwNjhWMTAuMTA3OUMxMC4xNDQgNS45Njc4MSAxMy41MDI4IDIuNjEyNzQgMTcuNjQyOSAyLjYxNTI0QzE5LjM5NDIgMi42MTUyNCAyMS4wODkyIDMuMjMwMjUgMjIuNDM1NSA0LjM1MDI4QzIyLjM3NDMgNC4zODI3OCAyMi4yNjkzIDQuNDQxNTMgMjIuMTk5MiA0LjQ4NDAzTDE0LjIzNDEgOS4wODQxM0MxMy44MjY2IDkuMzE1MzggMTMuNTc2NiA5Ljc0Nzg5IDEzLjU3OTEgMTAuMjE2N0wxMy41NzQxIDIxLjQ0MDZWMjEuNDQzMVpNMTUuNDAyOSAxNy41MDA2TDE5LjczNDIgMTQuOTk5M0wyNC4wNjU1IDE3LjQ5OTNWMjIuNTAwN0wxOS43MzQyIDI1LjAwMDdMMTUuNDAyOSAyMi41MDA3VjE3LjUwMDZaIiBmaWxsPSJibGFjayIvPgo8L3N2Zz4K"
+        },
+        "displayName": "OpenAI",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 41,
+        "name": "Ticket Management"
+      },
+      {
+        "id": 49,
+        "name": "AI Summarization"
+      }
+    ],
+    "image": []
+  }
+}

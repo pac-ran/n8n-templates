@@ -1,0 +1,900 @@
+{
+  "workflow": {
+    "id": 15505,
+    "name": "Get Xiaohongshu note details from a keyword with JustOneAPI",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-06T03:57:28.912Z",
+    "description": "Use this n8n workflow template to get Xiaohongshu note details from a keyword with JustOneAPI.\n\n## Who\u2019s it for\n\nThis template is for content researchers, creator operations teams, marketing teams, and automation builders who want to turn a Xiaohongshu keyword into a structured list of note details inside n8n.\n\n## How it works\n\nThe workflow starts with a single configuration node where you add your JustOneAPI token and the keyword you want to research.\n\nIt then searches Xiaohongshu notes with the V2 search endpoint, extracts note IDs from the returned results, removes duplicates, and keeps only the first unique note ID by default. After that, it requests note details and outputs a structured note detail record that can be reused in downstream workflows.\n\nYou can increase `maxNotes` if you want to retrieve details for more than one unique note ID.\n\n## How to set up\n\n1. Import the workflow into n8n.\n2. Open the **Set API Token and Research Inputs** node.\n3. Add your JustOneAPI token.\n4. Replace the placeholder values for `keyword` and other optional search inputs.\n5. Leave `maxNotes` set to `1` if you want to fetch only the first unique result by default.\n6. Run the workflow and review the final output node.\n\n## Requirements\n\n- A JustOneAPI token\n- An n8n environment with HTTP Request support\n\n## How to customize the workflow\n\nYou can increase `maxNotes` to fetch more note details, adjust the search parameters for different research needs, and send the final detail output to Google Sheets, Airtable, Notion, a database, or an AI analysis step.",
+    "workflow": {
+      "id": "5fiDrb0Na7EFNOu1",
+      "meta": {
+        "instanceId": "44c6bf5a993711032d31c78c2a1cfd87a0293608f2496e21262bed2417c0364d"
+      },
+      "name": "Research Xiaohongshu note details from a keyword with JustOneAPI",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "f722e5c4-9937-4708-a0b9-2bd99e141493",
+          "name": "Template Overview",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1424,
+            1200
+          ],
+          "parameters": {
+            "width": 500,
+            "height": 792,
+            "content": "## Get Xiaohongshu note details from a keyword with JustOneAPI\n\nUse this workflow to turn one Xiaohongshu keyword into a structured note detail result.\n\n## Who\u2019s it for\n\nThis template is for content researchers, creator operations teams, marketing teams, and automation builders who want to collect Xiaohongshu note details inside n8n.\n\n## What this workflow does\n\nThe workflow searches Xiaohongshu notes with the V2 search endpoint, extracts unique note IDs from the returned results, keeps the first unique note ID by default, fetches note details, and returns a structured output for downstream use.\n\n## How to set up\n\n1. Open **Prepare API and Research Inputs**\n2. Add your JustOneAPI token\n3. Update `keyword`\n4. Optionally adjust `page`, `sortSearchNoteV2`, `noteType`, `noteTime`, and `maxNotes`\n5. Leave `maxNotes` at `1` if you want to fetch only the first unique result by default\n6. Run the workflow and review the final output node\n\n## Requirements\n\n- A JustOneAPI token\n- An n8n environment with HTTP Request support\n\n## How to customize the workflow\n\n- Increase `maxNotes` to fetch more note details\n- Change `noteTime` for a different search time range\n- Send the final output to Sheets, Airtable, Notion, a database, or an AI step"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "4a152ab4-3d22-45ee-b589-9c7596abe05e",
+          "name": "Step 1 - Start Workflow",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1984,
+            1344
+          ],
+          "parameters": {
+            "color": 7,
+            "height": 192,
+            "content": "## Start the workflow\n\nThis workflow is started manually.\n\nUse this trigger when you want to run one keyword-based Xiaohongshu note research job on demand."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "e8a9a0af-c429-439d-a920-c42818f30ad1",
+          "name": "Step 2 - Configure Inputs",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            2256,
+            1232
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 224,
+            "height": 480,
+            "content": "## Configure API and research inputs\n\nThis group defines the shared values used across the workflow.\n\nRequired:\n- `token`\n- `keyword`\n\nOptional:\n- `page`\n- `sortSearchNoteV2`\n- `noteType`\n- `noteTime`\n- `maxNotes`\n\nRecommended defaults:\n- `noteTime = \u4e00\u5929\u5185`\n- `maxNotes = 1`"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "87b1f9b6-efbe-4fd3-ad16-e59dca12ae50",
+          "name": "Step 3 - Search Notes",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            2528,
+            1360
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 528,
+            "height": 224,
+            "content": "## Search Xiaohongshu notes by keyword\n\nThis group sends the keyword search request to the Xiaohongshu V2 search endpoint.\n\nUse this step to:\n- search notes from one keyword\n- inspect the raw search response\n- confirm that note IDs are returned before moving to the next step"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "8af7cf52-0791-4bae-b8ae-8a15600e7478",
+          "name": "Step 4 - Extract Note IDs",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            3216,
+            1360
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 512,
+            "height": 232,
+            "content": "## Extract and limit note IDs\n\nThis group reads `data.items[].note.id` from the search response.\n\nIt then:\n- removes duplicate note IDs\n- keeps the first unique note ID by default\n- passes the selected IDs into the detail request step\n\nIncrease `maxNotes` if you want to fetch details for more than one result."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "d307a53a-a76a-4496-9651-591a38b0eac7",
+          "name": "Step 5 - Fetch Note Details",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            3760,
+            1360
+          ],
+          "parameters": {
+            "color": 7,
+            "height": 240,
+            "content": "## Fetch note details\n\nThis group requests the Xiaohongshu note detail endpoint once for each selected note ID.\n\nUse this step to retrieve the raw detail response before it is transformed into the final output structure."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "e0d23d75-5fc0-4240-b3b6-d904f39d43aa",
+          "name": "Step 6 - Build Final Output",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            4032,
+            1344
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 528,
+            "height": 340,
+            "content": "## Build the final note detail output\n\nThis group converts the raw detail response into a cleaner result with fields such as:\n- `noteId`\n- `title`\n- `desc`\n- `authorName`\n- `likeCount`\n- `commentCount`\n- `shareCount`\n- `collectedCount`\n- `noteUrl`\n\nUse the final output node as the handoff point for reporting, storage, alerts, or AI analysis."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "408f485d-04e8-4229-80bb-05b91f6481da",
+          "name": "Manual Execution Trigger",
+          "type": "n8n-nodes-base.manualTrigger",
+          "position": [
+            2016,
+            1728
+          ],
+          "parameters": {},
+          "typeVersion": 1
+        },
+        {
+          "id": "79b2f52c-22fa-4ca1-bfb8-d2c1f33d4aaa",
+          "name": "Prepare API and Research Inputs",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            2288,
+            1728
+          ],
+          "parameters": {
+            "mode": "raw",
+            "options": {},
+            "jsonOutput": "{\n  \"baseUrl\": \"https://api.justoneapi.com\",\n  \"token\": \"YOUR_JUSTONEAPI_TOKEN\",\n  \"keyword\": \"YOUR_RESEARCH_KEYWORD\",\n  \"page\": 1,\n  \"sortSearchNoteV2\": \"general\",\n  \"noteType\": \"_0\",\n  \"noteTime\": \"\u4e00\u5929\u5185\",\n  \"maxNotes\": 1\n}"
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "f2ec2e16-ecb6-4226-ba01-f65b6f7824e1",
+          "name": "Fetch Xiaohongshu Notes by Keyword",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            2576,
+            1728
+          ],
+          "parameters": {
+            "url": "={{$json.baseUrl + '/api/xiaohongshu/search-note/v2'}}",
+            "options": {
+              "redirect": {
+                "redirect": {}
+              }
+            },
+            "sendQuery": true,
+            "queryParameters": {
+              "parameters": [
+                {
+                  "name": "token",
+                  "value": "={{$json.token}}"
+                },
+                {
+                  "name": "keyword",
+                  "value": "={{$json.keyword}}"
+                },
+                {
+                  "name": "page",
+                  "value": "={{$json.page}}"
+                },
+                {
+                  "name": "sort",
+                  "value": "={{$json.sortSearchNoteV2}}"
+                },
+                {
+                  "name": "noteType",
+                  "value": "={{$json.noteType}}"
+                },
+                {
+                  "name": "noteTime",
+                  "value": "={{$json.noteTime}}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "d0a7b714-5939-427e-bb3c-289f3c67b3d8",
+          "name": "Output Search Results Data",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            2912,
+            1952
+          ],
+          "parameters": {
+            "mode": "raw",
+            "options": {},
+            "jsonOutput": "={{$json}}"
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "1a5721c0-f95d-4eba-8970-c6df02b0b4dd",
+          "name": "Extract Note IDs from Results",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            3264,
+            1728
+          ],
+          "parameters": {
+            "jsCode": "const cfg = $('Prepare API and Research Inputs').first().json;\nconst maxNotes = Math.max(1, Number(cfg.maxNotes || 1));\nconst token = cfg.token;\nconst baseUrl = cfg.baseUrl;\nconst keyword = cfg.keyword;\n\n// Match the real search-note/v2 response structure:\n// [\n//   {\n//     code: 0,\n//     data: {\n//       items: [\n//         { model_type: \\\"note\\\", note: { id: \\\"...\\\" } }\n//       ]\n//     }\n//   }\n// ]\n\nconst rows = $input.all();\nconst ids = [];\n\nfor (const row of rows) {\n  const items = row.json?.data?.items || [];\n  for (const entry of items) {\n    const noteId = entry?.note?.id;\n    if (typeof noteId === 'string' && noteId.length >= 8) {\n      ids.push(noteId);\n    }\n  }\n}\n\nconst uniqueIds = [...new Set(ids)].slice(0, maxNotes);\n\nreturn uniqueIds.map((noteId, index) => ({\n  json: {\n    baseUrl,\n    token,\n    keyword,\n    noteId,\n    noteRank: index + 1,\n    selectedBy: 'search-note-v2'\n  }\n}));\n"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "11d227f5-6444-4466-9f8d-8d6ebc0a4dc5",
+          "name": "Output Extracted Note IDs",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            3584,
+            1952
+          ],
+          "parameters": {
+            "mode": "raw",
+            "options": {},
+            "jsonOutput": "={{$json}}"
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "f17563ca-a974-4121-bff2-00b1db56751e",
+          "name": "Fetch Xiaohongshu Note Details",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            3808,
+            1728
+          ],
+          "parameters": {
+            "url": "={{$json.baseUrl + '/api/xiaohongshu/get-note-detail/v1'}}",
+            "options": {
+              "redirect": {
+                "redirect": {}
+              }
+            },
+            "sendQuery": true,
+            "queryParameters": {
+              "parameters": [
+                {
+                  "name": "token",
+                  "value": "={{$json.token}}"
+                },
+                {
+                  "name": "noteId",
+                  "value": "={{$json.noteId}}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "1ed6d5f9-64ab-4b72-bb5e-ab7a5c250dfe",
+          "name": "Build Note Details List",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            4080,
+            1728
+          ],
+          "parameters": {
+            "jsCode": "const rows = $input.all();\n\nreturn rows.map(item => {\n  const root = item.json || {};\n  const detailRoot = Array.isArray(root.data) && root.data.length > 0 ? root.data[0] : {};\n  const note = Array.isArray(detailRoot.note_list) && detailRoot.note_list.length > 0 ? detailRoot.note_list[0] : {};\n  const user = note.user || detailRoot.user || {};\n  const shareInfo = note.share_info || {};\n  const qqMiniProgramInfo = note.qq_mini_program_info || {};\n  const miniProgramInfo = note.mini_program_info || {};\n\n  return {\n    json: {\n      noteId: note.id || '',\n      title: note.title || note.desc || '',\n      desc: note.desc || '',\n      authorName: user.nickname || user.name || '',\n      authorId: user.userid || user.id || '',\n      likeCount: note.liked_count ?? 0,\n      commentCount: note.comments_count ?? 0,\n      shareCount: note.shared_count ?? 0,\n      collectedCount: note.collected_count ?? 0,\n      noteType: note.type || '',\n      noteUrl: shareInfo.link || qqMiniProgramInfo.webpage_url || miniProgramInfo.webpage_url || '',\n      ipLocation: note.ip_location || '',\n      requestedKeyword: $('Prepare API and Research Inputs').first().json.keyword || '',\n      raw: root\n    }\n  };\n});"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "76632de5-63c5-48e2-80ca-8e102cd831a7",
+          "name": "Output Final Note Details",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            4560,
+            1728
+          ],
+          "parameters": {
+            "mode": "raw",
+            "options": {},
+            "jsonOutput": "={{$json}}"
+          },
+          "typeVersion": 3.4
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "6788f8e4-df36-4549-b509-e45740fdf85f",
+      "connections": {
+        "Build Note Details List": {
+          "main": [
+            [
+              {
+                "node": "Output Final Note Details",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Manual Execution Trigger": {
+          "main": [
+            [
+              {
+                "node": "Prepare API and Research Inputs",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Extract Note IDs from Results": {
+          "main": [
+            [
+              {
+                "node": "Output Extracted Note IDs",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Fetch Xiaohongshu Note Details",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch Xiaohongshu Note Details": {
+          "main": [
+            [
+              {
+                "node": "Build Note Details List",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Prepare API and Research Inputs": {
+          "main": [
+            [
+              {
+                "node": "Fetch Xiaohongshu Notes by Keyword",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch Xiaohongshu Notes by Keyword": {
+          "main": [
+            [
+              {
+                "node": "Output Search Results Data",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Extract Note IDs from Results",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 16,
+      "nodeTypes": {
+        "n8n-nodes-base.set": {
+          "count": 4
+        },
+        "n8n-nodes-base.code": {
+          "count": 2
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 7
+        },
+        "n8n-nodes-base.httpRequest": {
+          "count": 2
+        },
+        "n8n-nodes-base.manualTrigger": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "apisub001",
+      "username": "apisub001",
+      "bio": "",
+      "verified": false,
+      "links": [],
+      "avatar": "https://gravatar.com/avatar/4a428af1a260841e75f833893cae6f80caa57dd566438498c97380bec8f7bbab?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 19,
+        "icon": "file:httprequest.svg",
+        "name": "n8n-nodes-base.httpRequest",
+        "codex": {
+          "data": {
+            "alias": [
+              "API",
+              "Request",
+              "URL",
+              "Build",
+              "cURL"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-designs-with-bannerbear-and-n8n/",
+                  "icon": "\ud83c\udfa8",
+                  "label": "Automate Designs with Bannerbear and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-use-the-http-request-node-the-swiss-army-knife-for-workflow-automation/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "How to use the HTTP Request Node - The Swiss Army Knife for Workflow Automation"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HTTP Request",
+          "color": "#0004F5"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MCAyMEM0MCA4Ljk1MzE0IDMxLjA0NjkgMCAyMCAwQzguOTUzMTQgMCAwIDguOTUzMTQgMCAyMEMwIDMxLjA0NjkgOC45NTMxNCA0MCAyMCA0MEMzMS4wNDY5IDQwIDQwIDMxLjA0NjkgNDAgMjBaTTIwIDM2Ljk0NThDMTguODg1MiAzNi45NDU4IDE3LjEzNzggMzUuOTY3IDE1LjQ5OTggMzIuNjk4NUMxNC43OTY0IDMxLjI5MTggMTQuMTk2MSAyOS41NDMxIDEzLjc1MjYgMjcuNjg0N0gyNi4xODk4QzI1LjgwNDUgMjkuNTQwMyAyNS4yMDQ0IDMxLjI5MDEgMjQuNTAwMiAzMi42OTg1QzIyLjg2MjIgMzUuOTY3IDIxLjExNDggMzYuOTQ1OCAyMCAzNi45NDU4Wk0xMi45MDY0IDIwQzEyLjkwNjQgMjEuNjA5NyAxMy4wMDg3IDIzLjE2NCAxMy4yMDAzIDI0LjYzMDVIMjYuNzk5N0MyNi45OTEzIDIzLjE2NCAyNy4wOTM2IDIxLjYwOTcgMjcuMDkzNiAyMEMyNy4wOTM2IDE4LjM5MDMgMjYuOTkxMyAxNi44MzYgMjYuNzk5NyAxNS4zNjk1SDEzLjIwMDNDMTMuMDA4NyAxNi44MzYgMTIuOTA2NCAxOC4zOTAzIDEyLjkwNjQgMjBaTTIwIDMuMDU0MTlDMjEuMTE0OSAzLjA1NDE5IDIyLjg2MjIgNC4wMzA3OCAyNC41MDAxIDcuMzAwMzlDMjUuMjA2NiA4LjcxNDA4IDI1LjgwNzIgMTAuNDA2NyAyNi4xOTIgMTIuMzE1M0gxMy43NTAxQzE0LjE5MzMgMTAuNDA0NyAxNC43OTQyIDguNzEyNTQgMTUuNDk5OCA3LjMwMDY0QzE3LjEzNzcgNC4wMzA4MyAxOC44ODUxIDMuMDU0MTkgMjAgMy4wNTQxOVpNMzAuMTQ3OCAyMEMzMC4xNDc4IDE4LjQwOTkgMzAuMDU0MyAxNi44NjE3IDI5LjgyMjcgMTUuMzY5NUgzNi4zMDQyQzM2LjcyNTIgMTYuODQyIDM2Ljk0NTggMTguMzk2NCAzNi45NDU4IDIwQzM2Ljk0NTggMjEuNjAzNiAzNi43MjUyIDIzLjE1OCAzNi4zMDQyIDI0LjYzMDVIMjkuODIyN0MzMC4wNTQzIDIzLjEzODMgMzAuMTQ3OCAyMS41OTAxIDMwLjE0NzggMjBaTTI2LjI3NjcgNC4yNTUxMkMyNy42MzY1IDYuMzYwMTkgMjguNzExIDkuMTMyIDI5LjM3NzQgMTIuMzE1M0gzNS4xMDQ2QzMzLjI1MTEgOC42NjggMzAuMTA3IDUuNzgzNDYgMjYuMjc2NyA0LjI1NTEyWk0xMC42MjI2IDEyLjMxNTNINC44OTI5M0M2Ljc1MTQ3IDguNjY3ODQgOS44OTM1MSA1Ljc4MzQxIDEzLjcyMzIgNC4yNTUxM0MxMi4zNjM1IDYuMzYwMjEgMTEuMjg5IDkuMTMyMDEgMTAuNjIyNiAxMi4zMTUzWk0zLjA1NDE5IDIwQzMuMDU0MTkgMjEuNjAzIDMuMjc3NDMgMjMuMTU3NSAzLjY5NDg0IDI0LjYzMDVIMTAuMTIxN0M5Ljk0NjE5IDIzLjE0MiA5Ljg1MjIyIDIxLjU5NDMgOS44NTIyMiAyMEM5Ljg1MjIyIDE4LjQwNTcgOS45NDYxOSAxNi44NTggMTAuMTIxNyAxNS4zNjk1SDMuNjk0ODRDMy4yNzc0MyAxNi44NDI1IDMuMDU0MTkgMTguMzk3IDMuMDU0MTkgMjBaTTI2LjI3NjYgMzUuNzQyN0MyNy42MzY1IDMzLjYzOTMgMjguNzExIDMwLjg2OCAyOS4zNzc0IDI3LjY4NDdIMzUuMTA0NkMzMy4yNTEgMzEuMzMyMiAzMC4xMDY4IDM0LjIxNzkgMjYuMjc2NiAzNS43NDI3Wk0xMy43MjM0IDM1Ljc0MjdDOS44OTM2OSAzNC4yMTc5IDYuNzUxNTUgMzEuMzMyNCA0Ljg5MjkzIDI3LjY4NDdIMTAuNjIyNkMxMS4yODkgMzAuODY4IDEyLjM2MzUgMzMuNjM5MyAxMy43MjM0IDM1Ljc0MjdaIiBmaWxsPSIjM0E0MkU5Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "HTTP Request",
+        "typeVersion": 4,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 838,
+        "icon": "fa:mouse-pointer",
+        "name": "n8n-nodes-base.manualTrigger",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.manualworkflowtrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "When clicking \u2018Execute workflow\u2019",
+          "color": "#909298"
+        },
+        "iconData": {
+          "icon": "mouse-pointer",
+          "type": "icon"
+        },
+        "displayName": "Manual Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 32,
+        "name": "Market Research"
+      }
+    ],
+    "image": []
+  }
+}

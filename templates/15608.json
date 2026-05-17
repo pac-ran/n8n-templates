@@ -1,0 +1,1525 @@
+{
+  "workflow": {
+    "id": 15608,
+    "name": "Monitor Shopify orders and send no-order alerts via Slack and email",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-11T08:16:03.137Z",
+    "description": "# \ud83d\uded2 Shopify \"No Orders in X Minutes\" Alert\n \n## \ud83d\udccc Summary\n\nNever miss a revenue-impacting failure. This n8n workflow monitors your Shopify store and triggers an alert if **X minutes pass without a single new order**. By automatically detecting unexpected drops in order flow based on your custom schedule. It tracks downtime duration, sends rich multi-channel alerts, and can optionally send an automated \"all clear\" message when orders resume.\n \n---\n \n## \u2728 Key Features\n\n* **Dynamic 'X Minutes' Tracking:** The workflow automatically calculates its lookback window based on your Schedule Trigger. If you set the trigger to check every 45 minutes, the workflow dynamically alerts you if no orders were placed in the last 45 minutes.\n* **Multi-Channel Alerts:** Delivers highly readable, structured Slack messages and styled Emails. Toggle Slack and Email alerts independently via a single configuration node.\n* **Optional Recovery Notifications:** Toggle on the ability to automatically send a green \"\u2705 SYSTEM RECOVERED\" alert when orders successfully resume after an outage, closing the loop for your team.\n* **Smart Error Handling:** Catches Shopify API errors (e.g., expired credentials or rate limits) and tracks them separately from organic \"no order\" events to prevent skewed downtime metrics.\n \n---\n \n## \ud83d\udee0\ufe0f How It Works\n\n1.  **Trigger & Validate:** The workflow runs on a schedule you choose (for example, every 30 minutes). Validates configuration to prevent silent failures (e.g., missing email addresses or no channels enabled).\n3.  **Fetch Order:** Queries Shopify for any new orders created within the last trigger interval. \n4.  **Logic Branch:**\n    * **Orders Found:** Calculates total downtime, resets the tracking counters, and sends a Recovery notification (if an outage was actively ongoing and the recovery toggle is enabled). \u2705\n    * **No Orders:** Increments the downtime counter and initiates the alert sequence. \ud83d\udea8\n5.  **Route:** Checks configuration toggles and delivers formatted messages to your enabled channels.\n \n---\n \n## \ud83d\udce6 Nodes Used\n \n* **Schedule Trigger** - Controls check frequency (configurable)\n* **Configuration** - Centralized settings for channels, recovery alerts, and email recipient\n* **Validate Email Config? / All Channels Disabled?** - Safety gates to prevent silent failures\n* **Config Error** - Stops execution with a clear warning if setup is incomplete\n* **Fetch Orders** - Queries Shopify for recent orders using an automated time window\n* **Orders Found?** - Conditional branch logic\n* **Build Alert Message** - Formats consistent message with downtime metrics and color themes\n* **Handle API Error** - Catches and formats Shopify API failures independently\n* **Orders Resumed \u2014 Reset Counters** - Generates recovery payloads and clears workflow static data\n* **Recovery Enabled?** - Checks if a recovery message needs to be sent based on previous downtime and your configuration toggles\n* **Slack Enabled?** / **Email Enabled?** - Routes to enabled channels\n* **Alert Team via Slack** - Posts structured Slack messages\n* **Alert Team via Email** - Sends templated HTML alerts via Gmail\n \n---\n \n## \ud83d\ude80 Setup Instructions\n \n1. **Credentials:** Connect Shopify (`orders:read`), Slack (`chat:write`), and Gmail (`gmail.send`). **Important:** Open the Slack node and manually select your target channel from the dropdown. \n2. **Config Node:** Open the **Configuration node** and set your preferences:\n   * `enableSlackAlert`: Toggle to `true` to enable Slack notifications.\n   * `enableEmailAlert`: Toggle to `true` to enable Email notifications.\n   * `enableRecoveryNotification`: Toggle to `true` if you want a follow-up message when orders resume.\n   * `sendEmailTo`: Enter your target email address (mandatory if email alerts are enabled).\n3. **Activate:** Toggle the workflow to `Active` and you're ready to go. It will start checking on schedule.\n4. **Testing the Recovery Path (Optional):** To manually simulate a recovery, temporarily delete the expression in the Shopify node's `createdAtMin` field and pick a date in the past. Execute the node so it finds orders and triggers the recovery alert, then paste the default expression back in.\n \n---\n \n## \u2699\ufe0f Customization Ideas\n \n* **For Low-Traffic Stores:** Edit the `Build Alert Message` code logic to only send an alert after **3** consecutive failures (useful for low-volume stores).\n* **Monitor Specific Order Types:** Filter for paid orders only, or orders with specific tags, to focus on the orders that matter most.\n* **On-Call Escalation:** Add a **Twilio** node after the Email node to send an SMS if the downtime exceeds 120 minutes.\n \n---\n \n## \ud83d\udccb Requirements\n\n* **n8n Version:** 2.11.3+\n* **Persistence:** Requires n8n Workflow Static Data (`$getWorkflowStaticData`) for downtime tracking.\n* **Credentials:** Shopify, Slack, and/or Gmail OAuth2.\n \n---\n \n## \u26a0\ufe0f Limitations\n\n- **Symptom Detection Only:** This workflow detects the *absence* of orders, not the root cause. It can't tell if your checkout is broken, a payment processor went down, or customers just aren't buying right now.\n- **Low Traffic Stores:** If your store naturally goes hours without an order, you will receive false positive alerts unless you increase the Schedule Trigger interval to match your typical order frequency.\n\t- **Volume Agnostic:** The Shopify fetch node uses `limit: 1`. It does not track order volume or quantity, it only checks if at least one order exists within the timeframe.",
+    "workflow": {
+      "id": "MScSPanoLkQwiPVD",
+      "meta": {
+        "instanceId": "199ee9b68218556ce2f4af751fa633f2299e15893b90eb381b95548e0aedad7f",
+        "templateCredsSetupCompleted": true
+      },
+      "name": "Shopify No Orders in X Minutes Alert",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "ba543263-fd96-4d1f-a74a-caed71219a50",
+          "name": "\ud83d\udcd6 Complete Documentation",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            13440,
+            6256
+          ],
+          "parameters": {
+            "width": 724,
+            "height": 1130,
+            "content": "## \ud83d\uded2 Shopify \"No Orders in X Minutes\" Alert\n\n### Who It's For\nEcommerce teams, store owners, and DevOps who need to know immediately when orders stop flowing.\n\n### What It Does\nMonitors your Shopify store for new orders at regular intervals (default: 30 min). Tracks downtime duration and sends rich alerts (Slack & HTML Email). Automatically resets when orders resume or if data is stale (>24h).\n\n### How It Works\n1. Schedule Trigger runs at set interval\n2. Config Node validates settings\n3. Fetch Orders pulls orders from Shopify (dynamic lookback)\n4. Orders Found? branches: YES \u2192 reset counters | NO \u2192 send alert\n5. Build Alert creates formatted message with downtime details\n6. Route sends to Slack/Email based on configuration\n7. Error Handler catches API failures and alerts team\n\n### How to Set Up\n1. Connect Shopify OAuth2 to Fetch Orders node\n2. Connect Slack & Gmail accounts to alert nodes\n3. Open the Slack node and manually select your target channel from the dropdown.\n4. Open Configuration node and set:\n   \u2022 enableSlackAlert: true/false\n   \u2022 enableEmailAlert: true/false\n   \u2022 enableRecoveryNotification: true/false\n   \u2022 sendEmailTo: your.email@example.com\n5. Toggle workflow to ACTIVE\n\n### Requirements\n- n8n version 2.11.3+\n- Shopify OAuth2 (orders:read scope)\n- Slack OAuth (chat:write scope) - optional\n- Gmail OAuth (gmail.send scope) - optional\n- Workflow static data support ($getWorkflowStaticData)\n\n### Version Info\n**Version:** 1.2\n**Status:** \u2705 Production Ready\n**Features:** \u2022 Error handling \u2022 Config validation \u2022 Multi-channel alerts \u2022 Recovery Notifications"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "006a7784-02bb-416e-9c1d-638efd2481ce",
+          "name": "Group: Validation & Routing",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            16128,
+            6432
+          ],
+          "parameters": {
+            "color": 4,
+            "width": 640,
+            "height": 584,
+            "content": "### 4\ufe0f\u20e3 VALIDATION & ROUTING\nRoutes structured alerts to enabled channels using Slack Block Kit and HTML Email templates."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "f31872c1-d168-42d4-846b-6c147e553967",
+          "name": "Handle API Error",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            15648,
+            6880
+          ],
+          "parameters": {
+            "jsCode": "// Handle Shopify API errors gracefully\nconst globalData = $getWorkflowStaticData('global');\nconst intervalMinutes = $('Schedule Trigger').params.rule.interval[0].minutesInterval || 30;\nconst currentTime = $now.toFormat('yyyy-MM-dd HH:mm:ss');\n\n// Increment specific API error counter\nglobalData.apiErrorCount = globalData.apiErrorCount ? globalData.apiErrorCount + 1 : 1;\n\nif (!globalData.firstFailingTime) {\n    globalData.firstFailingTime = currentTime;\n}\n\nconst totalDowntimeMinutes = globalData.apiErrorCount * intervalMinutes;\nconst errorMessage = $input.first().json.error?.message || 'Unknown API error';\n\nconst alertMessage = `\u26a0\ufe0f *SHOPIFY API ERROR* (Consecutive API Error #${globalData.apiErrorCount})\\n\\n\u23f0 Time: ${currentTime}\\n\ud83d\udd52 Failing Since: ${globalData.firstFailingTime} (~${totalDowntimeMinutes} mins)\\n\u274c Error: ${errorMessage}\\n\\n\u26a1 Action Required:\\n  \u2022 Check Shopify status page\\n  \u2022 Verify API credentials\\n  \u2022 Check n8n logs for details\\n  \u2022 Your store may be unreachable`;\n\nreturn {json: {\n  alertMessage: alertMessage,\n  apiErrorCount: globalData.apiErrorCount,\n  firstFailingTime: globalData.firstFailingTime,\n  totalDowntimeMinutes: totalDowntimeMinutes,\n  isApiError: true,\n  isTestMode: false,\n  headerIcon: \"\u26a0\ufe0f\",\n  headerTitle: \"SHOPIFY API ERROR\",\n  themeColor: \"#dd6b20\"\n}};"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "d51776cd-c5b3-43e8-87ab-0449d1f9e745",
+          "name": "Group: Setup1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            14208,
+            6432
+          ],
+          "parameters": {
+            "color": 6,
+            "width": 780,
+            "height": 588,
+            "content": "### 1\ufe0f\u20e3 SETUP & CONFIG\nConfigure alert channels. Config validation prevents silent failures and unrouted alerts."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "3ff8013f-2ff7-4fd5-a35d-8fefa6f115e3",
+          "name": "Group: Monitoring1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            15040,
+            6432
+          ],
+          "parameters": {
+            "color": 5,
+            "width": 460,
+            "height": 584,
+            "content": "### 2\ufe0f\u20e3 LIVE MONITORING\nFetches orders from Shopify."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "e8854a73-9f1b-4aa4-83be-94fc059d3be0",
+          "name": "Group: State1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            15536,
+            6432
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 540,
+            "height": 588,
+            "content": "### 3\ufe0f\u20e3 STATE TRACKING\nUses static data to measure downtime. Triggers recovery alerts when orders resume."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "454f7935-996e-4bc7-a172-8a125558934a",
+          "name": "Schedule Trigger",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "position": [
+            14240,
+            6608
+          ],
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "minutes",
+                  "minutesInterval": 30
+                }
+              ]
+            }
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "2e2d0b81-f1d4-452f-a9e7-e71d862921cd",
+          "name": "Configuration",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            14416,
+            6608
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                  "name": "enableSlackAlert",
+                  "type": "boolean",
+                  "value": false
+                },
+                {
+                  "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+                  "name": "enableEmailAlert",
+                  "type": "boolean",
+                  "value": false
+                },
+                {
+                  "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+                  "name": "sendEmailTo",
+                  "type": "string",
+                  "value": "PASTE_RECIPIENT_EMAIL_HERE"
+                },
+                {
+                  "id": "df8fdb10-51c6-4c55-ba2e-6a6c86269d36",
+                  "name": "enableRecoveryNotification",
+                  "type": "boolean",
+                  "value": false
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "d3c2b1b5-a89e-477e-af10-8bedfd45265f",
+          "name": "Validate Email Config?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            14784,
+            6608
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "c1v2b3n4-m5q6-w7e8-r9t0-y1u2i3o4p5",
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "true",
+                    "singleValue": true
+                  },
+                  "leftValue": "={{ $('Configuration').item.json.enableEmailAlert }}",
+                  "rightValue": true
+                },
+                {
+                  "id": "a1s2d3f4-g5h6-j7k8-l9z0-x1c2v3b4n5",
+                  "operator": {
+                    "type": "string",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $('Configuration').item.json.sendEmailTo }}",
+                  "rightValue": "PASTE_RECIPIENT_EMAIL_HERE"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "3ce3b545-c5e7-4bf4-a4a0-902291de1ecb",
+          "name": "All Channels Disabled?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            14576,
+            6608
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "x1y2z3a4",
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "false",
+                    "singleValue": true
+                  },
+                  "leftValue": "={{ $('Configuration').item.json.enableSlackAlert }}",
+                  "rightValue": false
+                },
+                {
+                  "id": "b5c6d7e8",
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "false",
+                    "singleValue": true
+                  },
+                  "leftValue": "={{ $('Configuration').item.json.enableEmailAlert }}",
+                  "rightValue": false
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "a787bc8a-221a-4627-800c-18a692f5202a",
+          "name": "Config Error",
+          "type": "n8n-nodes-base.stopAndError",
+          "position": [
+            14784,
+            6816
+          ],
+          "parameters": {
+            "errorMessage": "Validation Failed: You must enable at least one primary alert channel (Slack or Email), and provide a valid email address if Email Alerts are enabled. Enabling only Recovery notifications is not allowed."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "dee26b50-a858-4d94-8101-dfb661df5873",
+          "name": "Build Alert Message",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            15648,
+            6688
+          ],
+          "parameters": {
+            "jsCode": "const globalData = $getWorkflowStaticData('global');\nconst intervalMinutes = $('Schedule Trigger').params.rule.interval[0].minutesInterval || 30;\nconst currentTime = $now.toFormat('yyyy-MM-dd HH:mm:ss');\n\n// Handle Stale Data Check\nif (globalData.firstFailingTime) {\n  const hoursSinceFirst = $now.diff(DateTime.fromISO(globalData.firstFailingTime), 'hours').hours;\n  if (hoursSinceFirst > 24) {\n    delete globalData.firstFailingTime;\n    delete globalData.failedCount;\n  }\n}\n\nglobalData.failedCount = globalData.failedCount ? globalData.failedCount + 1 : 1;\n\nif (!globalData.firstFailingTime) {\n    globalData.firstFailingTime = currentTime;\n}\n\nconst totalDowntimeMinutes = globalData.failedCount * intervalMinutes;\n\n// Determine context mode\nconst headerIcon = \"\ud83d\udea8\";\nconst headerTitle = \"NO ORDERS ALERT\";\n\nconst alertMessage = `${headerIcon} *${headerTitle}* (Consecutive Alert #${globalData.failedCount})\\n\\n\u23f0 Time Checked: ${currentTime}\\n\ud83d\udd52 Failing Since: ${globalData.firstFailingTime} (~${totalDowntimeMinutes} mins without new orders)\\n\ud83d\udcca Status: No orders found in the last ${intervalMinutes} minutes.\\n\u26a0\ufe0f Action Required: Please check your Shopify store for:\\n  \u2022 Payment gateway issues\\n  \u2022 Checkout errors\\n  \u2022 Traffic anomalies\\n  \u2022 API connectivity`;\n\nreturn {json: {\n  alertMessage: alertMessage,\n  failedCount: globalData.failedCount,\n  firstFailingTime: globalData.firstFailingTime,\n  totalDowntimeMinutes: totalDowntimeMinutes,\n  headerIcon: headerIcon,\n  headerTitle: headerTitle,\n  themeColor: \"#e53e3e\"\n}};"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "a1390a0f-24d7-453b-8be3-55658e8fec3c",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            16480,
+            6496
+          ],
+          "parameters": {
+            "color": 6,
+            "width": 250,
+            "height": 90,
+            "content": "\u26a0\ufe0f **ACTION REQUIRED**\nOpen this node and select your Slack channel from the dropdown before activating the workflow."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "30cc8795-d656-49e0-9c6c-7e6c69ca6965",
+          "name": "Alert Team via Slack",
+          "type": "n8n-nodes-base.slack",
+          "onError": "continueRegularOutput",
+          "position": [
+            16496,
+            6608
+          ],
+          "webhookId": "2189bf89-1a5e-4ff8-bf53-1d8000c3f776",
+          "parameters": {
+            "text": "={{ $json.alertMessage }}",
+            "select": "channel",
+            "channelId": {
+              "__rl": true,
+              "mode": "list",
+              "value": ""
+            },
+            "otherOptions": {}
+          },
+          "credentials": {
+            "slackApi": {
+              "id": "9PqEaeHo0Yc8m07f",
+              "name": "Slack account"
+            }
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "7db49dfb-ddbb-4db6-85c2-baa08669681f",
+          "name": "Alert Team via Email",
+          "type": "n8n-nodes-base.gmail",
+          "onError": "continueRegularOutput",
+          "position": [
+            16496,
+            6816
+          ],
+          "webhookId": "c4cb1191-bf45-445c-8374-2d82a7942e50",
+          "parameters": {
+            "sendTo": "={{ $('Configuration').item.json.sendEmailTo }}",
+            "message": "=<div style=\"font-family:sans-serif;border-left:4px solid {{ $json.themeColor || '#e53e3e' }};padding:16px;\">\n  <h2 style=\"color:{{ $json.themeColor || '#e53e3e' }};\">{{ $json.headerIcon }} {{ $json.headerTitle }}</h2>\n  <p><strong>Status:</strong> {{ $json.isRecovery ? 'Orders have resumed.' : 'Downtime ongoing.' }}</p>\n  <p><strong>Approx Downtime:</strong> {{ $json.totalDowntimeMinutes }} minutes</p>\n  <p><strong>Failing Since:</strong> {{ $json.firstFailingTime }}</p>\n  <br>\n  <p><strong>{{ $json.isRecovery ? '\u2705 Recovery Actions:' : '\u26a0\ufe0f Action Required:' }}</strong></p>\n  <ul style=\"color:#4a5568;\">\n    <li>{{ $json.isRecovery ? 'Verify order data looks correct in admin' : 'Check Shopify status page' }}</li>\n    <li>{{ $json.isRecovery ? 'Monitor for any lingering sync issues' : 'Verify payment gateway connectivity' }}</li>\n    <li>{{ $json.isRecovery ? 'Check n8n logs for API error details (if any)' : 'Investigate checkout errors / Rate Limits' }}</li>\n  </ul>\n</div>",
+            "options": {},
+            "subject": "={{ $json.headerIcon }} {{ $json.headerTitle }} - Notification"
+          },
+          "credentials": {
+            "gmailOAuth2": {
+              "id": "BjrXnqXy3fAmBAHV",
+              "name": "Gmail account"
+            }
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "4c3c1729-b28a-4599-8e69-209e053fb355",
+          "name": "Orders Resumed \u2014 Reset Counters",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            15648,
+            6496
+          ],
+          "parameters": {
+            "jsCode": "const globalData = $getWorkflowStaticData('global');\nconst intervalMinutes = $('Schedule Trigger').params.rule.interval[0].minutesInterval || 30;\n\nlet wasFailing = globalData.failedCount > 0 || globalData.apiErrorCount > 0;\nlet downtimeMinutes = ((globalData.failedCount || 0) + (globalData.apiErrorCount || 0)) * intervalMinutes;\nlet failingSince = globalData.firstFailingTime || 'Unknown';\n\n// Clear all tracking variables\ndelete globalData.failedCount;\ndelete globalData.apiErrorCount;\ndelete globalData.firstFailingTime;\n\n// If we were previously failing, generate a recovery payload\nif (wasFailing) {\n  const headerIcon = \"\u2705\";\n  const headerTitle = \"SYSTEM RECOVERED\";\n  const alertMessage = `${headerIcon} *${headerTitle}*\\n\\n\ud83c\udf89 Orders are successfully flowing again!\\n\ud83d\udd52 Outage Started: ${failingSince}\\n\u23f1\ufe0f Approx Downtime: ${downtimeMinutes} mins`;\n\n  return [{ json: {\n    alertMessage: alertMessage,\n    totalDowntimeMinutes: downtimeMinutes,\n    firstFailingTime: failingSince,\n    isRecovery: true,\n    headerIcon: headerIcon,\n    headerTitle: headerTitle,\n    themeColor: \"#38a169\"\n  }}];\n}\n\n// Always return an item so the downstream IF node can cleanly stop execution\nreturn [{ json: { \n  isRecovery: false, \n  message: \"No active outage to recover from. Counters cleared.\"\n}}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "5f0b43df-efe3-4f09-abee-d0be9065fa90",
+          "name": "Slack Enabled?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            16208,
+            6624
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "3b16f6ce-394e-4065-8a69-fcba5e78c140",
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "true",
+                    "singleValue": true
+                  },
+                  "leftValue": "={{ $('Configuration').item.json.enableSlackAlert }}",
+                  "rightValue": true
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "d949d8d3-65a8-4c1b-a26f-2afff53d6a76",
+          "name": "Email Enabled?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            16208,
+            6832
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "f3f262f5-09a3-4b18-b6d1-ae35ec776faa",
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "true",
+                    "singleValue": true
+                  },
+                  "leftValue": "={{ $('Configuration').item.json.enableEmailAlert }}",
+                  "rightValue": true
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "397a97d8-4fd4-45ae-a967-5be1260a2cd0",
+          "name": "Orders Found?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            15296,
+            6544
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "14183057-8344-46ed-b5b7-00d7b1575929",
+                  "operator": {
+                    "type": "object",
+                    "operation": "notEmpty",
+                    "singleValue": true
+                  },
+                  "leftValue": "={{ $input.item.json }}",
+                  "rightValue": ""
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "b597108d-422f-482b-a86a-6748fd934bb8",
+          "name": "Fetch Orders",
+          "type": "n8n-nodes-base.shopify",
+          "onError": "continueErrorOutput",
+          "position": [
+            15136,
+            6720
+          ],
+          "parameters": {
+            "limit": 1,
+            "options": {
+              "createdAtMin": "={{ $now.minus({ minutes: $(\"Schedule Trigger\").params.rule.interval?.[0]?.minutesInterval || 30 }).toISO() }}"
+            },
+            "operation": "getAll",
+            "authentication": "oAuth2"
+          },
+          "credentials": {
+            "shopifyOAuth2Api": {
+              "id": "Im3gFuEdNJycAE1T",
+              "name": "Shopify Access Token account"
+            }
+          },
+          "typeVersion": 1,
+          "alwaysOutputData": true
+        },
+        {
+          "id": "f6913565-d598-44b8-b106-b7ee70c047a5",
+          "name": "Recovery Enabled?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            15888,
+            6496
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "c1d2e3f4-g5h6-i7j8-k9l0-m1n2o3p4q5",
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "true",
+                    "singleValue": true
+                  },
+                  "leftValue": "={{ $json.isRecovery }}",
+                  "rightValue": true
+                },
+                {
+                  "id": "e5485374-cd9e-43af-98f6-8a2f981c0f3e",
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "true",
+                    "singleValue": true
+                  },
+                  "leftValue": "={{ $('Configuration').item.json.enableRecoveryNotification }}",
+                  "rightValue": "true"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        }
+      ],
+      "active": false,
+      "pinData": {
+        "Fetch Orders": [
+          {
+            "json": {}
+          }
+        ]
+      },
+      "settings": {
+        "binaryMode": "separate",
+        "callerPolicy": "workflowsFromSameOwner",
+        "timeSavedMode": "fixed",
+        "availableInMCP": false,
+        "executionOrder": "v1"
+      },
+      "versionId": "c9b9a508-434f-46f6-adf0-e3d4ca51c466",
+      "connections": {
+        "Fetch Orders": {
+          "main": [
+            [
+              {
+                "node": "Orders Found?",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Handle API Error",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Configuration": {
+          "main": [
+            [
+              {
+                "node": "All Channels Disabled?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Orders Found?": {
+          "main": [
+            [
+              {
+                "node": "Orders Resumed \u2014 Reset Counters",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Build Alert Message",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Email Enabled?": {
+          "main": [
+            [
+              {
+                "node": "Alert Team via Email",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Slack Enabled?": {
+          "main": [
+            [
+              {
+                "node": "Alert Team via Slack",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Handle API Error": {
+          "main": [
+            [
+              {
+                "node": "Slack Enabled?",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Email Enabled?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Schedule Trigger": {
+          "main": [
+            [
+              {
+                "node": "Configuration",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Recovery Enabled?": {
+          "main": [
+            [
+              {
+                "node": "Slack Enabled?",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Email Enabled?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Alert Message": {
+          "main": [
+            [
+              {
+                "node": "Slack Enabled?",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Email Enabled?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "All Channels Disabled?": {
+          "main": [
+            [
+              {
+                "node": "Config Error",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Validate Email Config?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Validate Email Config?": {
+          "main": [
+            [
+              {
+                "node": "Config Error",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Fetch Orders",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Orders Resumed \u2014 Reset Counters": {
+          "main": [
+            [
+              {
+                "node": "Recovery Enabled?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 21,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 6
+        },
+        "n8n-nodes-base.set": {
+          "count": 1
+        },
+        "n8n-nodes-base.code": {
+          "count": 3
+        },
+        "n8n-nodes-base.gmail": {
+          "count": 1
+        },
+        "n8n-nodes-base.slack": {
+          "count": 1
+        },
+        "n8n-nodes-base.shopify": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 6
+        },
+        "n8n-nodes-base.stopAndError": {
+          "count": 1
+        },
+        "n8n-nodes-base.scheduleTrigger": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Tricore Infotech Pvt Ltd",
+      "username": "jinitp",
+      "bio": "",
+      "verified": true,
+      "links": [
+        "https://tricoreitsolutions.com/"
+      ],
+      "avatar": "https://gravatar.com/avatar/05a4ebbf362bb5ad57b765d4d7a7fb43c88f9bd0446a2711f5d8ddd9dee995f2?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 40,
+        "icon": "file:slack.svg",
+        "name": "n8n-nodes-base.slack",
+        "codex": {
+          "data": {
+            "alias": [
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-automatically-give-kudos-to-contributors-with-github-slack-and-n8n/",
+                  "icon": "\ud83d\udc4f",
+                  "label": "How to automatically give kudos to contributors with GitHub, Slack, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.slack/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/slack/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "Slack"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgMTUwLjg1MiAxNTAuODUyIj48dXNlIHhsaW5rOmhyZWY9IiNhIiB4PSIuOTI2IiB5PSIuOTI2Ii8+PHN5bWJvbCBpZD0iYSIgb3ZlcmZsb3c9InZpc2libGUiPjxnIHN0cm9rZS13aWR0aD0iMS44NTIiPjxwYXRoIGZpbGw9IiNlMDFlNWEiIHN0cm9rZT0iI2UwMWU1YSIgZD0iTTQwLjc0MSA5My41NWMwLTguNzM1IDYuNjA3LTE1Ljc3MiAxNC44MTUtMTUuNzcyczE0LjgxNSA3LjAzNyAxNC44MTUgMTUuNzcydjM4LjgyNGMwIDguNzM3LTYuNjA3IDE1Ljc3NC0xNC44MTUgMTUuNzc0cy0xNC44MTUtNy4wMzctMTQuODE1LTE1Ljc3MnoiLz48cGF0aCBmaWxsPSIjZWNiMjJkIiBzdHJva2U9IiNlY2IyMmQiIGQ9Ik05My41NSAxMDcuNDA4Yy04LjczNSAwLTE1Ljc3Mi02LjYwNy0xNS43NzItMTQuODE1czcuMDM3LTE0LjgxNSAxNS43NzItMTQuODE1aDM4LjgyNmM4LjczNSAwIDE1Ljc3MiA2LjYwNyAxNS43NzIgMTQuODE1cy03LjAzNyAxNC44MTUtMTUuNzcyIDE0LjgxNXoiLz48cGF0aCBmaWxsPSIjMmZiNjdjIiBzdHJva2U9IiMyZmI2N2MiIGQ9Ik03Ny43NzggMTUuNzcyQzc3Ljc3OCA3LjAzNyA4NC4zODUgMCA5Mi41OTMgMHMxNC44MTUgNy4wMzcgMTQuODE1IDE1Ljc3MnYzOC44MjZjMCA4LjczNS02LjYwNyAxNS43NzItMTQuODE1IDE1Ljc3MnMtMTQuODE1LTcuMDM3LTE0LjgxNS0xNS43NzJ6Ii8+PHBhdGggZmlsbD0iIzM2YzVmMSIgc3Ryb2tlPSIjMzZjNWYxIiBkPSJNMTUuNzcyIDcwLjM3MUM3LjAzNyA3MC4zNzEgMCA2My43NjMgMCA1NS41NTZzNy4wMzctMTQuODE1IDE1Ljc3Mi0xNC44MTVoMzguODI2YzguNzM1IDAgMTUuNzcyIDYuNjA3IDE1Ljc3MiAxNC44MTVzLTcuMDM3IDE0LjgxNS0xNS43NzIgMTQuODE1eiIvPjxnIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiPjxwYXRoIGZpbGw9IiNlY2IyMmQiIHN0cm9rZT0iI2VjYjIyZCIgZD0iTTc3Ljc3OCAxMzMuMzMzYzAgOC4yMDggNi42MDcgMTQuODE1IDE0LjgxNSAxNC44MTVzMTQuODE1LTYuNjA3IDE0LjgxNS0xNC44MTUtNi42MDctMTQuODE1LTE0LjgxNS0xNC44MTVINzcuNzc4eiIvPjxwYXRoIGZpbGw9IiMyZmI2N2MiIHN0cm9rZT0iIzJmYjY3YyIgZD0iTTEzMy4zMzQgNzAuMzcxaC0xNC44MTVWNTUuNTU2YzAtOC4yMDcgNi42MDctMTQuODE1IDE0LjgxNS0xNC44MTVzMTQuODE1IDYuNjA3IDE0LjgxNSAxNC44MTUtNi42MDcgMTQuODE1LTE0LjgxNSAxNC44MTV6Ii8+PHBhdGggZmlsbD0iI2UwMWU1YSIgc3Ryb2tlPSIjZTAxZTVhIiBkPSJNMTQuODE1IDc3Ljc3OEgyOS42M3YxNC44MTVjMCA4LjIwNy02LjYwNyAxNC44MTUtMTQuODE1IDE0LjgxNVMwIDEwMC44IDAgOTIuNTkzczYuNjA3LTE0LjgxNSAxNC44MTUtMTQuODE1eiIvPjxwYXRoIGZpbGw9IiMzNmM1ZjEiIHN0cm9rZT0iIzM2YzVmMSIgZD0iTTcwLjM3MSAxNC44MTVWMjkuNjNINTUuNTU2Yy04LjIwNyAwLTE0LjgxNS02LjYwNy0xNC44MTUtMTQuODE1UzQ3LjM0OCAwIDU1LjU1NiAwczE0LjgxNSA2LjYwNyAxNC44MTUgMTQuODE1eiIvPjwvZz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Slack",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 312,
+        "icon": "file:shopify.svg",
+        "name": "n8n-nodes-base.shopify",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.shopify/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/shopify/"
+                }
+              ]
+            },
+            "categories": [
+              "Sales"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "Shopify"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgNTggNjYiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48ZyBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSI+PHBhdGggZmlsbD0iIzk1YmY0NyIgZD0iTTQ5LjI1NSAxMi40ODRhLjYzLjYzIDAgMCAwLS41NjQtLjUyN2MtLjIyNS0uMDM3LTUuMTctLjM3Ni01LjE3LS4zNzZsLTMuNzctMy43N2MtLjM0LS4zNzYtMS4wOTItLjI2Ni0xLjM3Ni0uMTg4LS4wMzcgMC0uNzUyLjIyNS0xLjkyMi42MDUtMS4xMzctMy4zLTMuMTUtNi4zMDYtNi42OTYtNi4zMDZoLS4zMDNDMjguNDM4LjYwNSAyNy4xOTQgMCAyNi4xNDQgMGMtOC4yNTYuMDM3LTEyLjIgMTAuMzMzLTEzLjQzNCAxNS41OTRsLTUuNzcgMS43N2MtMS43Ny41NjQtMS44MzUuNjA1LTIuMDczIDIuMjkzTDAgNTcuMTc1IDM2LjQ2OCA2NGwxOS43NjMtNC4yNmMwLS4wMzctNi45NC00Ni44OTctNi45NzYtNDcuMjU1ek0zNC40MzEgOC44NmMtLjkxNy4zMDMtMS45NjMuNjA1LTMuMS45NDV2LS42OGExNSAxNSAwIDAgMC0uNzUyLTQuOTk5YzEuODQ4LjI4NCAzLjEgMi4zNTcgMy44NDMgNC43MzN6bS02LjA2OC00LjI5OGMuNjAzIDEuNzc4Ljg4MyAzLjY1LjgyNiA1LjUyN3YuMzRsLTYuMzc1IDEuOTYzYzEuMjQ4LTQuNjYgMy41NS02Ljk2MiA1LjU1LTcuODN6bS0yLjQ1LTIuMjkzYTEuOTQgMS45NCAwIDAgMSAxLjA1NS4zMzljLTIuNjYgMS4yMzgtNS40NzIgNC4zNjYtNi42NzggMTAuNjI3bC01LjA0NSAxLjU0NkMxNi42NjggMTAuMDMgMTkuOTg4IDIuMjYgMjUuOTEgMi4yNnoiLz48cGF0aCBmaWxsPSIjNWU4ZTNlIiBkPSJNNDguNjkxIDExLjk1N2MtLjIyNS0uMDM3LTUuMTctLjM3Ni01LjE3LS4zNzZsLTMuNzctMy43N2EuNzUuNzUgMCAwIDAtLjUyNy0uMjI1TDM2LjQ3MiA2NGwxOS43NjMtNC4yNi02Ljk4LTQ3LjIxOGEuNjguNjggMCAwIDAtLjU2NC0uNTY0eiIvPjxwYXRoIGQ9Im0yOS43NTggMjIuOS0yLjQ1NCA3LjI0MmExMS40IDExLjQgMCAwIDAtNC43NTItMS4xMzNjLTMuODQ4IDAtNC4wMzYgMi40MTItNC4wMzYgMy4wMTggMCAzLjI5OCA4LjYzNiA0LjU2NCA4LjYzNiAxMi4zMzMgMCA2LjEtMy44ODUgMTAuMDMtOS4xIDEwLjAzLTYuMjYgMC05LjQ2Ny0zLjg4NS05LjQ2Ny0zLjg4NWwxLjY2NS01LjU1czMuMjggMi44MyA2LjA3MyAyLjgzYTIuNDcgMi40NyAwIDAgMCAyLjU2NC0yLjQ5YzAtNC4zNC03LjEtNC41MjctNy4xLTExLjYxOCAwLTUuOTYyIDQuMjk4LTExLjc3IDEyLjkzNC0xMS43NyAzLjM5NC4wNSA1LjAxOCAxIDUuMDE4IDF6Ii8+PC9nPjwvc3ltYm9sPjwvc3ZnPg=="
+        },
+        "displayName": "Shopify",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 2,
+            "name": "Sales"
+          }
+        ]
+      },
+      {
+        "id": 356,
+        "icon": "file:gmail.svg",
+        "name": "n8n-nodes-base.gmail",
+        "codex": {
+          "data": {
+            "alias": [
+              "email",
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/using-automation-to-boost-productivity-in-the-workplace/",
+                  "icon": "\ud83d\udcaa",
+                  "label": "Using Automation to Boost Productivity in the Workplace"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.gmail/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Gmail"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMTkzIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCI+PHBhdGggZmlsbD0iIzQyODVGNCIgZD0iTTU4LjE4MiAxOTIuMDVWOTMuMTRMMjcuNTA3IDY1LjA3NyAwIDQ5LjUwNHYxMjUuMDkxYzAgOS42NTggNy44MjUgMTcuNDU1IDE3LjQ1NSAxNy40NTV6Ii8+PHBhdGggZmlsbD0iIzM0QTg1MyIgZD0iTTE5Ny44MTggMTkyLjA1aDQwLjcyN2M5LjY1OSAwIDE3LjQ1NS03LjgyNiAxNy40NTUtMTcuNDU1VjQ5LjUwNWwtMzEuMTU2IDE3LjgzNy0yNy4wMjYgMjUuNzk4eiIvPjxwYXRoIGZpbGw9IiNFQTQzMzUiIGQ9Im01OC4xODIgOTMuMTQtNC4xNzQtMzguNjQ3IDQuMTc0LTM2Ljk4OUwxMjggNjkuODY4bDY5LjgxOC01Mi4zNjQgNC42NyAzNC45OTItNC42NyA0MC42NDRMMTI4IDE0NS41MDR6Ii8+PHBhdGggZmlsbD0iI0ZCQkMwNCIgZD0iTTE5Ny44MTggMTcuNTA0VjkzLjE0TDI1NiA0OS41MDRWMjYuMjMxYzAtMjEuNTg1LTI0LjY0LTMzLjg5LTQxLjg5LTIwLjk0NXoiLz48cGF0aCBmaWxsPSIjQzUyMjFGIiBkPSJtMCA0OS41MDQgMjYuNzU5IDIwLjA3TDU4LjE4MiA5My4xNFYxNy41MDRMNDEuODkgNS4yODZDMjQuNjEtNy42NiAwIDQuNjQ2IDAgMjYuMjN6Ii8+PC9zdmc+"
+        },
+        "displayName": "Gmail",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 528,
+        "icon": "fa:exclamation-triangle",
+        "name": "n8n-nodes-base.stopAndError",
+        "codex": {
+          "data": {
+            "alias": [
+              "Throw error",
+              "Error",
+              "Exception"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.stopanderror/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes",
+              "Utility"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Stop and Error",
+          "color": "#ff0000"
+        },
+        "iconData": {
+          "icon": "exclamation-triangle",
+          "type": "icon"
+        },
+        "displayName": "Stop and Error",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 7,
+            "name": "Utility"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 839,
+        "icon": "fa:clock",
+        "name": "n8n-nodes-base.scheduleTrigger",
+        "codex": {
+          "data": {
+            "alias": [
+              "Time",
+              "Scheduler",
+              "Polling",
+              "Cron",
+              "Interval"
+            ],
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\",\"schedule\"]",
+        "defaults": {
+          "name": "Schedule Trigger",
+          "color": "#31C49F"
+        },
+        "iconData": {
+          "icon": "clock",
+          "type": "icon"
+        },
+        "displayName": "Schedule Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 16,
+        "name": "DevOps"
+      }
+    ],
+    "image": []
+  }
+}

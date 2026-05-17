@@ -1,0 +1,1338 @@
+{
+  "workflow": {
+    "id": 15586,
+    "name": "Generate and edit images with Havis AI Nano Banana 2",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-10T08:35:27.760Z",
+    "description": "# Havis AI - Nano Banana 2 n8n Workflow\n\n## Summary\n\nThis n8n workflow submits an image generation job to **Havis AI Nano Banana 2**, waits for processing, polls task status, and returns result data when the job completes.\n\n## Who is this for?\n\n- Creators who want a reusable no-code generation form.\n- Agencies building client-facing AI automation.\n- Developers who want an importable API test workflow.\n- n8n users connecting Havis AI output to storage, Slack, Sheets, Airtable, webhooks, or a CMS.\n\n## What this workflow does\n\n1. Opens an n8n Form Trigger for Nano Banana 2 inputs.\n2. Builds a clean JSON payload and removes empty optional fields.\n3. Sends a POST request to `https://havis.ai/api/nano-banana-2`.\n4. Waits 8 seconds, then polls `https://havis.ai/api/task/{task_id}`.\n5. Loops while the task is processing.\n6. Returns task ID, status, result URLs, credits used, and submitted payload.\n7. Returns a clean error object if the task fails.\n\n## Setup\n\n1. Import the JSON workflow into n8n.\n2. Open the Form Trigger URL.\n3. Enter your Havis API key in `api_key`. Use only the key value; the workflow adds `Bearer` automatically.\n4. Fill in the model inputs and submit.\n\nFor production, store the API key in n8n credentials or environment variables instead of typing it into a public form.\n\n## Main payload fields\n\n- `prompt` (Required) - string\n- `mode` (Optional) - string\n- `aspect_ratio` (Optional) - string\n- `resolution` (Optional) - string\n- `output_format` (Optional) - string\n- `images` - collected from form URL fields\n\n## Example request body\n\n```json\n{\n  \"prompt\": \"A cyberpunk cityscape at night, ultra detailed\",\n  \"mode\": \"text-to-image\",\n  \"aspect_ratio\": \"16:9\",\n  \"resolution\": \"2K\",\n  \"output_format\": \"png\"\n}\n```\n\n## API documentation\n\n- Model docs: https://havis.ai/document/api-nano-banana-2\n- Submit endpoint: `POST https://havis.ai/api/nano-banana-2`\n- Task status endpoint: `GET https://havis.ai/api/task/{task_id}`\n\n## Output fields\n\n- `task_id` - The generation task ID returned by Havis AI.\n- `status` - Usually `completed`, `processing`, or `failed`.\n- `model` - The public model slug.\n- `result_urls` - JSON string containing final R2/CDN result URLs.\n- `credits_used` - Credits deducted for the submitted task when returned by the API.\n- `submitted_payload` - The exact JSON payload sent to Havis AI.\n\n## Customization ideas\n\n- Add a Webhook Response node after `Return Result` to expose this as your own mini API.\n- Add Google Sheets or Airtable after `Return Result` to keep a generation log.\n- Add Slack, Telegram, or email notification for completed jobs.\n- Replace the Form Trigger with another app trigger for batch automation.\n- Increase the wait interval for long video or audio jobs.\n\n## Troubleshooting\n\n- `401` or `403`: check your API key.\n- `402`: the account does not have enough credits or model pricing is missing.\n- `422`: required fields are missing or a field value is invalid.\n- No result URLs yet: the task is still processing; let the polling loop continue.\n- This template is fixed to `https://havis.ai`; use an API key created for Havis AI.\n",
+    "workflow": {
+      "meta": {
+        "instanceId": "havis-ai-n8n-template-pack"
+      },
+      "name": "Havis AI - Nano Banana 2",
+      "nodes": [
+        {
+          "id": "0822a508-a188-44e4-a927-79a7de68fdba",
+          "name": "Sticky Note - Workflow Overview",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -144,
+            896
+          ],
+          "parameters": {
+            "width": 512,
+            "height": 848,
+            "content": "## Havis AI - Nano Banana 2\n\n### How it works\n\n1. The workflow shows a public n8n form for collecting a Nano Banana 2 request and a Havis API key.\n2. It converts the form values into the JSON payload expected by the Havis API.\n3. It submits the job to `https://havis.ai/api/nano-banana-2` and receives a task ID.\n4. It polls `https://havis.ai/api/task/{task_id}` until the job finishes or fails.\n5. It returns the task metadata, credit usage, payload, and generated result URLs.\n\n### Setup steps\n\n- [ ] Create a Havis API key at https://havis.ai/manager/profile.\n- [ ] Open the form trigger URL after importing this workflow into n8n.\n- [ ] Enter the required Nano Banana 2 inputs: prompt, mode, aspect_ratio, resolution, output_format, image_url_1.\n- [ ] Confirm your Havis account has enough credits before running the workflow.\n- [ ] Adjust the polling wait time if your executions need faster or slower status checks.\n\n### Customization\n\nChange default prompt values, optional fields, polling interval, or the final output fields to match your automation. Keep the Havis domain fixed unless you intentionally publish a separate private workflow."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "0882d3c6-c218-47ee-b5f2-eccb87127160",
+          "name": "Sticky Note - Request Input",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            448,
+            944
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 320,
+            "height": 384,
+            "content": "## Collect request inputs\n\nThe form trigger captures the Havis API key plus the Nano Banana 2 inputs from the user.\n\nKey fields: prompt, mode, aspect_ratio, resolution, output_format, image_url_1, image_url_2, image_url_3, ...."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "f1820040-0a46-419a-af25-1e8a2a6c0a90",
+          "name": "Sticky Note - Payload Preparation",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            848,
+            944
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 320,
+            "height": 384,
+            "content": "## Build API payload\n\nThe code node trims blank values, applies default options, and builds a clean JSON body. Optional images, video URLs, audio URLs, tags, modes, or resolution fields are only included when provided."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "f9fb3649-b11d-448c-92c9-e7af1d81e218",
+          "name": "Sticky Note - API Submission",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1248,
+            944
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 400,
+            "height": 384,
+            "content": "## Submit generation job\n\nThe HTTP request sends the prepared payload to Havis AI with a bearer token. A successful response should include a `task_id` and the number of credits used for the request."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "dbbb80ed-ca49-4bb9-b92a-da3e816b1e55",
+          "name": "Sticky Note - Polling and Output",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1696,
+            832
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 880,
+            "height": 720,
+            "content": "## Poll and return result\n\nThe workflow waits, checks task status, branches on completed or failed states, and loops while the job is still processing. Completed runs return result URLs; failed runs return a readable error object."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "0f89b8b7-55a6-91d7-1d41-5a79bc4cb4fd",
+          "name": "Form - Nano Banana 2",
+          "type": "n8n-nodes-base.formTrigger",
+          "position": [
+            520,
+            1120
+          ],
+          "parameters": {
+            "options": {},
+            "formTitle": "Havis AI - Nano Banana 2",
+            "formFields": {
+              "values": [
+                {
+                  "fieldLabel": "api_key",
+                  "placeholder": "YOUR_HAVIS_API_KEY",
+                  "requiredField": true
+                },
+                {
+                  "fieldType": "textarea",
+                  "fieldLabel": "prompt",
+                  "placeholder": "A cyberpunk cityscape at night, ultra detailed",
+                  "requiredField": true
+                },
+                {
+                  "fieldType": "dropdown",
+                  "fieldLabel": "mode [optional]",
+                  "fieldOptions": {
+                    "values": [
+                      {
+                        "option": "text-to-image"
+                      },
+                      {
+                        "option": "edit-image"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "fieldType": "dropdown",
+                  "fieldLabel": "aspect_ratio [optional]",
+                  "fieldOptions": {
+                    "values": [
+                      {
+                        "option": "1:1"
+                      },
+                      {
+                        "option": "16:9"
+                      },
+                      {
+                        "option": "9:16"
+                      },
+                      {
+                        "option": "4:3"
+                      },
+                      {
+                        "option": "3:4"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "fieldType": "dropdown",
+                  "fieldLabel": "resolution [optional]",
+                  "fieldOptions": {
+                    "values": [
+                      {
+                        "option": "1K"
+                      },
+                      {
+                        "option": "2K"
+                      },
+                      {
+                        "option": "4K"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "fieldType": "dropdown",
+                  "fieldLabel": "output_format [optional]",
+                  "fieldOptions": {
+                    "values": [
+                      {
+                        "option": "png"
+                      },
+                      {
+                        "option": "jpg"
+                      },
+                      {
+                        "option": "jpeg"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "fieldLabel": "image_url_1 [optional]",
+                  "placeholder": "https://example.com/source.png"
+                },
+                {
+                  "fieldLabel": "image_url_2 [optional]",
+                  "placeholder": "https://example.com/source.png"
+                },
+                {
+                  "fieldLabel": "image_url_3 [optional]",
+                  "placeholder": "https://example.com/source.png"
+                },
+                {
+                  "fieldLabel": "image_url_4 [optional]",
+                  "placeholder": "https://example.com/source.png"
+                },
+                {
+                  "fieldLabel": "image_url_5 [optional]",
+                  "placeholder": "https://example.com/source.png"
+                },
+                {
+                  "fieldLabel": "image_url_6 [optional]",
+                  "placeholder": "https://example.com/source.png"
+                },
+                {
+                  "fieldLabel": "image_url_7 [optional]",
+                  "placeholder": "https://example.com/source.png"
+                },
+                {
+                  "fieldLabel": "image_url_8 [optional]",
+                  "placeholder": "https://example.com/source.png"
+                },
+                {
+                  "fieldLabel": "tag [optional]",
+                  "placeholder": "n8n-nano-banana-2"
+                }
+              ]
+            },
+            "formDescription": "Submit a Nano Banana 2 job through Havis AI and poll until it completes."
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "abc09e54-de2b-0417-9f6c-23e3611f37e1",
+          "name": "Build Payload",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            920,
+            1120
+          ],
+          "parameters": {
+            "jsCode": "const input = $json;\nconst clean = (value) => value === undefined || value === null ? '' : String(value).trim();\nconst body = {};\nconst apiKey = clean(input.api_key);\nfunction put(name, label, type, required) {\n  const value = clean(input[label]);\n  if (!value && !required) return;\n  if (type === \"number\") { const n = Number(value); if (!Number.isNaN(n)) body[name] = n; return; }\n  if (type === \"boolean\") { body[name] = value === \"true\" || value === \"1\" || value.toLowerCase() === \"yes\"; return; }\n  body[name] = value;\n}\nput(\"prompt\", \"prompt\", \"string\", true);\nput(\"mode\", \"mode [optional]\", \"string\", false);\nput(\"aspect_ratio\", \"aspect_ratio [optional]\", \"string\", false);\nput(\"resolution\", \"resolution [optional]\", \"string\", false);\nput(\"output_format\", \"output_format [optional]\", \"string\", false);\nif (body[\"mode\"] === undefined || body[\"mode\"] === '') body[\"mode\"] = \"text-to-image\";\nif (body[\"aspect_ratio\"] === undefined || body[\"aspect_ratio\"] === '') body[\"aspect_ratio\"] = \"1:1\";\nif (body[\"resolution\"] === undefined || body[\"resolution\"] === '') body[\"resolution\"] = \"1K\";\nif (body[\"output_format\"] === undefined || body[\"output_format\"] === '') body[\"output_format\"] = \"png\";\nconst arr0 = [\"image_url_1 [optional]\",\"image_url_2 [optional]\",\"image_url_3 [optional]\",\"image_url_4 [optional]\",\"image_url_5 [optional]\",\"image_url_6 [optional]\",\"image_url_7 [optional]\",\"image_url_8 [optional]\"].map(label => clean(input[label])).filter(Boolean);\nif (arr0.length) body[\"images\"] = arr0;\nbody.tag = clean(input['tag [optional]']) || \"n8n-nano-banana-2\";\nreturn [{ json: { api_key: apiKey, body } }];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "c7163876-7390-e820-6b79-af2247f331dd",
+          "name": "Submit - Havis API",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            1320,
+            1120
+          ],
+          "parameters": {
+            "url": "https://havis.ai/api/nano-banana-2",
+            "method": "POST",
+            "options": {},
+            "jsonBody": "={{ $json.body }}",
+            "sendBody": true,
+            "sendHeaders": true,
+            "specifyBody": "json",
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer {{ $json.api_key }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "109f31d6-14c6-a287-7d1a-0be6cf63c52b",
+          "name": "Wait 8s",
+          "type": "n8n-nodes-base.wait",
+          "position": [
+            1520,
+            1120
+          ],
+          "parameters": {
+            "unit": "seconds",
+            "amount": 8
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "fbfaa109-ff8c-941a-018a-c58188385137",
+          "name": "Check Task Status",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            1720,
+            1120
+          ],
+          "parameters": {
+            "url": "={{ 'https://havis.ai/api/task/' + $('Submit - Havis API').first().json.task_id }}",
+            "options": {},
+            "sendHeaders": true,
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Authorization",
+                  "value": "=Bearer {{ $('Build Payload').first().json.api_key }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "f9685fb8-1fbf-6041-5bf2-21e753844160",
+          "name": "Is Completed?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            1920,
+            1120
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 2,
+                "leftValue": "",
+                "caseSensitive": false,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "d0888e4c-26e4-7dc1-0f26-aba22899a8d6",
+                  "operator": {
+                    "name": "filter.operator.equals",
+                    "type": "string",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $json.status }}",
+                  "rightValue": "completed"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "26c9e4d9-c929-cba3-867f-ec4c0fb2948c",
+          "name": "Is Failed?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            2120,
+            1240
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 2,
+                "leftValue": "",
+                "caseSensitive": false,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "baea6bd6-a5ba-fd80-b43a-76d7eab14209",
+                  "operator": {
+                    "name": "filter.operator.equals",
+                    "type": "string",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $json.status }}",
+                  "rightValue": "failed"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "adbb2981-bce0-5673-ab64-b9b56385587e",
+          "name": "Wait 8s (loop)",
+          "type": "n8n-nodes-base.wait",
+          "position": [
+            2320,
+            1360
+          ],
+          "parameters": {
+            "unit": "seconds",
+            "amount": 8
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "af2cd67c-68c0-94b6-4e0f-aeb192ddd828",
+          "name": "Return Result",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            2320,
+            1040
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "485df9e9-95d1-232c-630d-c46fa9f97fd7",
+                  "name": "task_id",
+                  "type": "string",
+                  "value": "={{ $('Submit - Havis API').first().json.task_id }}"
+                },
+                {
+                  "id": "57c7501a-202a-6b9c-93e7-0b2da467e658",
+                  "name": "status",
+                  "type": "string",
+                  "value": "={{ $json.status }}"
+                },
+                {
+                  "id": "2a661a89-2a0f-cea2-a223-63df9e6c98f3",
+                  "name": "model",
+                  "type": "string",
+                  "value": "={{ $json.model }}"
+                },
+                {
+                  "id": "bbda75ad-2ffc-02cb-d8a6-657004ebc020",
+                  "name": "result_urls",
+                  "type": "string",
+                  "value": "={{ JSON.stringify($json.result_urls || []) }}"
+                },
+                {
+                  "id": "ce80511c-ae21-c2ee-42ae-4bbabc7c3368",
+                  "name": "credits_used",
+                  "type": "string",
+                  "value": "={{ $('Submit - Havis API').first().json.creditsUsed || $('Submit - Havis API').first().json.credits_used || '' }}"
+                },
+                {
+                  "id": "36a17aa1-85bc-8de6-7381-0c6d05fbd464",
+                  "name": "submitted_payload",
+                  "type": "string",
+                  "value": "={{ JSON.stringify($('Build Payload').first().json.body) }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "d2c2a832-7d3a-4c57-8638-66ff122f1208",
+          "name": "Return Error",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            2320,
+            1200
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "b5d90309-f7cc-39dc-c95e-bd46b21a6d0a",
+                  "name": "task_id",
+                  "type": "string",
+                  "value": "={{ $('Submit - Havis API').first().json.task_id }}"
+                },
+                {
+                  "id": "1b488e6c-796c-32cf-0163-b4ab2628a69c",
+                  "name": "status",
+                  "type": "string",
+                  "value": "={{ $json.status }}"
+                },
+                {
+                  "id": "f04bb68c-1127-9374-71e4-f77ba0614ce6",
+                  "name": "model",
+                  "type": "string",
+                  "value": "={{ $json.model }}"
+                },
+                {
+                  "id": "897a1619-d54a-8402-6eed-f03d056de08e",
+                  "name": "error_message",
+                  "type": "string",
+                  "value": "={{ $json.error_message || $json.message || \"Generation failed\" }}"
+                },
+                {
+                  "id": "15bcbe63-e19a-e2c0-251a-885db5d89249",
+                  "name": "credits_used",
+                  "type": "string",
+                  "value": "={{ $('Submit - Havis API').first().json.creditsUsed || $('Submit - Havis API').first().json.credits_used || '' }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        }
+      ],
+      "pinData": {},
+      "connections": {
+        "Wait 8s": {
+          "main": [
+            [
+              {
+                "node": "Check Task Status",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Is Failed?": {
+          "main": [
+            [
+              {
+                "node": "Return Error",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Wait 8s (loop)",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Payload": {
+          "main": [
+            [
+              {
+                "node": "Submit - Havis API",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Is Completed?": {
+          "main": [
+            [
+              {
+                "node": "Return Result",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Is Failed?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Wait 8s (loop)": {
+          "main": [
+            [
+              {
+                "node": "Check Task Status",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Check Task Status": {
+          "main": [
+            [
+              {
+                "node": "Is Completed?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Submit - Havis API": {
+          "main": [
+            [
+              {
+                "node": "Wait 8s",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Form - Nano Banana 2": {
+          "main": [
+            [
+              {
+                "node": "Build Payload",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 15,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 2
+        },
+        "n8n-nodes-base.set": {
+          "count": 2
+        },
+        "n8n-nodes-base.code": {
+          "count": 1
+        },
+        "n8n-nodes-base.wait": {
+          "count": 2
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 5
+        },
+        "n8n-nodes-base.formTrigger": {
+          "count": 1
+        },
+        "n8n-nodes-base.httpRequest": {
+          "count": 2
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Tran Trung Nghia",
+      "username": "trungnghialk",
+      "bio": "",
+      "verified": true,
+      "links": [
+        "https://havis.ai"
+      ],
+      "avatar": "https://gravatar.com/avatar/a7aa44fc39ac6f2cb34996474efcd14f19e1cb3c555a84c6dabdde360a0e1798?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 19,
+        "icon": "file:httprequest.svg",
+        "name": "n8n-nodes-base.httpRequest",
+        "codex": {
+          "data": {
+            "alias": [
+              "API",
+              "Request",
+              "URL",
+              "Build",
+              "cURL"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-designs-with-bannerbear-and-n8n/",
+                  "icon": "\ud83c\udfa8",
+                  "label": "Automate Designs with Bannerbear and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-use-the-http-request-node-the-swiss-army-knife-for-workflow-automation/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "How to use the HTTP Request Node - The Swiss Army Knife for Workflow Automation"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HTTP Request",
+          "color": "#0004F5"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MCAyMEM0MCA4Ljk1MzE0IDMxLjA0NjkgMCAyMCAwQzguOTUzMTQgMCAwIDguOTUzMTQgMCAyMEMwIDMxLjA0NjkgOC45NTMxNCA0MCAyMCA0MEMzMS4wNDY5IDQwIDQwIDMxLjA0NjkgNDAgMjBaTTIwIDM2Ljk0NThDMTguODg1MiAzNi45NDU4IDE3LjEzNzggMzUuOTY3IDE1LjQ5OTggMzIuNjk4NUMxNC43OTY0IDMxLjI5MTggMTQuMTk2MSAyOS41NDMxIDEzLjc1MjYgMjcuNjg0N0gyNi4xODk4QzI1LjgwNDUgMjkuNTQwMyAyNS4yMDQ0IDMxLjI5MDEgMjQuNTAwMiAzMi42OTg1QzIyLjg2MjIgMzUuOTY3IDIxLjExNDggMzYuOTQ1OCAyMCAzNi45NDU4Wk0xMi45MDY0IDIwQzEyLjkwNjQgMjEuNjA5NyAxMy4wMDg3IDIzLjE2NCAxMy4yMDAzIDI0LjYzMDVIMjYuNzk5N0MyNi45OTEzIDIzLjE2NCAyNy4wOTM2IDIxLjYwOTcgMjcuMDkzNiAyMEMyNy4wOTM2IDE4LjM5MDMgMjYuOTkxMyAxNi44MzYgMjYuNzk5NyAxNS4zNjk1SDEzLjIwMDNDMTMuMDA4NyAxNi44MzYgMTIuOTA2NCAxOC4zOTAzIDEyLjkwNjQgMjBaTTIwIDMuMDU0MTlDMjEuMTE0OSAzLjA1NDE5IDIyLjg2MjIgNC4wMzA3OCAyNC41MDAxIDcuMzAwMzlDMjUuMjA2NiA4LjcxNDA4IDI1LjgwNzIgMTAuNDA2NyAyNi4xOTIgMTIuMzE1M0gxMy43NTAxQzE0LjE5MzMgMTAuNDA0NyAxNC43OTQyIDguNzEyNTQgMTUuNDk5OCA3LjMwMDY0QzE3LjEzNzcgNC4wMzA4MyAxOC44ODUxIDMuMDU0MTkgMjAgMy4wNTQxOVpNMzAuMTQ3OCAyMEMzMC4xNDc4IDE4LjQwOTkgMzAuMDU0MyAxNi44NjE3IDI5LjgyMjcgMTUuMzY5NUgzNi4zMDQyQzM2LjcyNTIgMTYuODQyIDM2Ljk0NTggMTguMzk2NCAzNi45NDU4IDIwQzM2Ljk0NTggMjEuNjAzNiAzNi43MjUyIDIzLjE1OCAzNi4zMDQyIDI0LjYzMDVIMjkuODIyN0MzMC4wNTQzIDIzLjEzODMgMzAuMTQ3OCAyMS41OTAxIDMwLjE0NzggMjBaTTI2LjI3NjcgNC4yNTUxMkMyNy42MzY1IDYuMzYwMTkgMjguNzExIDkuMTMyIDI5LjM3NzQgMTIuMzE1M0gzNS4xMDQ2QzMzLjI1MTEgOC42NjggMzAuMTA3IDUuNzgzNDYgMjYuMjc2NyA0LjI1NTEyWk0xMC42MjI2IDEyLjMxNTNINC44OTI5M0M2Ljc1MTQ3IDguNjY3ODQgOS44OTM1MSA1Ljc4MzQxIDEzLjcyMzIgNC4yNTUxM0MxMi4zNjM1IDYuMzYwMjEgMTEuMjg5IDkuMTMyMDEgMTAuNjIyNiAxMi4zMTUzWk0zLjA1NDE5IDIwQzMuMDU0MTkgMjEuNjAzIDMuMjc3NDMgMjMuMTU3NSAzLjY5NDg0IDI0LjYzMDVIMTAuMTIxN0M5Ljk0NjE5IDIzLjE0MiA5Ljg1MjIyIDIxLjU5NDMgOS44NTIyMiAyMEM5Ljg1MjIyIDE4LjQwNTcgOS45NDYxOSAxNi44NTggMTAuMTIxNyAxNS4zNjk1SDMuNjk0ODRDMy4yNzc0MyAxNi44NDI1IDMuMDU0MTkgMTguMzk3IDMuMDU0MTkgMjBaTTI2LjI3NjYgMzUuNzQyN0MyNy42MzY1IDMzLjYzOTMgMjguNzExIDMwLjg2OCAyOS4zNzc0IDI3LjY4NDdIMzUuMTA0NkMzMy4yNTEgMzEuMzMyMiAzMC4xMDY4IDM0LjIxNzkgMjYuMjc2NiAzNS43NDI3Wk0xMy43MjM0IDM1Ljc0MjdDOS44OTM2OSAzNC4yMTc5IDYuNzUxNTUgMzEuMzMyNCA0Ljg5MjkzIDI3LjY4NDdIMTAuNjIyNkMxMS4yODkgMzAuODY4IDEyLjM2MzUgMzMuNjM5MyAxMy43MjM0IDM1Ljc0MjdaIiBmaWxsPSIjM0E0MkU5Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "HTTP Request",
+        "typeVersion": 4,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 514,
+        "icon": "fa:pause-circle",
+        "name": "n8n-nodes-base.wait",
+        "codex": {
+          "data": {
+            "alias": [
+              "pause",
+              "sleep",
+              "delay",
+              "timeout"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.wait/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Wait",
+          "color": "#804050"
+        },
+        "iconData": {
+          "icon": "pause-circle",
+          "type": "icon"
+        },
+        "displayName": "Wait",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1225,
+        "icon": "file:form.svg",
+        "name": "n8n-nodes-base.formTrigger",
+        "codex": {
+          "data": {
+            "alias": [
+              "table",
+              "submit",
+              "post"
+            ],
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.formtrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Other Trigger Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "On form submission"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NiIgaGVpZ2h0PSI0MCIgZmlsbD0ibm9uZSI+PHBhdGggZmlsbD0iIzAwQjdCQyIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzQuOTc4IDM3LjczMmExLjU2IDEuNTYgMCAwIDEtMS41NjIgMS41NjNINi4yNmExLjU2IDEuNTYgMCAwIDEtMS41NjMtMS41NjNWOS42MDdjMC0uNDA1LjE1Ny0uNzk0LjQzOC0xLjA4Nmw2LjMwNC02LjUzMXY1LjM0NEg4LjIxM2ExLjE3MiAxLjE3MiAwIDEgMCAwIDIuMzQzaDQuNDNhMS4xNyAxLjE3IDAgMCAwIDEuMTcxLTEuMTcxVi4yMzJoMTkuNjAyYTEuNTYgMS41NiAwIDAgMSAxLjU2MiAxLjU2M3YxMC4zMjdsLTIuODYgMi44Ni04LjI1MiA4LjI3NmE0MTMuMDA2IDQxMy4wMDYgMCAwIDEtMS42NTQgMS42NjJsLS4zMzcuMzM3YTIgMiAwIDAgMC0uNTU3IDEuMDhMMjAuMyAzMS45MjJjLS4xMDguNjM4LS4yMTUgMS4wNzkuMjExIDEuNDE4LjQwMy4zMi45LjE3NCAxLjU0LjA2Nmw1LjQwOC0uOTI4YTIgMiAwIDAgMCAxLjA4LS41NTZsNi40NC02LjQyOXptLTI0LjAzLTIxLjI2NWExLjE4IDEuMTggMCAwIDAgMS4xNzEgMS4xNzJoMTMuMTYzYTEuMTcyIDEuMTcyIDAgMSAwIDAtMi4zNDRIMTIuMTE5YTEuMTcgMS4xNyAwIDAgMC0xLjE3MiAxLjE3Mm03LjI5NCAxNC43NjZhMS4xNyAxLjE3IDAgMCAwLTEuMTcyLTEuMTcySDEyLjEyYTEuMTcyIDEuMTcyIDAgMSAwIDAgMi4zNDNoNC45NTFhMS4xNyAxLjE3IDAgMCAwIDEuMTcyLTEuMTcybS44Ni03LjM5MWExLjE3IDEuMTcgMCAwIDAtMS4xNzItMS4xNzJoLTUuODExYTEuMTcyIDEuMTcyIDAgMSAwIDAgMi4zNDNoNS44MWExLjE2NCAxLjE2NCAwIDAgMCAxLjE3My0xLjE3MSIgY2xpcC1ydWxlPSJldmVub2RkIi8+PHBhdGggZmlsbD0iIzAwQjdCQyIgZD0ibTMzLjUzMiAxNi4zOTcgNC4yODktNC4yODkgMy43NTggMy43MSAxLjYxNy0xLjYxNiAyLjI1OCAyLjI1N2MuMjE4LjIxOC4zNC41MTMuMzQzLjgyLS4wMDIuMzExLS4xMjUuNjA4LS4zNDQuODNsLTYuODA0IDYuNzk2YTEuMTMgMS4xMyAwIDAgMS0uODI4LjM0MyAxLjE1IDEuMTUgMCAwIDEtLjgyOC0uMzQzIDEuMTggMS4xOCAwIDAgMSAwLTEuNjU3bDUuOTc2LTUuOTY4LTEuMzEyLTEuMzEzLTEuMzgzIDEuNDE0LTEzLjE0OSAxMy4xMjUtNC42MTcuNzgyLjc4Mi00LjYxNy4zMzYtLjMzNyAyLjU2MiAyLjU1NWExLjEgMS4xIDAgMCAwIC44MjguMzQ0Yy4zMTIuMDA1LjYxMi0uMTIuODI4LS4zNDRhMS4xOCAxLjE4IDAgMCAwIDAtMS42NTZsLTIuNTYyLTIuNTYyek00NC43MzYgMTIuMjRjMCAuNDE0LS4xNjMuODEtLjQ1NCAxLjEwMmwtLjkyMi45MTQtMy44NTItMy44MjguOTMtLjkzYTEuNTYzIDEuNTYzIDAgMCAxIDIuMjAzIDBsMS42NCAxLjY0MWMuMjkxLjI5My40NTUuNjkuNDU1IDEuMTAyIi8+PC9zdmc+"
+        },
+        "displayName": "n8n Form Trigger",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 31,
+        "name": "Content Creation"
+      },
+      {
+        "id": 51,
+        "name": "Multimodal AI"
+      }
+    ],
+    "image": []
+  }
+}

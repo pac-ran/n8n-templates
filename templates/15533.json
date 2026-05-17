@@ -1,0 +1,1229 @@
+{
+  "workflow": {
+    "id": 15533,
+    "name": "Track LinkedIn hiring signals with Bright Data, OpenAI, Airtable, HubSpot and Slack",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-07T15:27:53.038Z",
+    "description": "## How it works\n\n- A daily Schedule Trigger pulls active LinkedIn job-search URLs from Airtable\n- Bright Data Web Unlocker scrapes each search results page\n- GPT extracts structured job data from the raw HTML\n- A second GPT call scores each job as a HIGH / MEDIUM / LOW buying signal and drafts a personalized cold outreach email\n- HIGH/MEDIUM signals are pushed to HubSpot as deals and notified to the sales team in Slack\n\n## Set up steps\n\n- Setup time: ~10 minutes\n- Connect Airtable, Bright Data, OpenAI, HubSpot and Slack credentials\n- Add LinkedIn job-search URLs to your Airtable with `Active = TRUE`\n- Pick the Slack channel in the notification node\n- Activate the workflow\n\nSee the sticky notes inside the workflow to swap Airtable, OpenAI, HubSpot or Slack for your preferred tools.\n",
+    "workflow": {
+      "id": "zmRpMXO0azBftOGa",
+      "meta": {
+        "instanceId": "37f2bca2fd598f27b527ebfdf677c2c580406c639c66db1192a548310f5004fe",
+        "templateCredsSetupCompleted": true
+      },
+      "name": "AI Hiring Signal Tracker powered by Bright Data",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "21585fe6-d444-4383-9d58-6c1f19d51624",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            2960,
+            624
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 540,
+            "height": 820,
+            "content": "# \ud83c\udfaf AI Hiring Signal Tracker powered by Bright Data\n\nTurn LinkedIn job postings into qualified pipeline. Detect when target companies are hiring sales/eng/leadership roles, score the signal with AI, draft personalized outreach, and sync to HubSpot + Slack.\n\n## How it works\n\n1. **Schedule Trigger** runs every morning\n2. **Airtable** returns the active LinkedIn job-search URLs to monitor\n3. **Bright Data Web Unlocker** scrapes each search results page\n4. **GPT extracts** structured job data from the raw HTML (title, company, location, etc.)\n5. **GPT scores** each job as a HIGH / MEDIUM / LOW buying signal and drafts a cold outreach email\n6. **HubSpot** creates a deal for HIGH/MEDIUM signals\n7. **Slack** alerts the sales team with the rationale and suggested email\n\n## Why Bright Data?\n\n- Scrapes LinkedIn search pages reliably (handles JS, anti-bot, geo)\n- Returns clean Markdown ready for LLM parsing\n- Scales from 1 to thousands of searches per day\n\n## Prerequisites\n\n- A [Bright Data](https://brightdata.com) account with a Web Unlocker zone\n- An [OpenAI](https://platform.openai.com) API key\n- An [Airtable](https://airtable.com) base with `Searches` table (`LinkedIn URL`, `Active`, `Last Run`)\n- A [HubSpot](https://hubspot.com) account\n- A [Slack](https://slack.com) workspace\n\n## Setup (~10 min)\n\n1. Connect Airtable, Bright Data, OpenAI, HubSpot and Slack credentials\n2. Add LinkedIn job-search URLs to Airtable with `Active = TRUE`\n3. Pick your Slack channel in the notification node\n4. Activate the workflow"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "de30580e-b7ad-4f20-90f8-3f2eabb33c39",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            3680,
+            1072
+          ],
+          "parameters": {
+            "color": 4,
+            "width": 620,
+            "height": 376,
+            "content": "## \ud83d\ude80 1. Trigger & Get Searches\n\nThe **Schedule Trigger** kicks off daily at 9am. **Airtable** returns the active LinkedIn search URLs (sorted by `Last Run` so the oldest gets refreshed first), and the **loop** processes them one by one.\n\n### \ud83d\udd04 Swap-friendly\n- Trigger \u2192 Webhook, Cron, Form, Chat\n- CRM \u2192 HubSpot, Notion, Sheets, Postgres\u2026"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "5032ad49-6baf-4cde-b007-19410673f52e",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            4368,
+            992
+          ],
+          "parameters": {
+            "color": 3,
+            "width": 720,
+            "height": 460,
+            "content": "## \ud83c\udf10 2. Scrape & Parse Jobs\n\n**Bright Data Web Unlocker** fetches the LinkedIn search page as clean Markdown. **GPT-5.4-mini** then extracts a structured list of up to 30 jobs (title, company, location, posted date, URL, early applicant flag\u2026). The **JS code** safely parses the JSON, even when the model truncates its output.\n\n- Bright Data handles JS, CAPTCHAs, geo-blocks\n- The LLM does the structured parsing \u2014 no fragile CSS selectors\n- \ud83d\udd04 Swap GPT for any LLM (Claude, Gemini, Mistral, Groq\u2026)"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "f8983555-290b-4351-8d18-2a84a4bc15b8",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            5168,
+            1008
+          ],
+          "parameters": {
+            "color": 5,
+            "width": 300,
+            "height": 440,
+            "content": "## \ud83e\udde0 3. AI Signal Analysis\n\nFor each job, **GPT-4o-mini** returns:\n- `signal_strength` (HIGH / MEDIUM / LOW)\n- `rationale` (1 sentence)\n- `outreach_email` (3-4 sentence draft)\n\nUses a strict JSON schema so the output is always valid.\n\n\ud83d\udd04 Swap for any LLM."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "77c208cc-eee7-445f-a57d-67e6ac143224",
+          "name": "Sticky Note4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            5552,
+            992
+          ],
+          "parameters": {
+            "color": 6,
+            "width": 720,
+            "height": 696,
+            "content": "## \ud83c\udfaf 4. Filter, Sync & Notify\n\n1. **IF** keeps only HIGH or MEDIUM signals (LOW signals are skipped)\n2. **HubSpot** creates a deal with the rationale and the suggested email\n3. **Slack** alerts the sales team with the full context and the HubSpot deal link\n\n### \ud83d\udd04 Swap-friendly\n- CRM \u2192 Salesforce, Pipedrive, Attio, Close, Notion\u2026\n- Channel \u2192 Email, Discord, Teams, Telegram, SMS\u2026"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "326c692a-e135-4fc3-aebf-671f260caf24",
+          "name": "Schedule Trigger",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "position": [
+            3728,
+            1296
+          ],
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "triggerAtHour": 9
+                }
+              ]
+            }
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "637868ad-9865-48a8-86f9-7cef8c3266c8",
+          "name": "Get Active Searches",
+          "type": "n8n-nodes-base.airtable",
+          "position": [
+            3936,
+            1296
+          ],
+          "parameters": {
+            "base": {
+              "__rl": true,
+              "mode": "list",
+              "value": "YOUR_AIRTABLE_BASE_ID",
+              "cachedResultUrl": "",
+              "cachedResultName": "Hiring Signal Tracker"
+            },
+            "sort": {
+              "property": [
+                {
+                  "field": "Last Run"
+                }
+              ]
+            },
+            "table": {
+              "__rl": true,
+              "mode": "list",
+              "value": "YOUR_AIRTABLE_TABLE_ID",
+              "cachedResultUrl": "",
+              "cachedResultName": "Searches"
+            },
+            "options": {},
+            "operation": "search",
+            "filterByFormula": "{Active} = TRUE()"
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "624a87ac-880f-4704-9504-2528a3f6d52f",
+          "name": "Loop Over Searches",
+          "type": "n8n-nodes-base.splitInBatches",
+          "position": [
+            4144,
+            1296
+          ],
+          "parameters": {
+            "options": {}
+          },
+          "typeVersion": 3
+        },
+        {
+          "id": "eab6ebf8-2470-4bec-82a5-d5e973d9cfd9",
+          "name": "Scrape LinkedIn with Bright Data",
+          "type": "@brightdata/n8n-nodes-brightdata.brightData",
+          "position": [
+            4432,
+            1312
+          ],
+          "parameters": {
+            "url": "={{ $json.fields['LinkedIn URL'] }}",
+            "zone": {
+              "__rl": true,
+              "mode": "list",
+              "value": "n8n_unlocker"
+            },
+            "country": {
+              "__rl": true,
+              "mode": "list",
+              "value": "us"
+            },
+            "data_format": "markdown",
+            "requestOptions": {}
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "cb20e4bf-d04b-4613-8ce1-ea2e18cf24bc",
+          "name": "Extract Jobs (AI)",
+          "type": "@n8n/n8n-nodes-langchain.openAi",
+          "position": [
+            4624,
+            1312
+          ],
+          "parameters": {
+            "modelId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gpt-5.4-mini",
+              "cachedResultName": "GPT-5.4-MINI"
+            },
+            "options": {},
+            "responses": {
+              "values": [
+                {
+                  "role": "system",
+                  "content": "You are a LinkedIn job posting parser. Extract structured data from raw LinkedIn jobs HTML.\n\nOutput ONLY valid JSON, no markdown, no preamble, no explanations.\n\nFormat:\n{\n  \"jobs\": [\n    {\n      \"title\": \"Account Executive\",\n      \"company\": \"Acme Corp\",\n      \"company_linkedin_slug\": \"acme-corp\",\n      \"location\": \"San Francisco, CA\",\n      \"posted_date\": \"2 hours ago\",\n      \"posted_iso\": \"2026-05-05\",\n      \"job_url\": \"https://www.linkedin.com/jobs/view/123456\",\n      \"early_applicant\": true,\n      \"actively_hiring\": true\n    }\n  ]\n}\n\nExtract from <li><div class=\"base-card ...\">...</div></li> blocks.\n- title: <h3 class=\"base-search-card__title\">\n- company: <h4 class=\"base-search-card__subtitle\"><a>...</a>\n- company_linkedin_slug: from the company link href, extract slug after /company/\n- location: <span class=\"job-search-card__location\">\n- posted_date: text inside <time>\n- posted_iso: from <time datetime=\"YYYY-MM-DD\">\n- job_url: from <a class=\"base-card__full-link\" href=\"...\">\n- early_applicant: true if \"Be an early applicant\" appears in the card\n- actively_hiring: true if \"Actively Hiring\" appears in the card\n\nLimit to first 30 jobs. If no jobs found, return {\"jobs\": []}."
+                },
+                {
+                  "content": "=Extract jobs from this LinkedIn HTML chunk:\n\n{{ $json }}"
+                }
+              ]
+            },
+            "builtInTools": {}
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "abc96954-7c82-4f96-ade8-2b63b7bac20b",
+          "name": "Parse JSON Output",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            4976,
+            1312
+          ],
+          "parameters": {
+            "jsCode": "let text = $input.item.json.output[0].content[0].text;\n\n// Strip markdown backticks if present\ntext = text.replace(/```json\\s*/g, '').replace(/```\\s*/g, '').trim();\n\n// Try normal parse first\ntry {\n  const parsed = JSON.parse(text);\n  return { json: parsed };\n} catch (err) {\n  // If parse fails, try to recover what we can\n  // by finding the last \"}\" that closes a complete job object\n  const jobsStart = text.indexOf('\"jobs\":[');\n  if (jobsStart === -1) {\n    throw new Error('No jobs array found in response');\n  }\n  \n  let lastValidEnd = -1;\n  let depth = 0;\n  let inString = false;\n  let escape = false;\n  \n  for (let i = jobsStart + 8; i < text.length; i++) {\n    const c = text[i];\n    if (escape) { escape = false; continue; }\n    if (c === '\\\\') { escape = true; continue; }\n    if (c === '\"') { inString = !inString; continue; }\n    if (inString) continue;\n    if (c === '{') depth++;\n    if (c === '}') {\n      depth--;\n      if (depth === 0) lastValidEnd = i;\n    }\n  }\n  \n  if (lastValidEnd === -1) {\n    throw new Error('Could not recover any complete jobs');\n  }\n  \n  // Rebuild a valid truncated JSON\n  const truncated = text.substring(0, lastValidEnd + 1) + ']}';\n  const parsed = JSON.parse(truncated);\n  return { json: parsed };\n}"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "448dd4f2-76b6-4c22-a2f3-bcc4562bc97d",
+          "name": "Score Signal & Draft Email",
+          "type": "@n8n/n8n-nodes-langchain.openAi",
+          "position": [
+            5200,
+            1312
+          ],
+          "parameters": {
+            "modelId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gpt-4o-mini",
+              "cachedResultName": "GPT-4O-MINI"
+            },
+            "options": {
+              "textFormat": {
+                "textOptions": {
+                  "type": "json_schema",
+                  "schema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"signal_strength\": {\n      \"type\": \"string\",\n      \"enum\": [\"HIGH\", \"MEDIUM\", \"LOW\"]\n    },\n    \"rationale\": {\n      \"type\": \"string\"\n    },\n    \"outreach_email\": {\n      \"type\": \"string\"\n    }\n  },\n  \"additionalProperties\": false,\n  \"required\": [\"signal_strength\", \"rationale\", \"outreach_email\"]\n}"
+                }
+              }
+            },
+            "responses": {
+              "values": [
+                {
+                  "role": "system",
+                  "content": "You are a B2B sales buying signal analyzer + outreach copywriter.\n\nGiven a job posting, classify if it's a buying signal AND draft a personalized cold outreach email if relevant.\n\nOutput ONLY valid JSON with this exact structure:\n\n{\n  \"signal_strength\": \"HIGH\" | \"MEDIUM\" | \"LOW\",\n  \"rationale\": \"1 sentence explaining why\",\n  \"outreach_email\": \"3-4 sentence cold email draft (only if HIGH or MEDIUM, otherwise empty string)\"\n}\n\nHIGH signals: Senior leadership hire (Head of, VP, Founding role), multiple roles open at same company, net-new sales hire at B2B SaaS.\n\nMEDIUM signals: Mid-level B2B sales/eng/marketing roles at growing companies.\n\nLOW signals: Junior IC roles, sports teams, retail/hospitality, agency staffing, geographic-specific sales (Tampa AE, etc.). Set outreach_email to \"\" for LOW signals.\n\nEmail style: 3-4 sentences max. Reference the specific hiring signal. Soft CTA (book 15 min). No \"I hope this finds you well\". First-person from the rep."
+                },
+                {
+                  "content": "=Title: {{ $json.jobs[0].title }}\nCompany: {{ $json.jobs[0].company }}\nLocation: {{ $json.jobs[0].location }}\nPosted: {{ $json.jobs[0].posted_date }}\nURL: {{ $json.jobs[0].job_url }}\n\nAnalyze and respond with JSON."
+                }
+              ]
+            },
+            "builtInTools": {}
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "cb0f575c-95eb-46c3-bb77-364f1031a4f6",
+          "name": "HIGH or MEDIUM Signal?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            5568,
+            1312
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "or",
+              "conditions": [
+                {
+                  "id": "2bd376ae-3438-41c7-8b8b-cc6fa7bf36a5",
+                  "operator": {
+                    "type": "string",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $json.output[0].content[0].text.signal_strength }}",
+                  "rightValue": "HIGH"
+                },
+                {
+                  "id": "bc249f13-0a20-4e22-9cfc-a671095202f4",
+                  "operator": {
+                    "name": "filter.operator.equals",
+                    "type": "string",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $json.output[0].content[0].text.signal_strength }}",
+                  "rightValue": "MEDIUM"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "295f54c4-8e0a-40cb-9439-79e81bf315d6",
+          "name": "Create HubSpot Deal",
+          "type": "n8n-nodes-base.hubspot",
+          "position": [
+            5856,
+            1408
+          ],
+          "parameters": {
+            "stage": "appointmentscheduled",
+            "resource": "deal",
+            "authentication": "oAuth2",
+            "additionalFields": {
+              "dealName": "=Hiring signal \u2014 {{ $('Parse JSON Output').item.json.jobs[0].company }} hiring {{ $('Parse JSON Output').item.json.jobs[0].title }}",
+              "description": "={{ $json.output[0].content[0].text.rationale }}\n\nSuggested email:\n{{ $json.output[0].content[0].text.outreach_email }}\n\nJob: {{ $('Parse JSON Output').item.json.jobs[0].title }}\nLocation: {{ $('Parse JSON Output').item.json.jobs[0].location }}"
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "a3c3a68d-7e41-471c-baf1-139f98563d17",
+          "name": "Notify Slack",
+          "type": "n8n-nodes-base.slack",
+          "position": [
+            6128,
+            1488
+          ],
+          "webhookId": "415f94bb-ee64-41ca-8c29-3a18d1dcea7f",
+          "parameters": {
+            "text": "=\ud83c\udfaf *New buying signal*\n\n\ud83d\udccb *{{ $('Parse JSON Output').item.json.jobs[0].title }}* at *{{ $('Parse JSON Output').item.json.jobs[0].company }}*\n\ud83d\udccd {{ $('Parse JSON Output').item.json.jobs[0].location }}\n\ud83d\udd25 Signal: *{{ $('Score Signal & Draft Email').item.json.output[0].content[0].text.signal_strength }}*\n\n\ud83d\udca1 *Why this matters:*\n{{ $('Score Signal & Draft Email').item.json.output[0].content[0].text.rationale }}\n\n\ud83d\udce7 *Suggested outreach:*\n{{ $('Score Signal & Draft Email').item.json.output[0].content[0].text.outreach_email }}\n\n\ud83d\udd17 <{{ $('Parse JSON Output').item.json.jobs[0].job_url }}|View job posting>\n\ud83d\udcbc HubSpot deal ID: {{ $json.dealId }}",
+            "select": "channel",
+            "channelId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "YOUR_SLACK_CHANNEL_ID",
+              "cachedResultName": "leads"
+            },
+            "otherOptions": {},
+            "authentication": "oAuth2"
+          },
+          "typeVersion": 2.4
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "b34ed4df-956c-4e29-82c4-38dbc8014235",
+      "connections": {
+        "Notify Slack": {
+          "main": [
+            [
+              {
+                "node": "Loop Over Searches",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Schedule Trigger": {
+          "main": [
+            [
+              {
+                "node": "Get Active Searches",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Extract Jobs (AI)": {
+          "main": [
+            [
+              {
+                "node": "Parse JSON Output",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Parse JSON Output": {
+          "main": [
+            [
+              {
+                "node": "Score Signal & Draft Email",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Loop Over Searches": {
+          "main": [
+            [],
+            [
+              {
+                "node": "Scrape LinkedIn with Bright Data",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Create HubSpot Deal": {
+          "main": [
+            [
+              {
+                "node": "Notify Slack",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get Active Searches": {
+          "main": [
+            [
+              {
+                "node": "Loop Over Searches",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "HIGH or MEDIUM Signal?": {
+          "main": [
+            [
+              {
+                "node": "Create HubSpot Deal",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Loop Over Searches",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Score Signal & Draft Email": {
+          "main": [
+            [
+              {
+                "node": "HIGH or MEDIUM Signal?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Scrape LinkedIn with Bright Data": {
+          "main": [
+            [
+              {
+                "node": "Extract Jobs (AI)",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 15,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 1
+        },
+        "n8n-nodes-base.code": {
+          "count": 1
+        },
+        "n8n-nodes-base.slack": {
+          "count": 1
+        },
+        "n8n-nodes-base.hubspot": {
+          "count": 1
+        },
+        "n8n-nodes-base.airtable": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 5
+        },
+        "n8n-nodes-base.splitInBatches": {
+          "count": 1
+        },
+        "n8n-nodes-base.scheduleTrigger": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.openAi": {
+          "count": 2
+        },
+        "@brightdata/n8n-nodes-brightdata.brightData": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "ToolMonsters",
+      "username": "toolmonsters",
+      "bio": "",
+      "verified": true,
+      "links": [],
+      "avatar": "https://gravatar.com/avatar/e617b7e785551b687481c9fb6a7979c61398b5bb010c4936a6b5250ebca6c984?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 2,
+        "icon": "file:airtable.svg",
+        "name": "n8n-nodes-base.airtable",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-goals-level-up-your-vocabulary-with-vonage-and-n8n/",
+                  "icon": "\ud83c\udfaf",
+                  "label": "2021 Goals: Level Up Your Vocabulary With Vonage and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-sms-the-low-code-way-with-airtable-twilio-programmable-sms-and-n8n/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Sending SMS the Low-Code Way with Airtable, Twilio Programmable SMS, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automating-conference-organization-processes-with-n8n/",
+                  "icon": "\ud83d\ude4b\u200d\u2640\ufe0f",
+                  "label": "Automating Conference Organization Processes with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.airtable/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/airtable/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Airtable"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMTcwIj48cGF0aCBmaWxsPSIjZmNiNDAwIiBkPSJNODkgNC44IDE2LjIgMzQuOWMtNC4xIDEuNy00IDcuNC4xIDkuMWw3My4yIDI5YzYuNCAyLjYgMTMuNiAyLjYgMjAgMGw3My4yLTI5YzQuMS0xLjYgNC4xLTcuNC4xLTkuMWwtNzMtMzAuMUMxMDMuMiAyIDk1LjcgMiA4OSA0LjgiLz48cGF0aCBmaWxsPSIjMThiZmZmIiBkPSJNMTA1LjkgODguOXY3Mi41YzAgMy40IDMuNSA1LjggNi43IDQuNWw4MS42LTMxLjdjMS45LS43IDMuMS0yLjUgMy4xLTQuNVY1Ny4yYzAtMy40LTMuNS01LjgtNi43LTQuNUwxMDkgODQuM2MtMS45LjgtMy4xIDIuNi0zLjEgNC42Ii8+PHBhdGggZmlsbD0iI2Y4MmI2MCIgZD0ibTg2LjkgOTIuNi0yNC4yIDExLjctMi41IDEuMkw5LjEgMTMwYy0zLjIgMS42LTcuNC0uOC03LjQtNC40VjU3LjVjMC0xLjMuNy0yLjQgMS42LTMuM3EuNi0uNiAxLjItLjljMS4yLS43IDMtLjkgNC40LS4zbDc3LjUgMzAuN2M0IDEuNSA0LjMgNy4xLjUgOC45Ii8+PHBhdGggZmlsbD0iI2JhMWU0NSIgZD0ibTg2LjkgOTIuNi0yNC4yIDExLjctNTkuNC01MHEuNi0uNiAxLjItLjljMS4yLS43IDMtLjkgNC40LS4zbDc3LjUgMzAuN2M0IDEuNCA0LjMgNyAuNSA4LjgiLz48L3N2Zz4="
+        },
+        "displayName": "Airtable",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 39,
+        "icon": "fa:sync",
+        "name": "n8n-nodes-base.splitInBatches",
+        "codex": {
+          "data": {
+            "alias": [
+              "Loop",
+              "Concatenate",
+              "Batch",
+              "Split",
+              "Split In Batches"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Loop Over Items",
+          "color": "#007755"
+        },
+        "iconData": {
+          "icon": "sync",
+          "type": "icon"
+        },
+        "displayName": "Loop Over Items (Split in Batches)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 40,
+        "icon": "file:slack.svg",
+        "name": "n8n-nodes-base.slack",
+        "codex": {
+          "data": {
+            "alias": [
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-automatically-give-kudos-to-contributors-with-github-slack-and-n8n/",
+                  "icon": "\ud83d\udc4f",
+                  "label": "How to automatically give kudos to contributors with GitHub, Slack, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.slack/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/slack/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "Slack"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgMTUwLjg1MiAxNTAuODUyIj48dXNlIHhsaW5rOmhyZWY9IiNhIiB4PSIuOTI2IiB5PSIuOTI2Ii8+PHN5bWJvbCBpZD0iYSIgb3ZlcmZsb3c9InZpc2libGUiPjxnIHN0cm9rZS13aWR0aD0iMS44NTIiPjxwYXRoIGZpbGw9IiNlMDFlNWEiIHN0cm9rZT0iI2UwMWU1YSIgZD0iTTQwLjc0MSA5My41NWMwLTguNzM1IDYuNjA3LTE1Ljc3MiAxNC44MTUtMTUuNzcyczE0LjgxNSA3LjAzNyAxNC44MTUgMTUuNzcydjM4LjgyNGMwIDguNzM3LTYuNjA3IDE1Ljc3NC0xNC44MTUgMTUuNzc0cy0xNC44MTUtNy4wMzctMTQuODE1LTE1Ljc3MnoiLz48cGF0aCBmaWxsPSIjZWNiMjJkIiBzdHJva2U9IiNlY2IyMmQiIGQ9Ik05My41NSAxMDcuNDA4Yy04LjczNSAwLTE1Ljc3Mi02LjYwNy0xNS43NzItMTQuODE1czcuMDM3LTE0LjgxNSAxNS43NzItMTQuODE1aDM4LjgyNmM4LjczNSAwIDE1Ljc3MiA2LjYwNyAxNS43NzIgMTQuODE1cy03LjAzNyAxNC44MTUtMTUuNzcyIDE0LjgxNXoiLz48cGF0aCBmaWxsPSIjMmZiNjdjIiBzdHJva2U9IiMyZmI2N2MiIGQ9Ik03Ny43NzggMTUuNzcyQzc3Ljc3OCA3LjAzNyA4NC4zODUgMCA5Mi41OTMgMHMxNC44MTUgNy4wMzcgMTQuODE1IDE1Ljc3MnYzOC44MjZjMCA4LjczNS02LjYwNyAxNS43NzItMTQuODE1IDE1Ljc3MnMtMTQuODE1LTcuMDM3LTE0LjgxNS0xNS43NzJ6Ii8+PHBhdGggZmlsbD0iIzM2YzVmMSIgc3Ryb2tlPSIjMzZjNWYxIiBkPSJNMTUuNzcyIDcwLjM3MUM3LjAzNyA3MC4zNzEgMCA2My43NjMgMCA1NS41NTZzNy4wMzctMTQuODE1IDE1Ljc3Mi0xNC44MTVoMzguODI2YzguNzM1IDAgMTUuNzcyIDYuNjA3IDE1Ljc3MiAxNC44MTVzLTcuMDM3IDE0LjgxNS0xNS43NzIgMTQuODE1eiIvPjxnIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiPjxwYXRoIGZpbGw9IiNlY2IyMmQiIHN0cm9rZT0iI2VjYjIyZCIgZD0iTTc3Ljc3OCAxMzMuMzMzYzAgOC4yMDggNi42MDcgMTQuODE1IDE0LjgxNSAxNC44MTVzMTQuODE1LTYuNjA3IDE0LjgxNS0xNC44MTUtNi42MDctMTQuODE1LTE0LjgxNS0xNC44MTVINzcuNzc4eiIvPjxwYXRoIGZpbGw9IiMyZmI2N2MiIHN0cm9rZT0iIzJmYjY3YyIgZD0iTTEzMy4zMzQgNzAuMzcxaC0xNC44MTVWNTUuNTU2YzAtOC4yMDcgNi42MDctMTQuODE1IDE0LjgxNS0xNC44MTVzMTQuODE1IDYuNjA3IDE0LjgxNSAxNC44MTUtNi42MDcgMTQuODE1LTE0LjgxNSAxNC44MTV6Ii8+PHBhdGggZmlsbD0iI2UwMWU1YSIgc3Ryb2tlPSIjZTAxZTVhIiBkPSJNMTQuODE1IDc3Ljc3OEgyOS42M3YxNC44MTVjMCA4LjIwNy02LjYwNyAxNC44MTUtMTQuODE1IDE0LjgxNVMwIDEwMC44IDAgOTIuNTkzczYuNjA3LTE0LjgxNSAxNC44MTUtMTQuODE1eiIvPjxwYXRoIGZpbGw9IiMzNmM1ZjEiIHN0cm9rZT0iIzM2YzVmMSIgZD0iTTcwLjM3MSAxNC44MTVWMjkuNjNINTUuNTU2Yy04LjIwNyAwLTE0LjgxNS02LjYwNy0xNC44MTUtMTQuODE1UzQ3LjM0OCAwIDU1LjU1NiAwczE0LjgxNSA2LjYwNyAxNC44MTUgMTQuODE1eiIvPjwvZz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Slack",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 76,
+        "icon": "file:hubspot.svg",
+        "name": "n8n-nodes-base.hubspot",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-sync-data-between-two-systems/",
+                  "icon": "\ud83c\udfec",
+                  "label": "How to synchronize data between two systems (one-way vs. two-way sync"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.hubspot/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/hubspot/"
+                }
+              ]
+            },
+            "categories": [
+              "Sales"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HubSpot"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgNjIuODgzIDY5Ljg4MyI+PHVzZSB4bGluazpocmVmPSIjYSIgeD0iMi40NDIiIHk9IjIuNDQyIi8+PHN5bWJvbCBpZD0iYSIgb3ZlcmZsb3c9InZpc2libGUiPjxwYXRoIGZpbGw9IiNmODc2MWYiIGZpbGwtcnVsZT0ibm9uemVybyIgc3Ryb2tlPSJub25lIiBkPSJNNTUuNTA0IDMwLjQwMWExNi4yNiAxNi4yNiAwIDAgMC01LjkwNC01Ljg2NGMtMS44NjUtMS4wODQtMy43OTQtMS43NzMtNS45NzItMi4wN3YtNy43OThhNS43MSA1LjcxIDAgMCAwIDMuNTI1LTUuMzU3IDUuODYgNS44NiAwIDAgMC01Ljg1OS01Ljg4OSA1LjkxIDUuOTEgMCAwIDAtNS45MDggNS44ODljMCAyLjM5MyAxLjI3IDQuNDM0IDMuNDUyIDUuMzU3djcuNzU0YTE3IDE3IDAgMCAwLTUuMTk1IDEuNjMxTDEyLjc2OSA4LjI0N2MuMTQ2LS41NTIuMjczLTEuMTIzLjI3My0xLjcyNEE2LjUyIDYuNTIgMCAwIDAgNi41MTkgMCA2LjUyIDYuNTIgMCAwIDAgMCA2LjUyNGE2LjUyMyA2LjUyMyAwIDAgMCA2LjUyNCA2LjUyNCA2LjQ3IDYuNDcgMCAwIDAgMy4zNS0uOTUybDEuMzY3IDEuMDM1IDE4LjcyNiAxMy41MDFjLS45OTEuOTA4LTEuOTE0IDEuOTQzLTIuNjUxIDMuMTA1LTEuNDk0IDIuMzY4LTIuNDA3IDQuOTcxLTIuNDA3IDcuODEzdi41ODZhMTYuNCAxNi40IDAgMCAwIDEuMDI1IDUuNjQ1QzI2LjUgNDUuMzI0IDI3LjMzIDQ2LjczIDI4LjM2MSA0OGwtNi4yMjEgNi4yMzVhNS4wMSA1LjAxIDAgMCAwLTUuMjk4IDEuMTYyYy0uOTQ3Ljk0Mi0xLjQ4IDIuMjI3LTEuNDc1IDMuNTY1cy41MjcgMi42MTIgMS40NzkgMy41NjQgMi4yMjcgMS40OCAzLjU2NSAxLjQ4YTUgNSAwIDAgMCAzLjU2NS0xLjQ4IDUuMDUgNS4wNSAwIDAgMCAxLjQ3NS0zLjU2NCA1IDUgMCAwIDAtLjIzNC0xLjUxNGw2LjQyNi02LjQyNmExNiAxNiAwIDAgMCAyLjg1NiAxLjU2MyAxNi43IDE2LjcgMCAwIDAgNi42ODUgMS40MDZoLjQzOWExNS43NiAxNS43NiAwIDAgMCA3LjYyNy0xLjkyOSAxNS43NyAxNS43NyAwIDAgMCA1Ljk3Ny01LjYzYzEuNDk5LTIuMzkzIDIuMzE5LTUuMDQ0IDIuMzE5LTcuOTU5di0uMTQ2YzAtMi44NjYtLjY2NC01LjUwOC0yLjA1MS03Ljkzem0tNy44NDcgMTMuNDg3Yy0xLjc0MyAxLjkzOC0zLjc1IDMuMTM1LTYuMDE2IDMuMTM1aC0uNDNjLTEuMjk0IDAtMi41NjQtLjM1Ni0zLjc5OS0xLjAxMWE4LjggOC44IDAgMCAxLTMuMzMtMy4wMzJjLS44OTgtMS4yNy0xLjM4Ny0yLjY1Ni0xLjM4Ny00LjEyNnYtLjQzOWMwLTEuNDQ1LjI3OC0yLjgxNy45NzctNC4xMTEuNzQ3LTEuNDY1IDEuNzU4LTIuNTE1IDMuMTAxLTMuMzg5YTcuNiA3LjYgMCAwIDEgNC4yOTctMS4yOTRoLjE0N2MxLjQxNiAwIDIuNzY5LjI3OCA0LjAzOC45MjhhOC41NiA4LjU2IDAgMCAxIDMuMTc0IDIuODg2IDkuMiA5LjIgMCAwIDEgMS40MjEgNC4wNTNsLjAzNC45MTNjMCAxLjk4Ny0uNzYyIDMuODI4LTIuMjggNS40OTh6Ii8+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "HubSpot",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 2,
+            "name": "Sales"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 839,
+        "icon": "fa:clock",
+        "name": "n8n-nodes-base.scheduleTrigger",
+        "codex": {
+          "data": {
+            "alias": [
+              "Time",
+              "Scheduler",
+              "Polling",
+              "Cron",
+              "Interval"
+            ],
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\",\"schedule\"]",
+        "defaults": {
+          "name": "Schedule Trigger",
+          "color": "#31C49F"
+        },
+        "iconData": {
+          "icon": "clock",
+          "type": "icon"
+        },
+        "displayName": "Schedule Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1250,
+        "icon": "file:openAi.svg",
+        "name": "@n8n/n8n-nodes-langchain.openAi",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain",
+              "ChatGPT",
+              "Sora",
+              "DallE",
+              "whisper",
+              "audio",
+              "transcribe",
+              "tts",
+              "assistant"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-langchain.openai/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Agents",
+                "Miscellaneous",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "OpenAI"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTM2Ljg2NzEgMTYuMzcxOEMzNy43NzQ2IDEzLjY0OCAzNy40NjIxIDEwLjY2NDIgMzYuMDEwOCA4LjE4NjYxQzMzLjgyODIgNC4zODY1MyAyOS40NDA3IDIuNDMxNDkgMjUuMTU1NiAzLjM1MTUxQzIzLjI0OTMgMS4yMDM5NiAyMC41MTA1IC0wLjAxNzMxNDggMTcuNjM5MiAwLjAwMDE4NTUzM0MxMy4yNTkxIC0wLjAwOTgxNDY4IDkuMzcyNzMgMi44MTAyNSA4LjAyNTIgNi45Nzc4M0M1LjIxMTM5IDcuNTU0MSAyLjc4MjU4IDkuMzE1MzggMS4zNjEzIDExLjgxMTdDLTAuODM3NDkzIDE1LjYwMTggLTAuMzM2MjMyIDIwLjM3OTQgMi42MDEzMyAyMy42Mjk0QzEuNjkzODEgMjYuMzUzMiAyLjAwNjMyIDI5LjMzNzEgMy40NTc2IDMxLjgxNDZDNS42NDAxNSAzNS42MTQ3IDEwLjAyNzcgMzcuNTY5NyAxNC4zMTI4IDM2LjY0OTdDMTYuMjE3OSAzOC43OTczIDE4Ljk1NzkgNDAuMDE4NSAyMS44MjkyIDM5Ljk5OThDMjYuMjExOCA0MC4wMTEgMzAuMDk5NCAzNy4xODg1IDMxLjQ0NjkgMzMuMDE3MUMzNC4yNjA4IDMyLjQ0MDkgMzYuNjg5NiAzMC42Nzk2IDM4LjExMDggMjguMTgzM0M0MC4zMDcxIDI0LjM5MzIgMzkuODA0NiAxOS42MTk0IDM2Ljg2ODMgMTYuMzY5M0wzNi44NjcxIDE2LjM3MThaTTIxLjgzMTcgMzcuMzg2QzIwLjA3OCAzNy4zODg1IDE4LjM3OTIgMzYuNzc0NyAxNy4wMzI5IDM1LjY1MDlDMTcuMDk0MSAzNS42MTg1IDE3LjIwMDQgMzUuNTU5NyAxNy4yNjkxIDM1LjUxNzJMMjUuMjM0MyAzMC45MTcxQzI1LjY0MTggMzAuNjg1OCAyNS44OTE4IDMwLjI1MjEgMjUuODg5MyAyOS43ODMzVjE4LjU1NDNMMjkuMjU1NiAyMC40OTgxQzI5LjI5MTkgMjAuNTE1NiAyOS4zMTU3IDIwLjU1MDYgMjkuMzIwNyAyMC41OTA2VjI5Ljg4OTZDMjkuMzE1NyAzNC4wMjQ3IDI1Ljk2NjggMzcuMzc3MiAyMS44MzE3IDM3LjM4NlpNNS43MjY0IDMwLjUwNzFDNC44NDc2MyAyOC45ODk2IDQuNTMxMzcgMjcuMjEwOCA0LjgzMjYzIDI1LjQ4NDVDNC44OTEzOCAyNS41MTk1IDQuOTk1MTMgMjUuNTgzMiA1LjA2ODg4IDI1LjYyNTdMMTMuMDM0MSAzMC4yMjU4QzEzLjQzNzggMzAuNDYyMSAxMy45Mzc4IDMwLjQ2MjEgMTQuMzQyOCAzMC4yMjU4TDI0LjA2NjggMjQuNjEwN1YyOC40OTgzQzI0LjA2OTMgMjguNTM4MyAyNC4wNTA1IDI4LjU3NyAyNC4wMTkzIDI4LjYwMkwxNS45Njc5IDMzLjI1MDlDMTIuMzgxNSAzNS4zMTU5IDcuODAxNDQgMzQuMDg4NCA1LjcyNzY1IDMwLjUwNzFINS43MjY0Wk0zLjYzMDEgMTMuMTIwNUM0LjUwNTEyIDExLjYwMDQgNS44ODY0IDEwLjQzNzkgNy41MzE0NCA5LjgzNDE1QzcuNTMxNDQgOS45MDI5IDcuNTI3NjkgMTAuMDI0MSA3LjUyNzY5IDEwLjEwOTJWMTkuMzEwNkM3LjUyNTE5IDE5Ljc3ODEgNy43NzUxOSAyMC4yMTE5IDguMTgxNDUgMjAuNDQzMUwxNy45MDU0IDI2LjA1N0wxNC41MzkxIDI4LjAwMDhDMTQuNTA1MyAyOC4wMjMzIDE0LjQ2MjggMjguMDI3IDE0LjQyNTMgMjguMDEwOEw2LjM3MjY2IDIzLjM1ODJDMi43OTM4MyAyMS4yODU2IDEuNTY2MzEgMTYuNzA2OCAzLjYyODg1IDEzLjEyMTdMMy42MzAxIDEzLjEyMDVaTTMxLjI4ODIgMTkuNTU2OUwyMS41NjQyIDEzLjk0MTdMMjQuOTMwNiAxMS45OTkyQzI0Ljk2NDMgMTEuOTc2NyAyNS4wMDY4IDExLjk3MjkgMjUuMDQ0MyAxMS45ODkyTDMzLjA5NyAxNi42MzhDMzYuNjgyMSAxOC43MDkzIDM3LjkxMDggMjMuMjk1NyAzNS44Mzk1IDI2Ljg4MDhDMzQuOTYzMyAyOC4zOTgzIDMzLjU4MzIgMjkuNTYwOCAzMS45Mzk1IDMwLjE2NThWMjAuNjg5NEMzMS45NDMyIDIwLjIyMTkgMzEuNjk0NSAxOS43ODk0IDMxLjI4OTQgMTkuNTU2OUgzMS4yODgyWk0zNC42MzgzIDE0LjUxNDJDMzQuNTc5NSAxNC40NzggMzQuNDc1OCAxNC40MTU1IDM0LjQwMiAxNC4zNzNMMjYuNDM2OCA5Ljc3Mjg5QzI2LjAzMzEgOS41MzY2NCAyNS41MzMxIDkuNTM2NjQgMjUuMTI4MSA5Ljc3Mjg5TDE1LjQwNDEgMTUuMzg4VjExLjUwMDRDMTUuNDAxNiAxMS40NjA0IDE1LjQyMDQgMTEuNDIxNyAxNS40NTE2IDExLjM5NjdMMjMuNTAzIDYuNzUxNThDMjcuMDg5NCA0LjY4Mjc5IDMxLjY3NDUgNS45MTQwNiAzMy43NDIgOS41MDE2NEMzNC42MTU4IDExLjAxNjcgMzQuOTMyIDEyLjc5MDUgMzQuNjM1OCAxNC41MTQySDM0LjYzODNaTTEzLjU3NDEgMjEuNDQzMUwxMC4yMDY1IDE5LjQ5OTRDMTAuMTcwMiAxOS40ODE5IDEwLjE0NjUgMTkuNDQ2OCAxMC4xNDE1IDE5LjQwNjhWMTAuMTA3OUMxMC4xNDQgNS45Njc4MSAxMy41MDI4IDIuNjEyNzQgMTcuNjQyOSAyLjYxNTI0QzE5LjM5NDIgMi42MTUyNCAyMS4wODkyIDMuMjMwMjUgMjIuNDM1NSA0LjM1MDI4QzIyLjM3NDMgNC4zODI3OCAyMi4yNjkzIDQuNDQxNTMgMjIuMTk5MiA0LjQ4NDAzTDE0LjIzNDEgOS4wODQxM0MxMy44MjY2IDkuMzE1MzggMTMuNTc2NiA5Ljc0Nzg5IDEzLjU3OTEgMTAuMjE2N0wxMy41NzQxIDIxLjQ0MDZWMjEuNDQzMVpNMTUuNDAyOSAxNy41MDA2TDE5LjczNDIgMTQuOTk5M0wyNC4wNjU1IDE3LjQ5OTNWMjIuNTAwN0wxOS43MzQyIDI1LjAwMDdMMTUuNDAyOSAyMi41MDA3VjE3LjUwMDZaIiBmaWxsPSJibGFjayIvPgo8L3N2Zz4K"
+        },
+        "displayName": "OpenAI",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 37,
+        "name": "Lead Generation"
+      },
+      {
+        "id": 49,
+        "name": "AI Summarization"
+      }
+    ],
+    "image": []
+  }
+}

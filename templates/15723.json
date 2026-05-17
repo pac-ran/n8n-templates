@@ -1,0 +1,2154 @@
+{
+  "workflow": {
+    "id": 15723,
+    "name": "Extract and log Outlook invoices to OneDrive Excel with GPT-4.1-mini",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-14T20:09:34.884Z",
+    "description": "# Invoice Processor \u2013 Microsoft 365\n\n&gt; Automatically extract, log, and archive invoices from your Outlook inbox using GPT-4.1-mini, OneDrive, and Excel \u2014 no manual data entry required.\n\n## Who It's For\n\nThis workflow is built for small business owners, finance teams, and operations managers who receive invoices via email and need a hands-free way to capture, organize, and track them. It works entirely within the Microsoft 365 ecosystem \u2014 no third-party apps required.\n\n## How It Works\n\nThe workflow runs on a daily schedule (default: 7 AM) and fetches all unread emails from a specified Outlook folder. Each email body is cleaned from HTML to plain text and passed to GPT-4.1-mini, which extracts 14 structured invoice fields \u2014 including vendor name, invoice number, issue date, due date, and total amount due. If the email includes a PDF attachment, the workflow fetches it via the Microsoft Graph API, checks whether a dated subfolder exists in OneDrive (`Invoices/YYYY-MM-DD`), creates one if needed, and uploads the file as `VENDOR-YYYY-MM.pdf`, capturing the shareable link. All extracted data is appended to an Excel table for record-keeping. Finally, processed emails are marked as read and a formatted HTML digest summarizing all invoices is sent via Outlook.\n\n## How to Set Up\n\n1. Add your **Microsoft Outlook OAuth2** credential \u2014 used to fetch emails and send the digest.\n2. Add your **Microsoft Graph OAuth2** credential \u2014 used for OneDrive folder creation, PDF upload, and Excel append.\n3. In **Outlook \u2014 Get Unread Emails**, update `foldersToInclude` to your target Outlook folder ID (find it via Graph Explorer).\n4. In **Excel \u2014 Append Invoice Row**, update the workbook, worksheet, and table IDs to match your `tblInvoices` tracker file in OneDrive.\n5. In **Code \u2014 Build Digest Email**, replace `YOUR_ONEDRIVE_FOLDER_URL` with a direct link to your Invoices folder.\n6. In **Outlook \u2014 Send Daily Digest**, replace `YOUR_EMAIL@example.com` with your recipient address.\n\n## Requirements\n\n- Microsoft Outlook OAuth2 credential\n- Microsoft Graph OAuth2 credential (Generic OAuth2 with `https://graph.microsoft.com/.default` scope)\n- OpenAI API credential (GPT-4.1-mini)\n- An Excel workbook in OneDrive with a table named `tblInvoices` containing columns matching the field list\n- A `PDF Link` column added to your `tblInvoices` table\n\n## How to Customize\n\n- **Change the schedule**: Adjust the cron expression in **Schedule \u2014 Daily Trigger** to run more or less frequently.\n- **Add more fields**: Extend the extraction prompt in **AI \u2014 Extract Invoice Fields** with additional fields and add matching columns to your Excel table.\n- **Modify the folder structure**: Edit **Code \u2014 Build Upload Path** to change how PDF subfolders are named or organized in OneDrive.\n- **Filter by sender or subject**: Add a Filter node after **Outlook \u2014 Get Unread Emails** to process only emails matching specific criteria.\n\n---\n*Support: support@legalgpts.com | [Automated Intelligent Solutions](https://automatedintelligentsolutions.com)*",
+    "workflow": {
+      "id": "QXtn97U966JAVBIR",
+      "meta": {
+        "instanceId": "a400cf39f950f544c3123da4ba896ff38a290fe22e28551b2452d8ff6b9b7235"
+      },
+      "name": "Invoice Processor Microsoft 365",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "7da0ed77-4b9d-43a2-a902-cc432747697c",
+          "name": "Sticky Note Overview",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            0,
+            0
+          ],
+          "parameters": {
+            "width": 620,
+            "height": 908,
+            "content": "### Invoice Processor \u2013 Microsoft 365\n\nAutomatically fetches unread emails from Outlook, uses GPT-4.1-mini to extract structured invoice data from email bodies and PDF attachments, saves PDFs to a dated OneDrive folder, appends each record to an Excel tracker table, marks emails as read, and sends a daily HTML digest summary.\n\n### How it works\n1. **Schedule \u2014 Daily Trigger** fires once per day (default: 7 AM).\n2. **Outlook \u2014 Get Unread Emails** fetches unread messages with attachments from a specified folder.\n3. **Code \u2014 Prepare Invoice Text** strips HTML email bodies to clean plain text.\n4. **AI \u2014 Extract Invoice Fields** sends each email body to GPT-4.1-mini to extract 14 structured invoice fields as JSON.\n5. **Code \u2014 Parse Invoice JSON** parses the AI response and merges it with email metadata.\n6. **Set \u2014 Format Excel Row** maps all fields to Excel column names.\n7. **IF \u2014 Has Attachment?** routes emails with PDF attachments through the OneDrive upload branch.\n8. **OneDrive Upload Branch**: fetches attachment bytes via Graph API \u2192 checks/creates a dated folder (`Invoices/YYYY-MM-DD`) \u2192 uploads the PDF as `VENDOR-YYYY-MM.pdf` \u2192 captures the `webUrl`.\n9. **Merge \u2014 Rejoin Attachment Branches** reunites both paths.\n10. **Parallel outputs**: Excel append (terminates) + Mark as Read \u2192 Filter \u2192 Digest email.\n\n### Setup\n1. Add credentials for **Microsoft Outlook OAuth2** (used for fetching and sending emails).\n2. Add credentials for **MS Graph OAuth2** (used for OneDrive and Excel via Graph API).\n3. In the **Outlook \u2014 Get Unread Emails** node, update the `foldersToInclude` filter to your inbox folder ID.\n4. In the **Excel \u2014 Append Invoice Row** node, update the workbook, worksheet, and table IDs to your `tblInvoices` tracker.\n5. In **Code \u2014 Build Digest Email**, update `oneDriveFolderUrl` to your OneDrive Invoices folder link.\n6. Set your recipient email in **Outlook \u2014 Send Daily Digest**.\n\n### Customization\n- Change the daily trigger time in **Schedule \u2014 Daily Trigger**.\n- Modify the PDF folder path logic in **Code \u2014 Build Upload Path**.\n- Add more fields to the AI prompt in **AI \u2014 Extract Invoice Fields** for additional extraction.\n\nSupport: support@legalgpts.com\nhttps://automatedintelligentsolutions.com"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "92e5b27e-2a57-4ee0-af9d-4269c8c0f6fd",
+          "name": "Sticky Note Trigger",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            640,
+            0
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 396,
+            "height": 304,
+            "content": "## Trigger + Fetch\nSchedule fires daily and fetches unread Outlook emails."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "e298d324-bd2c-4dd3-8382-3c88e684e86c",
+          "name": "Sticky Note Prepare",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1040,
+            0
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 280,
+            "height": 304,
+            "content": "## Prepare HTML \u2192 Text\nStrips HTML email body to clean plain text for the AI node."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "bf96b71a-2801-4ff7-9fcb-af98feb6ca2d",
+          "name": "Sticky Note AI",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1328,
+            0
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 664,
+            "height": 304,
+            "content": "## AI Extract \u2192 Parse \u2192 Format\nGPT-4.1-mini extracts 14 invoice fields; Code node parses JSON; Set node maps to Excel columns."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "20666dd2-a1b5-4522-a949-e3acd27c36c4",
+          "name": "Sticky Note OneDrive",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            2176,
+            0
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1332,
+            "height": 288,
+            "content": "## OneDrive Attachment Upload\nFetches PDF from Graph API \u2192 checks/creates dated folder \u2192 uploads renamed file \u2192 captures webUrl."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "a8dd1033-cae8-4efd-89d2-73ce9fcb825f",
+          "name": "Sticky Note Write",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            3520,
+            0
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1388,
+            "height": 288,
+            "content": "## Output: Excel Write + Mark Read \u2192 Filter \u2192 Digest\nParallel outputs: appends row to Excel and sends an HTML daily digest via Outlook."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "dd62c8dc-5f4e-46a8-9d5d-5ff4525b2557",
+          "name": "Schedule \u2014 Daily Trigger",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "position": [
+            688,
+            128
+          ],
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "cronExpression",
+                  "expression": "0 7 * * *"
+                }
+              ]
+            }
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "4af21336-ef98-4275-8aaa-fb5b2ff6385f",
+          "name": "Outlook \u2014 Get Unread Emails",
+          "type": "n8n-nodes-base.microsoftOutlook",
+          "position": [
+            896,
+            128
+          ],
+          "webhookId": "03ed9676-49a4-4e6a-aa94-e5c00ae98de6",
+          "parameters": {
+            "limit": 5,
+            "fields": [
+              "sentDateTime",
+              "sender",
+              "subject",
+              "from",
+              "body",
+              "internetMessageId",
+              "receivedDateTime"
+            ],
+            "output": "fields",
+            "options": {
+              "downloadAttachments": true
+            },
+            "filtersUI": {
+              "values": {
+                "filters": {
+                  "readStatus": "unread",
+                  "foldersToInclude": [
+                    "YOUR_OUTLOOK_FOLDER_ID"
+                  ]
+                }
+              }
+            },
+            "operation": "getAll"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "19724371-eb60-491b-8dd1-a8a85c430109",
+          "name": "Code \u2014 Prepare Invoice Text",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1120,
+            128
+          ],
+          "parameters": {
+            "jsCode": "function decodeEntities(s) {\n  return s\n    .replace(/&nbsp;/gi, ' ')\n    .replace(/&amp;/gi, '&')\n    .replace(/&lt;/gi, '<')\n    .replace(/&gt;/gi, '>')\n    .replace(/&quot;/gi, '\"')\n    .replace(/&#39;/gi, \"'\")\n    .replace(/&apos;/gi, \"'\")\n    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))\n    .replace(/#(\\d+);/g, (_, d) => String.fromCharCode(parseInt(d, 10)));\n}\n\nfunction htmlToText(html) {\n  if (!html) return '';\n  let s = String(html);\n  s = s.replace(/<script[\\s\\S]*?<\\/script>/gi, '');\n  s = s.replace(/<style[\\s\\S]*?<\\/style>/gi, '');\n  s = s.replace(/<!--[\\s\\S]*?-->/g, '');\n  s = s.replace(/<head[\\s\\S]*?<\\/head>/gi, '');\n  s = s.replace(/<\\/td\\s*>/gi, '\\t');\n  s = s.replace(/<\\/th\\s*>/gi, '\\t');\n  s = s.replace(/<\\/tr\\s*>/gi, '\\n');\n  s = s.replace(/<br\\s*\\/?>/gi, '\\n');\n  s = s.replace(/<\\/p\\s*>/gi, '\\n');\n  s = s.replace(/<\\/div\\s*>/gi, '\\n');\n  s = s.replace(/<\\/h[1-6]\\s*>/gi, '\\n');\n  s = s.replace(/<\\/li\\s*>/gi, '\\n');\n  s = s.replace(/<[^>]+>/g, ' ');\n  s = decodeEntities(s);\n  s = s.split('\\n')\n    .map(line => line.replace(/[ \\t\\f\\v]+/g, ' ').trim())\n    .filter(line => line.length > 0)\n    .join('\\n');\n  return s.substring(0, 12000);\n}\n\nconst results = [];\nfor (const item of items) {\n  const json = item.json || {};\n  const bodyContent = (json.body && json.body.content) ? json.body.content : '';\n  const isHtml = (json.body && json.body.contentType === 'html');\n  const invoiceText = isHtml ? htmlToText(bodyContent) : String(bodyContent || '').substring(0, 12000);\n\n  let emailFrom = '';\n  if (json.from && json.from.emailAddress) {\n    emailFrom = (json.from.emailAddress.name || '') + ' <' + (json.from.emailAddress.address || '') + '>';\n  } else if (typeof json.from === 'string') {\n    emailFrom = json.from;\n  }\n\n  results.push({\n    json: {\n      invoiceContent: invoiceText,\n      emailSubject: json.subject || '',\n      emailFrom: emailFrom,\n      emailDate: json.receivedDateTime || '',\n      emailUid: json.id || '',\n      hasAttachment: Object.keys(item.binary || {}).length > 0\n    },\n    binary: item.binary\n  });\n}\n\nreturn results;\n"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "f4b86a07-5432-4281-9b6e-275e62696924",
+          "name": "AI \u2014 Extract Invoice Fields",
+          "type": "@n8n/n8n-nodes-langchain.chainLlm",
+          "position": [
+            1376,
+            128
+          ],
+          "parameters": {
+            "text": "=You are an expert invoice data extractor. Extract the following fields from the invoice text below and return ONLY a valid JSON object with no markdown, no code fences, no backticks, no explanation. Start your response with { and end with }.\n\nIMPORTANT: The text may be plain text, structured email text, or HTML email converted to text. Look carefully for invoice-like patterns: invoice numbers, totals, line items, dates, vendor names. Forwarded emails may contain the invoice within the forwarded content. If the email does not appear to contain an invoice, return null for invoiceNumber to indicate this is not an invoice. If you are unsure of a vendor inspect the from address and resolve the domain to an entity.\n\nFields to extract:\n- invoiceNumber: unique alphanumeric identifier (string or null)\n- poNumber: purchase order number (string or null)\n- vendorName: legal name of the vendor (string or null)\n- contactInfo: billing contact email or phone (string or null)\n- issueDate: invoice issue date in YYYY-MM-DD format (string or null)\n- dueDate: payment due date in YYYY-MM-DD format (string or null)\n- subtotal: total before tax as number (number or null)\n- taxAmount: total tax amount as number (number or null)\n- totalAmountDue: final total as number (number or null)\n- currency: three-letter currency code e.g. USD, EUR (string or null)\n- paymentTerms: e.g. Net 30, Due on Receipt (string or null)\n- description: brief description of goods/services (string or null)\n- quantityHours: quantity or hours, comma-separated if multiple (string or null)\n- unitPrice: unit price or rate, comma-separated if multiple (string or null)\n\nInvoice text:\n{{ $json.invoiceContent }}",
+            "batching": {
+              "batchSize": 5,
+              "delayBetweenBatches": 0
+            },
+            "promptType": "define"
+          },
+          "typeVersion": 1.9
+        },
+        {
+          "id": "e583593d-fc5a-4f71-a397-b81d673171e1",
+          "name": "OpenAI \u2014 GPT-4.1-mini Model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "position": [
+            1344,
+            320
+          ],
+          "parameters": {
+            "model": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gpt-4.1-mini",
+              "cachedResultName": "gpt-4.1-mini"
+            },
+            "options": {
+              "temperature": 0
+            },
+            "builtInTools": {}
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "fd6bfa6f-5e58-4c72-876d-7b42bcb30f8f",
+          "name": "Code \u2014 Parse Invoice JSON",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1648,
+            128
+          ],
+          "parameters": {
+            "jsCode": "function parseInvoiceJson(raw) {\n  let cleaned = String(raw || '').trim()\n    .replace(/^```json\\s*/i, '')\n    .replace(/^```\\s*/i, '')\n    .replace(/\\s*```$/i, '')\n    .trim();\n  let parsed = {};\n  try {\n    const tmp = JSON.parse(cleaned);\n    if (tmp && typeof tmp === 'object' && !Array.isArray(tmp)) parsed = tmp;\n  } catch(e) {\n    const m = cleaned.match(/\\{[\\s\\S]*\\}/);\n    if (m) {\n      try {\n        const tmp2 = JSON.parse(m[0]);\n        if (tmp2 && typeof tmp2 === 'object' && !Array.isArray(tmp2)) parsed = tmp2;\n      } catch(e2) {}\n    }\n  }\n  return parsed;\n}\n\nconst fields = ['invoiceNumber','poNumber','vendorName','contactInfo','issueDate','dueDate',\n  'subtotal','taxAmount','totalAmountDue','currency','paymentTerms','description',\n  'quantityHours','unitPrice'];\n\nconst out = [];\nfor (let i = 0; i < items.length; i++) {\n  const parsed = parseInvoiceJson(items[i].json.text);\n  const row = {};\n  for (const f of fields) {\n    const v = parsed[f];\n    row[f] = (v !== null && v !== undefined) ? String(v) : '';\n  }\n  let meta = {};\n  try {\n    meta = $('Code \u2014 Prepare Invoice Text').itemMatching(i).json || {};\n  } catch(e) { meta = {}; }\n  row.emailSubject = meta.emailSubject || '';\n  row.emailFrom = meta.emailFrom || '';\n  row.emailDate = meta.emailDate || '';\n  row.emailUid = meta.emailUid || '';\n  row.hasAttachment = meta.hasAttachment || false;\n  out.push({ json: row });\n}\n\nreturn out;\n"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "ca8cc552-1de3-4f01-bcac-225f83d2f4ad",
+          "name": "Set \u2014 Format Excel Row",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            1840,
+            128
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "row-invnum",
+                  "name": "Invoice Number",
+                  "type": "string",
+                  "value": "={{ $json.invoiceNumber || '' }}"
+                },
+                {
+                  "id": "row-po",
+                  "name": "PO Number",
+                  "type": "string",
+                  "value": "={{ $json.poNumber || '' }}"
+                },
+                {
+                  "id": "row-vendor",
+                  "name": "Vendor / Client Name",
+                  "type": "string",
+                  "value": "={{ $json.vendorName || '' }}"
+                },
+                {
+                  "id": "row-contact",
+                  "name": "Contact Info",
+                  "type": "string",
+                  "value": "={{ $json.contactInfo || '' }}"
+                },
+                {
+                  "id": "row-issue",
+                  "name": "Issue Date",
+                  "type": "string",
+                  "value": "={{ $json.issueDate || '' }}"
+                },
+                {
+                  "id": "row-due",
+                  "name": "Due Date",
+                  "type": "string",
+                  "value": "={{ $json.dueDate || '' }}"
+                },
+                {
+                  "id": "row-subtotal",
+                  "name": "Subtotal",
+                  "type": "string",
+                  "value": "={{ $json.subtotal || '' }}"
+                },
+                {
+                  "id": "row-tax",
+                  "name": "Tax Amount",
+                  "type": "string",
+                  "value": "={{ $json.taxAmount || '' }}"
+                },
+                {
+                  "id": "row-total",
+                  "name": "Total Amount Due",
+                  "type": "string",
+                  "value": "={{ $json.totalAmountDue || '' }}"
+                },
+                {
+                  "id": "row-currency",
+                  "name": "Currency",
+                  "type": "string",
+                  "value": "={{ $json.currency || '' }}"
+                },
+                {
+                  "id": "row-terms",
+                  "name": "Payment Terms",
+                  "type": "string",
+                  "value": "={{ $json.paymentTerms || '' }}"
+                },
+                {
+                  "id": "row-desc",
+                  "name": "Description",
+                  "type": "string",
+                  "value": "={{ $json.description || '' }}"
+                },
+                {
+                  "id": "row-qty",
+                  "name": "Quantity / Hours",
+                  "type": "string",
+                  "value": "={{ $json.quantityHours || '' }}"
+                },
+                {
+                  "id": "row-unit",
+                  "name": "Unit Price / Rate",
+                  "type": "string",
+                  "value": "={{ $json.unitPrice || '' }}"
+                },
+                {
+                  "id": "row-source",
+                  "name": "Source Email From",
+                  "type": "string",
+                  "value": "={{ $json.emailFrom || '' }}"
+                },
+                {
+                  "id": "row-emailsubject",
+                  "name": "Source Email Subject",
+                  "type": "string",
+                  "value": "={{ $json.emailSubject || '' }}"
+                },
+                {
+                  "id": "row-emaildate",
+                  "name": "Email Received Date",
+                  "type": "string",
+                  "value": "={{ $json.emailDate || '' }}"
+                },
+                {
+                  "id": "row-processed",
+                  "name": "Processed At",
+                  "type": "string",
+                  "value": "={{ $now.toISO() }}"
+                },
+                {
+                  "id": "row-uid",
+                  "name": "Email UID",
+                  "type": "string",
+                  "value": "={{ $json.emailUid || '' }}"
+                },
+                {
+                  "id": "row-hasattach",
+                  "name": "hasAttachment",
+                  "type": "boolean",
+                  "value": "={{ $json.hasAttachment || false }}"
+                },
+                {
+                  "id": "row-vendorraw",
+                  "name": "vendorNameRaw",
+                  "type": "string",
+                  "value": "={{ $json.vendorName || '' }}"
+                },
+                {
+                  "id": "row-issueraw",
+                  "name": "issueDateRaw",
+                  "type": "string",
+                  "value": "={{ $json.issueDate || '' }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "b67f504d-57fe-447f-8b87-2458851d615e",
+          "name": "IF \u2014 Has Attachment?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            2048,
+            144
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": false,
+                "typeValidation": "loose"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "cond-has-attach",
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $json.hasAttachment }}",
+                  "rightValue": true
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "ef6c684c-0bbb-4dd6-9b91-3256985f99b1",
+          "name": "HTTP \u2014 Get Attachments",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            2272,
+            128
+          ],
+          "parameters": {
+            "url": "=https://graph.microsoft.com/v1.0/me/messages/{{ $json['Email UID'] }}/attachments",
+            "options": {
+              "response": {
+                "response": {}
+              }
+            },
+            "sendHeaders": true,
+            "authentication": "genericCredentialType",
+            "genericAuthType": "oAuth2Api",
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Accept",
+                  "value": "application/json"
+                }
+              ]
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "3651a8fe-5faa-4fcb-8abb-77d07a9a8c5c",
+          "name": "Code \u2014 Build Upload Path",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            2432,
+            128
+          ],
+          "parameters": {
+            "jsCode": "const results = [];\nconst trueItems = $('IF \u2014 Has Attachment?').all(0, 0); \n\nconst today = new Date();\nconst pad = (n) => String(n).padStart(2, '0');\nconst folderName = today.getFullYear() + '-' + pad(today.getMonth() + 1) + '-' + pad(today.getDate());\nconst baseFolder = 'Invoices';\nconst folderPath = baseFolder + '/' + folderName;\n\nfor (let i = 0; i < items.length; i++) {\n  const attachData = items[i].json;\n  const row = trueItems[i] ? trueItems[i].json : {};\n  \n  let vendorSlug = String(row.vendorNameRaw || 'UNKNOWN')\n    .toUpperCase()\n    .replace(/[^A-Z0-9]/g, '-')\n    .replace(/-+/g, '-')\n    .replace(/^-|-$/g, '')\n    .substring(0, 30);\n  if (!vendorSlug) vendorSlug = 'UNKNOWN';\n\n  let monthStr = '';\n  const issueRaw = String(row.issueDateRaw || '');\n  const dateMatch = issueRaw.match(/(\\d{4})-(\\d{2})/);\n  if (dateMatch) {\n    monthStr = dateMatch[1] + '-' + dateMatch[2];\n  } else {\n    monthStr = today.getFullYear() + '-' + pad(today.getMonth() + 1);\n  }\n\n  const fileName = vendorSlug + '-' + monthStr + '.pdf';\n\n  const attachments = attachData.value || [];\n  let pdfBase64 = null;\n  let pdfFound = false;\n  for (const att of attachments) {\n    const name = String(att.name || '').toLowerCase();\n    const ctype = String(att.contentType || '').toLowerCase();\n    if (name.endsWith('.pdf') || ctype.includes('pdf')) {\n      pdfBase64 = att.contentBytes || null;\n      pdfFound = true;\n      break;\n    }\n  }\n\n  if (!pdfFound && attachments.length > 0) {\n    pdfBase64 = attachments[0].contentBytes || null;\n    pdfFound = !!pdfBase64;\n  }\n\n  results.push({\n    json: {\n      folderName: folderName,\n      folderPath: folderPath,\n      fileName: fileName,\n      pdfBase64: pdfBase64,\n      pdfFound: pdfFound,\n      uploadPath: folderPath + '/' + fileName,\n      ...row\n    }\n  });\n}\n\nreturn results;"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "a2946710-5136-491a-af14-4908ffde9934",
+          "name": "HTTP \u2014 Check Folder Exists",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            2624,
+            128
+          ],
+          "parameters": {
+            "url": "=https://graph.microsoft.com/v1.0/me/drive/root:/{{ $json.folderPath }}",
+            "options": {
+              "response": {
+                "response": {
+                  "neverError": true,
+                  "fullResponse": true
+                }
+              }
+            },
+            "authentication": "genericCredentialType",
+            "genericAuthType": "oAuth2Api"
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "fb2ea952-4ab7-47ea-bb5d-c762f391413c",
+          "name": "IF \u2014 Folder Exists?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            2800,
+            128
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": false,
+                "typeValidation": "loose"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "cond-folder-exists",
+                  "operator": {
+                    "type": "number",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $json.statusCode }}",
+                  "rightValue": 200
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "0d7b63c3-8025-4011-9948-97aed628e6ce",
+          "name": "HTTP \u2014 Create Folder",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            2992,
+            208
+          ],
+          "parameters": {
+            "url": "=https://graph.microsoft.com/v1.0/me/drive/root:/Invoices:/children",
+            "method": "POST",
+            "options": {
+              "response": {
+                "response": {}
+              }
+            },
+            "jsonBody": "={\n  \"name\": \"{{ $('Code \u2014 Build Upload Path').first().json.folderName }}\",\n  \"folder\": {},\n  \"@microsoft.graph.conflictBehavior\": \"replace\"\n}",
+            "sendBody": true,
+            "sendHeaders": true,
+            "specifyBody": "json",
+            "authentication": "genericCredentialType",
+            "genericAuthType": "oAuth2Api",
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "08f47013-8547-46a4-83ff-40b680526088",
+          "name": "Merge \u2014 After Folder Check",
+          "type": "n8n-nodes-base.merge",
+          "position": [
+            3168,
+            128
+          ],
+          "parameters": {},
+          "typeVersion": 3
+        },
+        {
+          "id": "0735256b-a611-42e0-8120-7ae1c0ce2e1a",
+          "name": "Code \u2014 Decode PDF Binary",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            3360,
+            128
+          ],
+          "parameters": {
+            "jsCode": "const results = [];\nconst uploadItems = $('Code \u2014 Build Upload Path').all();\n\nfor (let i = 0; i < items.length; i++) {\n  const uploadData = uploadItems[i] ? uploadItems[i].json : items[i].json;\n  const pdfBase64 = uploadData.pdfBase64 || '';\n\n  if (!pdfBase64) {\n    const emptyBinary = await this.helpers.prepareBinaryData(\n      Buffer.from(''), 'blank.pdf', 'application/pdf'\n    );\n    results.push({\n      json: { ...uploadData, pdfBinaryReady: false },\n      binary: { pdfFile: emptyBinary }\n    });\n    continue;\n  }\n\n  const binaryData = await this.helpers.prepareBinaryData(\n    Buffer.from(pdfBase64, 'base64'),\n    uploadData.fileName,\n    'application/pdf'\n  );\n\n  results.push({\n    json: { ...uploadData, pdfBinaryReady: true },\n    binary: { pdfFile: binaryData }\n  });\n}\n\nreturn results;"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "bf87db7b-1bd1-4743-88fd-f9df013e01e4",
+          "name": "HTTP \u2014 Upload PDF",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            3584,
+            128
+          ],
+          "parameters": {
+            "url": "=https://graph.microsoft.com/v1.0/me/drive/root:/{{ $json.uploadPath }}:/content",
+            "method": "PUT",
+            "options": {
+              "response": {
+                "response": {}
+              }
+            },
+            "sendBody": true,
+            "contentType": "binaryData",
+            "sendHeaders": true,
+            "authentication": "genericCredentialType",
+            "genericAuthType": "oAuth2Api",
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Content-Type",
+                  "value": "application/pdf"
+                }
+              ]
+            },
+            "inputDataFieldName": "pdfFile"
+          },
+          "typeVersion": 4.2
+        },
+        {
+          "id": "eca3ca02-6391-4453-8aa2-28842bee0483",
+          "name": "Code \u2014 Capture PDF Link",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            3760,
+            128
+          ],
+          "parameters": {
+            "jsCode": "const results = [];\nconst rowItems = $('Code \u2014 Build Upload Path').all();\n\nfor (let i = 0; i < items.length; i++) {\n  const uploadResponse = items[i].json;\n  const rowData = rowItems[i] ? rowItems[i].json : {};\n  \n  const pdfWebUrl = uploadResponse.webUrl || uploadResponse['@microsoft.graph.downloadUrl'] || '';\n  \n  const { folderName, folderPath, fileName, pdfBase64, pdfFound, uploadPath, pdfBinaryReady, vendorNameRaw, issueDateRaw, hasAttachment, ...cleanRow } = rowData;\n  \n  results.push({\n    json: {\n      ...cleanRow,\n      pdfLink: pdfWebUrl\n    }\n  });\n}\n\nreturn results;"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "2a130129-d5b3-4ada-825d-62cbb76f2aa0",
+          "name": "Code \u2014 No Attachment Pass-Through",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            2400,
+            384
+          ],
+          "parameters": {
+            "jsCode": "// No attachment \u2014 pass through all items with empty pdfLink\nreturn items.map(item => {\n  const { hasAttachment, vendorNameRaw, issueDateRaw, ...cleanRow } = item.json;\n  return { json: { ...cleanRow, pdfLink: '' } };\n});\n"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "b3375685-e4fe-4110-8833-6e294531e0fd",
+          "name": "Merge \u2014 Rejoin Attachment Branches",
+          "type": "n8n-nodes-base.merge",
+          "position": [
+            3952,
+            128
+          ],
+          "parameters": {},
+          "typeVersion": 3
+        },
+        {
+          "id": "41a9febe-e02b-4516-8cef-d3967e6a3fd4",
+          "name": "Outlook \u2014 Mark as Read",
+          "type": "n8n-nodes-base.microsoftOutlook",
+          "onError": "continueRegularOutput",
+          "position": [
+            4160,
+            128
+          ],
+          "webhookId": "0873dd93-084e-4f62-86c5-cdf9677be143",
+          "parameters": {
+            "messageId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "={{ $json['Email UID'] }}"
+            },
+            "operation": "update",
+            "updateFields": {
+              "isRead": true
+            }
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "6bbd7946-b4d5-472c-bdea-3da67f7f6980",
+          "name": "Excel \u2014 Append Invoice Row",
+          "type": "n8n-nodes-base.microsoftExcel",
+          "position": [
+            4160,
+            336
+          ],
+          "parameters": {
+            "table": {
+              "__rl": true,
+              "mode": "list",
+              "value": "YOUR_TABLE_ID",
+              "cachedResultName": "tblInvoices"
+            },
+            "options": {},
+            "fieldsUi": {
+              "values": [
+                {
+                  "column": "Invoice Number",
+                  "fieldValue": "={{ $json['Invoice Number'] }}"
+                },
+                {
+                  "column": "PO Number",
+                  "fieldValue": "={{ $json['PO Number'] }}"
+                },
+                {
+                  "column": "Vendor / Client Name",
+                  "fieldValue": "={{ $json['Vendor / Client Name'] }}"
+                },
+                {
+                  "column": "Contact Info",
+                  "fieldValue": "={{ $json['Contact Info'] }}"
+                },
+                {
+                  "column": "Issue Date",
+                  "fieldValue": "={{ $json['Issue Date'] }}"
+                },
+                {
+                  "column": "Due Date",
+                  "fieldValue": "={{ $json['Due Date'] }}"
+                },
+                {
+                  "column": "Subtotal",
+                  "fieldValue": "={{ $json.Subtotal }}"
+                },
+                {
+                  "column": "Tax Amount",
+                  "fieldValue": "={{ $json['Tax Amount'] }}"
+                },
+                {
+                  "column": "Total Amount Due",
+                  "fieldValue": "={{ $json['Total Amount Due'] }}"
+                },
+                {
+                  "column": "Currency",
+                  "fieldValue": "={{ $json.Currency }}"
+                },
+                {
+                  "column": "Payment Terms",
+                  "fieldValue": "={{ $json['Payment Terms'] }}"
+                },
+                {
+                  "column": "Description",
+                  "fieldValue": "={{ $json.Description }}"
+                },
+                {
+                  "column": "Quantity / Hours",
+                  "fieldValue": "={{ $json['Quantity / Hours'] }}"
+                },
+                {
+                  "column": "Unit Price / Rate",
+                  "fieldValue": "={{ $json['Unit Price / Rate'] }}"
+                },
+                {
+                  "column": "Source Email From",
+                  "fieldValue": "={{ $json['Source Email From'] }}"
+                },
+                {
+                  "column": "Source Email Subject",
+                  "fieldValue": "={{ $json['Source Email Subject'] }}"
+                },
+                {
+                  "column": "Email Received Date",
+                  "fieldValue": "={{ $json['Email Received Date'] }}"
+                },
+                {
+                  "column": "Processed At",
+                  "fieldValue": "={{ $json['Processed At'] }}"
+                },
+                {
+                  "column": "EUID",
+                  "fieldValue": "={{ $json['Email UID'] }}"
+                },
+                {
+                  "column": "PDF Link",
+                  "fieldValue": "={{ $json.pdfLink || '' }}"
+                }
+              ]
+            },
+            "resource": "table",
+            "workbook": {
+              "__rl": true,
+              "mode": "list",
+              "value": "YOUR_WORKBOOK_ID",
+              "cachedResultName": "YOUR_WORKBOOK_NAME"
+            },
+            "worksheet": {
+              "__rl": true,
+              "mode": "list",
+              "value": "YOUR_WORKSHEET_ID",
+              "cachedResultName": "YOUR_WORKSHEET_NAME"
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "5ac608c8-f054-4dbf-b2e5-0e2574b84353",
+          "name": "Filter \u2014 Has Invoice Data",
+          "type": "n8n-nodes-base.filter",
+          "position": [
+            4368,
+            128
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "cond-has-invoice",
+                  "operator": {
+                    "type": "string",
+                    "operation": "notEmpty",
+                    "singleValue": true
+                  },
+                  "leftValue": "={{ $('Code \u2014 Parse Invoice JSON').item.json.invoiceNumber }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "ad662b94-827b-45a2-845a-6d43446deaef",
+          "name": "Code \u2014 Build Digest Email",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            4560,
+            128
+          ],
+          "parameters": {
+            "jsCode": "const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });\nconst count = items.length;\n\n// === CONFIGURATION ===\n// Paste the direct link to your main OneDrive \"Invoices\" folder between the quotes below:\nconst oneDriveFolderUrl = 'YOUR_ONEDRIVE_FOLDER_URL'; \n// =====================\n\nif (count === 0) {\n  return [{ json: {\n    subject: 'Invoice Digest - ' + today + ' - No Invoices Found',\n    body: '<p>No invoice emails were detected in this run (' + today + ').</p>'\n  }}];\n}\n\nconst esc = (s) => String(s == null ? '' : s)\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;')\n  .replace(/\"/g, '&quot;');\n\nconst formattedRows = $('Set \u2014 Format Excel Row').all();\n\nlet rows = '';\nfor (const it of items) {\n  const matchedRow = formattedRows.find(row => row.json['Email UID'] === it.json.id);\n  const r = matchedRow ? matchedRow.json : it.json;\n\n  const inv = r['Invoice Number'] || 'N/A';\n  const vendor = r['Vendor / Client Name'] || 'N/A';\n  const issue = r['Issue Date'] || 'N/A';\n  const due = r['Due Date'] || 'N/A';\n  const from = r['Source Email From'] || 'N/A';\n  \n  let total = 'N/A';\n  if (r['Total Amount Due']) {\n    const amount = parseFloat(String(r['Total Amount Due']).replace(/[^0-9.-]+/g, ''));\n    const currencyCode = (r['Currency'] || 'USD').trim().toUpperCase();\n    if (!isNaN(amount)) {\n      try {\n        total = new Intl.NumberFormat('en-US', { style: 'currency', currency: currencyCode }).format(amount);\n      } catch (e) {\n        total = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);\n      }\n    } else {\n      total = r['Total Amount Due']; \n    }\n  }\n\n  rows +=\n    '<tr>' +\n    '<td style=\"padding:6px 8px;border:1px solid #ddd;\">' + esc(inv) + '</td>' +\n    '<td style=\"padding:6px 8px;border:1px solid #ddd;\">' + esc(vendor) + '</td>' +\n    '<td style=\"padding:6px 8px;border:1px solid #ddd;\">' + esc(issue) + '</td>' +\n    '<td style=\"padding:6px 8px;border:1px solid #ddd;\">' + esc(due) + '</td>' +\n    '<td style=\"padding:6px 8px;border:1px solid #ddd;text-align:right;\">' + esc(total) + '</td>' +\n    '<td style=\"padding:6px 8px;border:1px solid #ddd;font-size:12px;\">' + esc(from) + '</td>' +\n    '</tr>';\n}\n\nconst body =\n  '<!DOCTYPE html><html><body style=\"font-family:Arial,sans-serif;color:#222;\">\\n' +\n  '<h2 style=\"color:#002657;\">Invoice Digest - ' + today + '</h2>\\n' +\n  '<p><strong>' + count + ' invoice(s)</strong> were detected, extracted, and logged to OneDrive today.</p>\\n' +\n  '<table style=\"border-collapse:collapse;width:100%;font-size:13px;\">\\n' +\n  '<thead><tr style=\"background:#002657;color:#fff;\">\\n' +\n  '<th style=\"padding:8px;border:1px solid #ddd;\">Invoice #</th>\\n' +\n  '<th style=\"padding:8px;border:1px solid #ddd;\">Vendor / Client</th>\\n' +\n  '<th style=\"padding:8px;border:1px solid #ddd;\">Issue Date</th>\\n' +\n  '<th style=\"padding:8px;border:1px solid #ddd;\">Due Date</th>\\n' +\n  '<th style=\"padding:8px;border:1px solid #ddd;\">Total Due</th>\\n' +\n  '<th style=\"padding:8px;border:1px solid #ddd;\">Source Email</th>\\n' +\n  '</tr></thead>\\n' +\n  '<tbody>' + rows + '</tbody>\\n' +\n  '</table>\\n' +\n  '<div style=\"text-align: center; margin-top: 35px; margin-bottom: 25px;\">\\n' +\n  '  <a href=\"' + oneDriveFolderUrl + '\" style=\"background-color: #002657; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 14px;\">Open OneDrive Folder</a>\\n' +\n  '</div>\\n' +\n  '<p style=\"margin-top:20px;font-size:12px;color:#888;\">Processed emails have been marked as read.</p>\\n' +\n  '</body></html>';\n\nreturn [{ json: {\n  subject: 'Invoice Digest - ' + today + ' - ' + count + ' Invoice(s) Logged',\n  body: body\n}}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "27caa89e-e970-4128-88b0-90b3c3064c29",
+          "name": "Outlook \u2014 Send Daily Digest",
+          "type": "n8n-nodes-base.microsoftOutlook",
+          "position": [
+            4752,
+            128
+          ],
+          "webhookId": "3eea68f1-72e9-4c22-a7cc-eefe51481ca8",
+          "parameters": {
+            "subject": "={{ $json.subject }}",
+            "bodyContent": "={{ $json.body }}",
+            "toRecipients": "user@example.com",
+            "additionalFields": {
+              "bodyContentType": "html"
+            }
+          },
+          "typeVersion": 2
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "b738b69e-8fd1-4e69-87d3-5527b6e3f4f8",
+      "connections": {
+        "HTTP \u2014 Upload PDF": {
+          "main": [
+            [
+              {
+                "node": "Code \u2014 Capture PDF Link",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "IF \u2014 Folder Exists?": {
+          "main": [
+            [
+              {
+                "node": "Merge \u2014 After Folder Check",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "HTTP \u2014 Create Folder",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "HTTP \u2014 Create Folder": {
+          "main": [
+            [
+              {
+                "node": "Merge \u2014 After Folder Check",
+                "type": "main",
+                "index": 1
+              }
+            ]
+          ]
+        },
+        "IF \u2014 Has Attachment?": {
+          "main": [
+            [
+              {
+                "node": "HTTP \u2014 Get Attachments",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Code \u2014 No Attachment Pass-Through",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "HTTP \u2014 Get Attachments": {
+          "main": [
+            [
+              {
+                "node": "Code \u2014 Build Upload Path",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Outlook \u2014 Mark as Read": {
+          "main": [
+            [
+              {
+                "node": "Filter \u2014 Has Invoice Data",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Set \u2014 Format Excel Row": {
+          "main": [
+            [
+              {
+                "node": "IF \u2014 Has Attachment?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Code \u2014 Capture PDF Link": {
+          "main": [
+            [
+              {
+                "node": "Merge \u2014 Rejoin Attachment Branches",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Code \u2014 Build Upload Path": {
+          "main": [
+            [
+              {
+                "node": "HTTP \u2014 Check Folder Exists",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Code \u2014 Decode PDF Binary": {
+          "main": [
+            [
+              {
+                "node": "HTTP \u2014 Upload PDF",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Schedule \u2014 Daily Trigger": {
+          "main": [
+            [
+              {
+                "node": "Outlook \u2014 Get Unread Emails",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Code \u2014 Build Digest Email": {
+          "main": [
+            [
+              {
+                "node": "Outlook \u2014 Send Daily Digest",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Code \u2014 Parse Invoice JSON": {
+          "main": [
+            [
+              {
+                "node": "Set \u2014 Format Excel Row",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Filter \u2014 Has Invoice Data": {
+          "main": [
+            [
+              {
+                "node": "Code \u2014 Build Digest Email",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "HTTP \u2014 Check Folder Exists": {
+          "main": [
+            [
+              {
+                "node": "IF \u2014 Folder Exists?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Merge \u2014 After Folder Check": {
+          "main": [
+            [
+              {
+                "node": "Code \u2014 Decode PDF Binary",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "AI \u2014 Extract Invoice Fields": {
+          "main": [
+            [
+              {
+                "node": "Code \u2014 Parse Invoice JSON",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Code \u2014 Prepare Invoice Text": {
+          "main": [
+            [
+              {
+                "node": "AI \u2014 Extract Invoice Fields",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenAI \u2014 GPT-4.1-mini Model": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "AI \u2014 Extract Invoice Fields",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Outlook \u2014 Get Unread Emails": {
+          "main": [
+            [
+              {
+                "node": "Code \u2014 Prepare Invoice Text",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Code \u2014 No Attachment Pass-Through": {
+          "main": [
+            [
+              {
+                "node": "Merge \u2014 Rejoin Attachment Branches",
+                "type": "main",
+                "index": 1
+              }
+            ]
+          ]
+        },
+        "Merge \u2014 Rejoin Attachment Branches": {
+          "main": [
+            [
+              {
+                "node": "Outlook \u2014 Mark as Read",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Excel \u2014 Append Invoice Row",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 30,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 2
+        },
+        "n8n-nodes-base.set": {
+          "count": 1
+        },
+        "n8n-nodes-base.code": {
+          "count": 7
+        },
+        "n8n-nodes-base.merge": {
+          "count": 2
+        },
+        "n8n-nodes-base.filter": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 6
+        },
+        "n8n-nodes-base.httpRequest": {
+          "count": 4
+        },
+        "n8n-nodes-base.microsoftExcel": {
+          "count": 1
+        },
+        "n8n-nodes-base.scheduleTrigger": {
+          "count": 1
+        },
+        "n8n-nodes-base.microsoftOutlook": {
+          "count": 3
+        },
+        "@n8n/n8n-nodes-langchain.chainLlm": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.lmChatOpenAi": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "AI Solutions",
+      "username": "legalgpts",
+      "bio": "",
+      "verified": true,
+      "links": [
+        "https://aisolutions.legal"
+      ],
+      "avatar": "https://gravatar.com/avatar/a9eef77b59c344b82511050992dfdf8461df3904a97bd238c0056ce4f03c4ffa?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 19,
+        "icon": "file:httprequest.svg",
+        "name": "n8n-nodes-base.httpRequest",
+        "codex": {
+          "data": {
+            "alias": [
+              "API",
+              "Request",
+              "URL",
+              "Build",
+              "cURL"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-designs-with-bannerbear-and-n8n/",
+                  "icon": "\ud83c\udfa8",
+                  "label": "Automate Designs with Bannerbear and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-use-the-http-request-node-the-swiss-army-knife-for-workflow-automation/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "How to use the HTTP Request Node - The Swiss Army Knife for Workflow Automation"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HTTP Request",
+          "color": "#0004F5"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MCAyMEM0MCA4Ljk1MzE0IDMxLjA0NjkgMCAyMCAwQzguOTUzMTQgMCAwIDguOTUzMTQgMCAyMEMwIDMxLjA0NjkgOC45NTMxNCA0MCAyMCA0MEMzMS4wNDY5IDQwIDQwIDMxLjA0NjkgNDAgMjBaTTIwIDM2Ljk0NThDMTguODg1MiAzNi45NDU4IDE3LjEzNzggMzUuOTY3IDE1LjQ5OTggMzIuNjk4NUMxNC43OTY0IDMxLjI5MTggMTQuMTk2MSAyOS41NDMxIDEzLjc1MjYgMjcuNjg0N0gyNi4xODk4QzI1LjgwNDUgMjkuNTQwMyAyNS4yMDQ0IDMxLjI5MDEgMjQuNTAwMiAzMi42OTg1QzIyLjg2MjIgMzUuOTY3IDIxLjExNDggMzYuOTQ1OCAyMCAzNi45NDU4Wk0xMi45MDY0IDIwQzEyLjkwNjQgMjEuNjA5NyAxMy4wMDg3IDIzLjE2NCAxMy4yMDAzIDI0LjYzMDVIMjYuNzk5N0MyNi45OTEzIDIzLjE2NCAyNy4wOTM2IDIxLjYwOTcgMjcuMDkzNiAyMEMyNy4wOTM2IDE4LjM5MDMgMjYuOTkxMyAxNi44MzYgMjYuNzk5NyAxNS4zNjk1SDEzLjIwMDNDMTMuMDA4NyAxNi44MzYgMTIuOTA2NCAxOC4zOTAzIDEyLjkwNjQgMjBaTTIwIDMuMDU0MTlDMjEuMTE0OSAzLjA1NDE5IDIyLjg2MjIgNC4wMzA3OCAyNC41MDAxIDcuMzAwMzlDMjUuMjA2NiA4LjcxNDA4IDI1LjgwNzIgMTAuNDA2NyAyNi4xOTIgMTIuMzE1M0gxMy43NTAxQzE0LjE5MzMgMTAuNDA0NyAxNC43OTQyIDguNzEyNTQgMTUuNDk5OCA3LjMwMDY0QzE3LjEzNzcgNC4wMzA4MyAxOC44ODUxIDMuMDU0MTkgMjAgMy4wNTQxOVpNMzAuMTQ3OCAyMEMzMC4xNDc4IDE4LjQwOTkgMzAuMDU0MyAxNi44NjE3IDI5LjgyMjcgMTUuMzY5NUgzNi4zMDQyQzM2LjcyNTIgMTYuODQyIDM2Ljk0NTggMTguMzk2NCAzNi45NDU4IDIwQzM2Ljk0NTggMjEuNjAzNiAzNi43MjUyIDIzLjE1OCAzNi4zMDQyIDI0LjYzMDVIMjkuODIyN0MzMC4wNTQzIDIzLjEzODMgMzAuMTQ3OCAyMS41OTAxIDMwLjE0NzggMjBaTTI2LjI3NjcgNC4yNTUxMkMyNy42MzY1IDYuMzYwMTkgMjguNzExIDkuMTMyIDI5LjM3NzQgMTIuMzE1M0gzNS4xMDQ2QzMzLjI1MTEgOC42NjggMzAuMTA3IDUuNzgzNDYgMjYuMjc2NyA0LjI1NTEyWk0xMC42MjI2IDEyLjMxNTNINC44OTI5M0M2Ljc1MTQ3IDguNjY3ODQgOS44OTM1MSA1Ljc4MzQxIDEzLjcyMzIgNC4yNTUxM0MxMi4zNjM1IDYuMzYwMjEgMTEuMjg5IDkuMTMyMDEgMTAuNjIyNiAxMi4zMTUzWk0zLjA1NDE5IDIwQzMuMDU0MTkgMjEuNjAzIDMuMjc3NDMgMjMuMTU3NSAzLjY5NDg0IDI0LjYzMDVIMTAuMTIxN0M5Ljk0NjE5IDIzLjE0MiA5Ljg1MjIyIDIxLjU5NDMgOS44NTIyMiAyMEM5Ljg1MjIyIDE4LjQwNTcgOS45NDYxOSAxNi44NTggMTAuMTIxNyAxNS4zNjk1SDMuNjk0ODRDMy4yNzc0MyAxNi44NDI1IDMuMDU0MTkgMTguMzk3IDMuMDU0MTkgMjBaTTI2LjI3NjYgMzUuNzQyN0MyNy42MzY1IDMzLjYzOTMgMjguNzExIDMwLjg2OCAyOS4zNzc0IDI3LjY4NDdIMzUuMTA0NkMzMy4yNTEgMzEuMzMyMiAzMC4xMDY4IDM0LjIxNzkgMjYuMjc2NiAzNS43NDI3Wk0xMy43MjM0IDM1Ljc0MjdDOS44OTM2OSAzNC4yMTc5IDYuNzUxNTUgMzEuMzMyNCA0Ljg5MjkzIDI3LjY4NDdIMTAuNjIyNkMxMS4yODkgMzAuODY4IDEyLjM2MzUgMzMuNjM5MyAxMy43MjM0IDM1Ljc0MjdaIiBmaWxsPSIjM0E0MkU5Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "HTTP Request",
+        "typeVersion": 4,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 24,
+        "icon": "file:merge.svg",
+        "name": "n8n-nodes-base.merge",
+        "codex": {
+          "data": {
+            "alias": [
+              "Join",
+              "Concatenate",
+              "Wait"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-sync-data-between-two-systems/",
+                  "icon": "\ud83c\udfec",
+                  "label": "How to synchronize data between two systems (one-way vs. two-way sync"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/migrating-community-metrics-to-orbit-using-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Migrating Community Metrics to Orbit using n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.merge/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Merge"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTc3XzUxOCkiPgo8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTAgNDhDMCAyMS40OTAzIDIxLjQ5MDMgMCA0OCAwSDExMkMxMzguNTEgMCAxNjAgMjEuNDkwMyAxNjAgNDhWNTZIMTk2LjI1MkMyNDAuNDM1IDU2IDI3Ni4yNTIgOTEuODE3MiAyNzYuMjUyIDEzNlYxOTJDMjc2LjI1MiAyMTQuMDkxIDI5NC4xNjEgMjMyIDMxNi4yNTIgMjMySDM1MlYyMjRDMzUyIDE5Ny40OSAzNzMuNDkgMTc2IDQwMCAxNzZINDY0QzQ5MC41MSAxNzYgNTEyIDE5Ny40OSA1MTIgMjI0VjI4OEM1MTIgMzE0LjUxIDQ5MC41MSAzMzYgNDY0IDMzNkg0MDBDMzczLjQ5IDMzNiAzNTIgMzE0LjUxIDM1MiAyODhWMjgwSDMxNi4yNTJDMjk0LjE2MSAyODAgMjc2LjI1MiAyOTcuOTA5IDI3Ni4yNTIgMzIwVjM3NkMyNzYuMjUyIDQyMC4xODMgMjQwLjQzNSA0NTYgMTk2LjI1MiA0NTZIMTYwVjQ2NEMxNjAgNDkwLjUxIDEzOC41MSA1MTIgMTEyIDUxMkg0OEMyMS40OTAzIDUxMiAwIDQ5MC41MSAwIDQ2NFY0MDBDMCAzNzMuNDkgMjEuNDkwMyAzNTIgNDggMzUySDExMkMxMzguNTEgMzUyIDE2MCAzNzMuNDkgMTYwIDQwMFY0MDhIMTk2LjI1MkMyMTMuOTI1IDQwOCAyMjguMjUyIDM5My42NzMgMjI4LjI1MiAzNzZWMzIwQzIyOC4yNTIgMjk0Ljc4NCAyMzguODU5IDI3Mi4wNDQgMjU1Ljg1MyAyNTZDMjM4Ljg1OSAyMzkuOTU2IDIyOC4yNTIgMjE3LjIxNiAyMjguMjUyIDE5MlYxMzZDMjI4LjI1MiAxMTguMzI3IDIxMy45MjUgMTA0IDE5Ni4yNTIgMTA0SDE2MFYxMTJDMTYwIDEzOC41MSAxMzguNTEgMTYwIDExMiAxNjBINDhDMjEuNDkwMyAxNjAgMCAxMzguNTEgMCAxMTJWNDhaTTEwNCA0OEMxMDguNDE4IDQ4IDExMiA1MS41ODE3IDExMiA1NlYxMDRDMTEyIDEwOC40MTggMTA4LjQxOCAxMTIgMTA0IDExMkg1NkM1MS41ODE3IDExMiA0OCAxMDguNDE4IDQ4IDEwNFY1NkM0OCA1MS41ODE3IDUxLjU4MTcgNDggNTYgNDhIMTA0Wk00NTYgMjI0QzQ2MC40MTggMjI0IDQ2NCAyMjcuNTgyIDQ2NCAyMzJWMjgwQzQ2NCAyODQuNDE4IDQ2MC40MTggMjg4IDQ1NiAyODhINDA4QzQwMy41ODIgMjg4IDQwMCAyODQuNDE4IDQwMCAyODBWMjMyQzQwMCAyMjcuNTgyIDQwMy41ODIgMjI0IDQwOCAyMjRINDU2Wk0xMTIgNDA4QzExMiA0MDMuNTgyIDEwOC40MTggNDAwIDEwNCA0MDBINTZDNTEuNTgxNyA0MDAgNDggNDAzLjU4MiA0OCA0MDhWNDU2QzQ4IDQ2MC40MTggNTEuNTgxNyA0NjQgNTYgNDY0SDEwNEMxMDguNDE4IDQ2NCAxMTIgNDYwLjQxOCAxMTIgNDU2VjQwOFoiIGZpbGw9IiM1NEI4QzkiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTc3XzUxOCI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Merge",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 322,
+        "icon": "file:excel.svg",
+        "name": "n8n-nodes-base.microsoftExcel",
+        "codex": {
+          "data": {
+            "alias": [
+              "_Excel",
+              "Excel",
+              "Sheet",
+              "CSV",
+              "Spreadsheet"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.microsoftexcel/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/microsoft/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage",
+              "Productivity"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Microsoft Excel 365"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PGcgZmlsbD0iIzAyNzIzQiIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik00My4xIDIwLjIyN2g5LjUxMnY0LjY5MmgtOS41MTN6bTAtNy4wMzRoOS41MTJ2NC42OWgtOS41MTN6bTAgMTQuMjI3aDkuNTEydjQuNjkxaC05LjUxM3ptMCA3LjAzNmg5LjUxMnY0LjY5MWgtOS41MTN6Ii8+PHBhdGggZD0iTTQzLjEgNDEuNjQ5aDkuNTEydjQuNjloLTkuNTEzek01OC4wNyA2Ljc4SDM1LjE0NlYuMzdMLjM3IDYuNDY3djQ3LjIybDM0Ljc3NiA1Ljk0MnYtNy4xODZINTguMDdjLjkzNSAwIDEuNTU5LS43ODEgMS41NTktMS41NTVWOC4zNDRjMC0uNzgxLS42MjQtMS41NTUtMS41Ni0xLjU1NVY2Ljc4ek0yMC4wMTggNDAuNTU0bC0zLjI3NC04LjU5M2gtLjE0OGMwIC4xNDktMy4yNzUgOC4xMy0zLjI3NSA4LjEzbC00LjM2Ni0uMzEyTDE0LjEgMjkuNjE2IDkuNDIyIDE5LjQ1M2w0LjM2Ny0uMzEyIDIuOTYzIDcuOTc0aC4xNDhjMC0uMTQ4IDMuMjc0LTguMjg3IDMuMjc0LTguMjg3bDQuNTIyLS4zMTItNS40NTcgMTEuMTAxIDUuNjE0IDExLjEwMi00LjgzNC0uMTQ5ek01Ny42IDUwLjcxN0gzNS4xNDZ2LTQuMzdoNS40NTh2LTQuNjkxaC01LjQ1OHYtMi4zNTJoNS40NTh2LTQuNjloLTUuNDU4di0yLjM0N2g1LjQ1OHYtNC42OWgtNS40NThWMjUuMjNoNS40NTh2LTQuNjloLTUuNDU4di0yLjM0NWg1LjQ1OHYtNC42OTJoLTUuNDU4di00LjY5aDIyLjQ1NnY0MS45MDNoLS4wMDF6Ii8+PHBhdGggZD0iTTQyLjcyOSAxOS44NTdoOS41MTJ2NC42OTFINDIuNzN6bTAtNy4wMzVoOS41MTJ2NC42OTFINDIuNzN6bTAgMTQuMjI4aDkuNTEydjQuNjlINDIuNzN6bTAgNy4wMzZoOS41MTJ2NC42OTFINDIuNzN6Ii8+PHBhdGggZD0iTTQyLjcyOSA0MS4yNzloOS41MTJ2NC42OUg0Mi43M3pNNTcuNjk5IDYuNDFIMzQuNzc2VjBMMCA2LjA5OHY0Ny4yMmwzNC43NzYgNS45NDF2LTcuMTg1aDIyLjkyM2MuOTM2IDAgMS41Ni0uNzgxIDEuNTYtMS41NTVWNy45NzRjMC0uNzgxLS42MjQtMS41NTUtMS41Ni0xLjU1NXpNMTkuNjQ3IDQwLjE4NGwtMy4yNzQtOC41OTNoLS4xNDhjMCAuMTQ4LTMuMjc0IDguMTMtMy4yNzQgOC4xM2wtNC4zNjctLjMxMiA1LjE0Ni0xMC4xNjMtNC42NzgtMTAuMTYzIDQuMzY3LS4zMTMgMi45NjIgNy45NzRoLjE0OWMwLS4xNDggMy4yNzQtOC4yODYgMy4yNzQtOC4yODZsNC41MjItLjMxMy01LjQ1OCAxMS4xMDIgNS42MTUgMTEuMTAxLTQuODM0LS4xNDh6TTU3LjIzIDUwLjM0N0gzNC43NzZ2LTQuMzdoNS40NTd2LTQuNjkyaC01LjQ1N3YtMi4zNTJoNS40NTd2LTQuNjloLTUuNDU3di0yLjM0N2g1LjQ1N3YtNC42OWgtNS40NTdWMjQuODZoNS40NTd2LTQuNjloLTUuNDU3di0yLjM0Nmg1LjQ1N3YtNC42OTJoLTUuNDU3di00LjY5aDIyLjQ1NnY0MS45MDR6Ii8+PC9nPjwvc3ZnPg=="
+        },
+        "displayName": "Microsoft Excel 365",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          },
+          {
+            "id": 4,
+            "name": "Productivity"
+          }
+        ]
+      },
+      {
+        "id": 433,
+        "icon": "file:outlook.svg",
+        "name": "n8n-nodes-base.microsoftOutlook",
+        "codex": {
+          "data": {
+            "alias": [
+              "email",
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.microsoftoutlook/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/microsoft/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Microsoft Outlook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgODEgODEiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48cGF0aCBmaWxsPSIjMjM3MmJhIiBzdHJva2U9Im5vbmUiIGQ9Ik03Ny45IDE5LjJINDYuODZWMEwwIDguMjMyVjcxLjk4TDQ2Ljg2IDgwVjYxLjg0N0g3Ny45YzEuMjY2IDAgMi4xLTEuMDU1IDIuMS0yLjFWMjEuMzJjMC0xLjI2Ni0uODQ0LTIuMS0yLjEtMi4xek0yMS45NTIgNTQuNDZjLTE1LjQtMS4wNTUtMTQuNzc2LTI5LjEzLjQyMi0yOS45NzQgMTYuNjc1LS44NDQgMTYuMjUzIDMxLjAzLS40MjIgMjkuOTc0bTU1LjUxNSA0LjY0NEg0Ni44NlYzNS4wNGw5LjUgOS4wNzdjLjQyMi40MjIuODQ0LjYzMyAxLjQ3Ny42MzNzMS4wNTUtLjIgMS40NzgtLjYzM0w3Ny40NjcgMjcuMjN6bTAtMzUuNDYyLTE5LjYzIDE4LjE1M0w0Ni44NiAzMS40NXYtOS43aDMwLjM5NnYxLjloLjJ6bS01NS4wOTIgNi41NDNjLTguMjMyLjQyMi04LjQ0MyAxOC4zNjQtLjIgMTguNTc1IDguNjU0LjQyMiA4LjY1NC0xOC45OTcuMi0xOC41NzUiLz48L3N5bWJvbD48L3N2Zz4="
+        },
+        "displayName": "Microsoft Outlook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 839,
+        "icon": "fa:clock",
+        "name": "n8n-nodes-base.scheduleTrigger",
+        "codex": {
+          "data": {
+            "alias": [
+              "Time",
+              "Scheduler",
+              "Polling",
+              "Cron",
+              "Interval"
+            ],
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\",\"schedule\"]",
+        "defaults": {
+          "name": "Schedule Trigger",
+          "color": "#31C49F"
+        },
+        "iconData": {
+          "icon": "clock",
+          "type": "icon"
+        },
+        "displayName": "Schedule Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 844,
+        "icon": "fa:filter",
+        "name": "n8n-nodes-base.filter",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The Filter node can be used to filter items based on a condition. If the condition is met, the item will be passed on to the next node. If the condition is not met, the item will be omitted. Conditions can be combined together by AND(meet all conditions), or OR(meet at least one condition).",
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.filter/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Filter",
+          "color": "#229eff"
+        },
+        "iconData": {
+          "icon": "filter",
+          "type": "icon"
+        },
+        "displayName": "Filter",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1123,
+        "icon": "fa:link",
+        "name": "@n8n/n8n-nodes-langchain.chainLlm",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.chainllm/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Chains",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Basic LLM Chain",
+          "color": "#909298"
+        },
+        "iconData": {
+          "icon": "link",
+          "type": "icon"
+        },
+        "displayName": "Basic LLM Chain",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1153,
+        "icon": "file:openAiLight.svg",
+        "name": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmchatopenai/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Language Models",
+                "Root Nodes"
+              ],
+              "Language Models": [
+                "Chat Models (Recommended)"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "OpenAI Chat Model"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTM2Ljg2NzEgMTYuMzcxOEMzNy43NzQ2IDEzLjY0OCAzNy40NjIxIDEwLjY2NDIgMzYuMDEwOCA4LjE4NjYxQzMzLjgyODIgNC4zODY1MyAyOS40NDA3IDIuNDMxNDkgMjUuMTU1NiAzLjM1MTUxQzIzLjI0OTMgMS4yMDM5NiAyMC41MTA1IC0wLjAxNzMxNDggMTcuNjM5MiAwLjAwMDE4NTUzM0MxMy4yNTkxIC0wLjAwOTgxNDY4IDkuMzcyNzMgMi44MTAyNSA4LjAyNTIgNi45Nzc4M0M1LjIxMTM5IDcuNTU0MSAyLjc4MjU4IDkuMzE1MzggMS4zNjEzIDExLjgxMTdDLTAuODM3NDkzIDE1LjYwMTggLTAuMzM2MjMyIDIwLjM3OTQgMi42MDEzMyAyMy42Mjk0QzEuNjkzODEgMjYuMzUzMiAyLjAwNjMyIDI5LjMzNzEgMy40NTc2IDMxLjgxNDZDNS42NDAxNSAzNS42MTQ3IDEwLjAyNzcgMzcuNTY5NyAxNC4zMTI4IDM2LjY0OTdDMTYuMjE3OSAzOC43OTczIDE4Ljk1NzkgNDAuMDE4NSAyMS44MjkyIDM5Ljk5OThDMjYuMjExOCA0MC4wMTEgMzAuMDk5NCAzNy4xODg1IDMxLjQ0NjkgMzMuMDE3MUMzNC4yNjA4IDMyLjQ0MDkgMzYuNjg5NiAzMC42Nzk2IDM4LjExMDggMjguMTgzM0M0MC4zMDcxIDI0LjM5MzIgMzkuODA0NiAxOS42MTk0IDM2Ljg2ODMgMTYuMzY5M0wzNi44NjcxIDE2LjM3MThaTTIxLjgzMTcgMzcuMzg2QzIwLjA3OCAzNy4zODg1IDE4LjM3OTIgMzYuNzc0NyAxNy4wMzI5IDM1LjY1MDlDMTcuMDk0MSAzNS42MTg0IDE3LjIwMDQgMzUuNTU5NyAxNy4yNjkxIDM1LjUxNzJMMjUuMjM0MyAzMC45MTcxQzI1LjY0MTggMzAuNjg1OCAyNS44OTE4IDMwLjI1MjEgMjUuODg5MyAyOS43ODMzVjE4LjU1NDNMMjkuMjU1NyAyMC40OTgxQzI5LjI5MTkgMjAuNTE1NiAyOS4zMTU3IDIwLjU1MDYgMjkuMzIwNyAyMC41OTA2VjI5Ljg4OTZDMjkuMzE1NyAzNC4wMjQ3IDI1Ljk2NjggMzcuMzc3MiAyMS44MzE3IDM3LjM4NlpNNS43MjY0IDMwLjUwNzFDNC44NDc2MyAyOC45ODk2IDQuNTMxMzcgMjcuMjEwOCA0LjgzMjYzIDI1LjQ4NDVDNC44OTEzOCAyNS41MTk1IDQuOTk1MTMgMjUuNTgzMiA1LjA2ODg4IDI1LjYyNTdMMTMuMDM0MSAzMC4yMjU4QzEzLjQzNzggMzAuNDYyMSAxMy45Mzc4IDMwLjQ2MjEgMTQuMzQyOCAzMC4yMjU4TDI0LjA2NjggMjQuNjEwN1YyOC40OTgzQzI0LjA2OTMgMjguNTM4MyAyNC4wNTA1IDI4LjU3NyAyNC4wMTkzIDI4LjYwMkwxNS45Njc5IDMzLjI1MDlDMTIuMzgxNSAzNS4zMTU5IDcuODAxNDQgMzQuMDg4NCA1LjcyNzY1IDMwLjUwNzFINS43MjY0Wk0zLjYzMDEgMTMuMTIwNUM0LjUwNTEyIDExLjYwMDQgNS44ODY0IDEwLjQzNzkgNy41MzE0NCA5LjgzNDE1QzcuNTMxNDQgOS45MDI5IDcuNTI3NjkgMTAuMDI0MiA3LjUyNzY5IDEwLjEwOTJWMTkuMzEwNkM3LjUyNTE5IDE5Ljc3ODEgNy43NzUxOSAyMC4yMTE5IDguMTgxNDUgMjAuNDQzMUwxNy45MDU0IDI2LjA1N0wxNC41MzkxIDI4LjAwMDhDMTQuNTA1MyAyOC4wMjMzIDE0LjQ2MjggMjguMDI3IDE0LjQyNTMgMjguMDEwOEw2LjM3MjY2IDIzLjM1ODJDMi43OTM4MyAyMS4yODU2IDEuNTY2MzEgMTYuNzA2OCAzLjYyODg1IDEzLjEyMTdMMy42MzAxIDEzLjEyMDVaTTMxLjI4ODIgMTkuNTU2OUwyMS41NjQyIDEzLjk0MTdMMjQuOTMwNiAxMS45OTkyQzI0Ljk2NDMgMTEuOTc2NyAyNS4wMDY4IDExLjk3MjkgMjUuMDQ0MyAxMS45ODkyTDMzLjA5NyAxNi42MzhDMzYuNjgyMSAxOC43MDkzIDM3LjkxMDggMjMuMjk1NyAzNS44Mzk1IDI2Ljg4MDhDMzQuOTYzMyAyOC4zOTgzIDMzLjU4MzIgMjkuNTYwOCAzMS45Mzk1IDMwLjE2NThWMjAuNjg5NEMzMS45NDMyIDIwLjIyMTkgMzEuNjk0NSAxOS43ODk0IDMxLjI4OTQgMTkuNTU2OUgzMS4yODgyWk0zNC42MzgzIDE0LjUxNDJDMzQuNTc5NSAxNC40NzggMzQuNDc1OCAxNC40MTU1IDM0LjQwMiAxNC4zNzNMMjYuNDM2OCA5Ljc3Mjg5QzI2LjAzMzEgOS41MzY2NCAyNS41MzMxIDkuNTM2NjQgMjUuMTI4MSA5Ljc3Mjg5TDE1LjQwNDEgMTUuMzg4VjExLjUwMDRDMTUuNDAxNiAxMS40NjA0IDE1LjQyMDQgMTEuNDIxNyAxNS40NTE2IDExLjM5NjdMMjMuNTAzIDYuNzUxNThDMjcuMDg5NCA0LjY4Mjc5IDMxLjY3NDUgNS45MTQwNiAzMy43NDIgOS41MDE2NEMzNC42MTU4IDExLjAxNjcgMzQuOTMyIDEyLjc5MDUgMzQuNjM1OCAxNC41MTQySDM0LjYzODNaTTEzLjU3NDEgMjEuNDQzMUwxMC4yMDY1IDE5LjQ5OTRDMTAuMTcwMiAxOS40ODE5IDEwLjE0NjUgMTkuNDQ2OCAxMC4xNDE1IDE5LjQwNjhWMTAuMTA3OUMxMC4xNDQgNS45Njc4MSAxMy41MDI4IDIuNjEyNzQgMTcuNjQyOSAyLjYxNTI0QzE5LjM5NDIgMi42MTUyNCAyMS4wODkyIDMuMjMwMjUgMjIuNDM1NSA0LjM1MDI4QzIyLjM3NDMgNC4zODI3OCAyMi4yNjkzIDQuNDQxNTMgMjIuMTk5MiA0LjQ4NDAzTDE0LjIzNDEgOS4wODQxM0MxMy44MjY2IDkuMzE1MzggMTMuNTc2NiA5Ljc0Nzg5IDEzLjU3OTEgMTAuMjE2N0wxMy41NzQxIDIxLjQ0MDZWMjEuNDQzMVpNMTUuNDAyOSAxNy41MDA2TDE5LjczNDIgMTQuOTk5M0wyNC4wNjU1IDE3LjQ5OTNWMjIuNTAwN0wxOS43MzQyIDI1LjAwMDdMMTUuNDAyOSAyMi41MDA3VjE3LjUwMDZaIiBmaWxsPSIjN0Q3RDg3Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "OpenAI Chat Model",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 34,
+        "name": "Invoice Processing"
+      },
+      {
+        "id": 49,
+        "name": "AI Summarization"
+      }
+    ],
+    "image": []
+  }
+}

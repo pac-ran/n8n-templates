@@ -1,0 +1,1319 @@
+{
+  "workflow": {
+    "id": 15628,
+    "name": "Orchestrate M365 employee onboarding with SharePoint, OneDrive, Teams, Outlook and Claude",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-11T14:26:52.642Z",
+    "description": "**Stop managing onboarding as a checklist. Let automation handle the infrastructure so you can focus on the people.**\n\nManually provisioning a new hire's digital workspace is a recipe for human error and \"Day 1\" friction. This workflow orchestrates the entire Microsoft 365 onboarding stack in a single, parallel execution. It doesn't just run tasks; it verifies them, handles API failures gracefully, and reports a live status dashboard directly back to HR.\n\n### How it works\nThe workflow operates in four synchronized stages:\n\n1.  **Ingestion & Smart Parsing:** The workflow triggers via **Microsoft Agent 365** (Teams @mentions or Outlook emails). A JavaScript engine parses the unstructured HR request using flexible regex to extract the employee's name, role, department, and start date.\n2.  **True Parallel Execution:** Once parsed, the data fans out into four independent branches:\n    * **SharePoint:** Creates a structured entry in the HR Onboarding master list.\n    * **OneDrive:** Provisions a personal root folder and automatically generates 5 templated sub-folders (Contracts, Equipment, Training, etc.).\n    * **Teams:** Creates a private onboarding channel for the employee's cohort.\n    * **AI Communications:** Leverages **Claude 3.5 Sonnet** to draft a warm, personalized welcome email based on the specific role and department, then sends it via **Outlook**.\n3.  **Fault-Tolerant Merging:** The workflow uses a multi-stage **Merge Cascade**. Every node is configured with `Continue on Fail` logic. This means if one branch hits an API limit or error, it passes an error object forward rather than crashing the entire process.\n4.  **Verified Status Delivery:** The final stage gathers all outputs, validates whether each task actually returned a success ID/URL, and generates a **Microsoft Teams Adaptive Card**. HR receives a clean summary with live links to provisioned assets and clear \u274c markers for any step that requires manual intervention.\n\n### Key Benefits\n* **Zero-Hang Resilience:** Built with \"Continue on Fail\" logic. If SharePoint is down, the employee still gets their welcome email and OneDrive folder. \n* **Live Asset Verification:** The final report doesn't just \"hope\" things worked; it checks for live IDs and URLs from the Microsoft Graph API before showing a green checkmark.\n* **Parallel Performance:** Provisioning happens concurrently. The total wait time is only as long as the slowest single task (usually the AI generation).\n* **Global Error Handling:** Includes a dedicated **Error Trigger** flow that catches catastrophic system crashes and alerts IT with a full stack trace and the name of the failed node.\n\n### Setup\n1.  **Credentials:** Add credentials for Microsoft SharePoint, OneDrive, Teams, Outlook, and Anthropic (Claude).\n2.  **Environment Config:** Open the `Parse New Hire + Config` node and replace the placeholder IDs with your specific SharePoint Site ID, List ID, and Teams Team ID.\n3.  **Entra ID Permissions:** Ensure your registered Azure App has the necessary Graph API permissions (`Sites.ReadWrite.All`, `Files.ReadWrite.All`, `Channel.Create`, `Mail.Send`).\n4.  **Activate:** Turn the workflow on and trigger it by @mentioning your Agent in Teams with new hire details.\n\n### Who this is for\n* **IT Operations Teams** looking to standardize M365 provisioning without expensive third-party SaaS.\n* **HR Departments** that want immediate, transparent feedback on onboarding progress.\n* **Managed Service Providers (MSPs)** providing automated \"Hiring-as-a-Service\" for their clients.\n\n### Required APIs & Credentials\n* **Microsoft 365 Stack:** SharePoint, OneDrive, Teams, Outlook.\n* **AI Provider:** Anthropic (Claude 3.5 Sonnet) or OpenAI (GPT-4o).\n\n### How to customise it\n* **Add More Branches:** Easily add nodes for Jira, Slack, or HRIS updates by fanning out from the Parser and adding them to the Merge Cascade.\n* **Adjust Folder Templates:** Modify the `Build SubFolder Paths` code node to match your company's specific folder structure.\n* **Modify AI Tone:** Change the `System Message` in the AI node to match your company's unique brand voice.\n* **Custom Triggers:** Swap the Agent 365 trigger for a Webhook (to connect to Workday/HiBob) or a Typeform trigger.\n",
+    "workflow": {
+      "id": "FaVKjslhnoxgrLBW",
+      "meta": {
+        "instanceId": "d1dc073e8e3059a23e2730f69cb1b90065a2ac39039fea0727fdf9bee77a9131",
+        "templateCredsSetupCompleted": true
+      },
+      "name": "M365 Employee Onboarding Orchestrator (Microsoft Agent 365)",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "c98b993b-5c74-4150-8f35-291501892e85",
+          "name": "README",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            2368,
+            1120
+          ],
+          "parameters": {
+            "width": 620,
+            "height": 386,
+            "content": "## M365 Employee Onboarding Orchestrator\n\n### Overview\nThis agent is invoked by HR in Teams or Outlook (via @mention or email) when a new employee\nis added in the HRIS system. It orchestrates the full onboarding stack inside Microsoft 365.\n\n### Production Failsafes Added:\n- **True Parallel Execution:** All 4 major tasks run independently from the parser.\n- **Continue On Fail:** ALL M365 and AI action nodes output error items to downstream Wait nodes.\n- **Dynamic Validation:** The final Adaptive Card pulls live URLs and IDs, showing \u274c for failed branches.\n- **Global Error Trigger:** Catches unhandled workflow crashes.\n"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "5f12912b-23d5-4553-a157-86ac6dbc1183",
+          "name": "Microsoft Agent 365",
+          "type": "@n8n/n8n-nodes-langchain.microsoftAgent365Trigger",
+          "position": [
+            3104,
+            1264
+          ],
+          "webhookId": "d1261774-9831-433f-a2be-a0582030cbb7",
+          "parameters": {
+            "options": {}
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "38e642f0-bb95-4437-8f5c-982631de8d8f",
+          "name": "Parse New Hire + Config",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            3456,
+            1264
+          ],
+          "parameters": {
+            "jsCode": "const payload = $input.first().json;\nconst rawText = payload.text || payload.body?.content || payload.message || '';\n\nconst extract = (label) => {\n  const regex = new RegExp(`${label}[:\\\\s]+([^|\\\\n]+)`, 'i');\n  const match = rawText.match(regex);\n  return match ? match[1].trim() : '';\n};\n\nconst newHire = {\n  fullName:    extract('Name') || extract('Employee') || 'New Employee',\n  role:        extract('Role') || extract('Title') || extract('Position') || 'Team Member',\n  department:  extract('Department') || extract('Team') || 'General',\n  startDate:   extract('StartDate') || extract('Start Date') || extract('Start') ||\n               new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],\n  managerEmail: extract('Manager') || extract('ReportsTo') || '',\n  location:    extract('Location') || extract('Office') || 'Remote',\n  email:       extract('Email') || extract('WorkEmail') || ''\n};\n\nconst folderName = `${newHire.fullName} - ${newHire.role} - ${newHire.startDate}`\n  .replace(/[<>:\"/\\\\|?*]/g, '-').trim();\n\nconst SHAREPOINT_SITE_ID           = 'REPLACE_WITH_YOUR_SHAREPOINT_SITE_ID';\nconst SHAREPOINT_LIST_ID           = 'REPLACE_WITH_YOUR_ONBOARDING_LIST_ID';\nconst ONEDRIVE_PARENT_FOLDER_PATH  = '/HR/NewHires'; \nconst TEAMS_HR_TEAM_ID             = 'REPLACE_WITH_YOUR_HR_TEAM_ID';\nconst TEAMS_ONBOARDING_CHANNEL_ID  = 'REPLACE_WITH_YOUR_ONBOARDING_CHANNEL_ID';\nconst OUTLOOK_HR_MAILBOX           = 'user@example.com';\n\nreturn [{\n  json: {\n    ...newHire,\n    folderName,\n    SHAREPOINT_SITE_ID,\n    SHAREPOINT_LIST_ID,\n    ONEDRIVE_PARENT_FOLDER_PATH,\n    TEAMS_HR_TEAM_ID,\n    TEAMS_ONBOARDING_CHANNEL_ID,\n    OUTLOOK_HR_MAILBOX,\n    rawText,\n    triggeredAt: new Date().toISOString()\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "f2dd72b9-1c1f-431b-b03f-3326b9eca332",
+          "name": "SharePoint: Create Onboarding Entry",
+          "type": "n8n-nodes-base.microsoftSharePoint",
+          "onError": "continueErrorOutput",
+          "position": [
+            4288,
+            1008
+          ],
+          "parameters": {
+            "site": {
+              "__rl": true,
+              "mode": "list",
+              "value": ""
+            },
+            "requestOptions": {}
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "babf6b34-77b7-47d2-9568-308fe4958ffd",
+          "name": "OneDrive: Create Employee Folder",
+          "type": "n8n-nodes-base.microsoftOneDrive",
+          "onError": "continueErrorOutput",
+          "position": [
+            3904,
+            1248
+          ],
+          "parameters": {
+            "operation": "createFolder"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "c5a20a87-4005-44e9-94fc-ad4c2a134a9d",
+          "name": "Build SubFolder Paths",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            4144,
+            1232
+          ],
+          "parameters": {
+            "jsCode": "const basePath = $('Parse New Hire + Config').first().json.ONEDRIVE_PARENT_FOLDER_PATH\n  + '/' + $('Parse New Hire + Config').first().json.folderName;\n\nconst subFolders = ['01 - Contracts', '02 - Equipment', '03 - Training', '04 - Benefits', '05 - Personal Documents'];\n\nreturn subFolders.map(folder => ({\n  json: { folderPath: `${basePath}/${folder}`, newHireData: $('Parse New Hire + Config').first().json }\n}));"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "2ee7a1ea-c107-44e0-a2b5-077c67038df7",
+          "name": "OneDrive: Create SubFolders",
+          "type": "n8n-nodes-base.microsoftOneDrive",
+          "onError": "continueErrorOutput",
+          "position": [
+            4336,
+            1232
+          ],
+          "parameters": {
+            "operation": "createFolder"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "40e66bce-ac04-43fb-816c-42ad184cf84f",
+          "name": "Limit SubFolders Array",
+          "type": "n8n-nodes-base.itemLists",
+          "position": [
+            4624,
+            1216
+          ],
+          "parameters": {
+            "operation": "limit"
+          },
+          "typeVersion": 3
+        },
+        {
+          "id": "d914428a-263f-438e-9665-28798dc905a1",
+          "name": "Wait: SP & OneDrive",
+          "type": "n8n-nodes-base.merge",
+          "position": [
+            5024,
+            1008
+          ],
+          "parameters": {
+            "mode": "wait",
+            "options": {}
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "a355dbfc-77bd-41fd-9fa5-5f97438a4983",
+          "name": "Teams: Create Onboarding Channel",
+          "type": "n8n-nodes-base.microsoftTeams",
+          "onError": "continueErrorOutput",
+          "position": [
+            3968,
+            1584
+          ],
+          "webhookId": "664b26b5-be2a-4998-8763-c00f901154fd",
+          "parameters": {
+            "teamId": "={{ $('Parse New Hire + Config').first().json.TEAMS_HR_TEAM_ID }}",
+            "options": {}
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "d2e392dc-ae6e-44cf-a7c4-8aacd5a0b602",
+          "name": "AI: Generate Welcome Email",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "onError": "continueErrorOutput",
+          "position": [
+            3936,
+            1776
+          ],
+          "parameters": {
+            "text": "={{ 'Write a warm, personalised welcome email for a new employee with these details:\\n\\nName: ' + $('Parse New Hire + Config').first().json.fullName + '\\nRole: ' + $('Parse New Hire + Config').first().json.role + '\\nDepartment: ' + $('Parse New Hire + Config').first().json.department + '\\nStart Date: ' + $('Parse New Hire + Config').first().json.startDate + '\\nLocation: ' + $('Parse New Hire + Config').first().json.location }}",
+            "options": {
+              "systemMessage": "You are the company's People Operations team writing a welcome email to a new employee.\nWrite a warm, professional, and concise welcome email. Tone: friendly but not over-the-top.\nDo NOT use em dashes. Use short paragraphs.\nInclude:\n- Genuine welcome using their first name\n- One sentence acknowledging their role and what the team is excited about\n- What happens on day 1 (they will receive a calendar invite from their manager)\n- One sentence about culture / what makes working here special\n- Closing with excitement about them joining\nSign off as: The People Operations Team\nReturn ONLY the email body text, no subject line, no preamble, no JSON."
+            },
+            "promptType": "define"
+          },
+          "typeVersion": 1.7
+        },
+        {
+          "id": "0a8bc319-53b6-40b0-9c18-00a8c511bb76",
+          "name": "Claude Sonnet 4",
+          "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+          "position": [
+            3936,
+            1936
+          ],
+          "parameters": {
+            "model": "claude-sonnet-4-20250514",
+            "options": {}
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "5ecb5688-be82-4988-81c4-918237f86e2a",
+          "name": "Outlook: Send Welcome Email",
+          "type": "n8n-nodes-base.microsoftOutlook",
+          "onError": "continueErrorOutput",
+          "position": [
+            4368,
+            1760
+          ],
+          "webhookId": "da84dfca-f676-4a6f-a6f2-5b0e437b7790",
+          "parameters": {
+            "subject": "={{ 'Welcome to the team, ' + $('Parse New Hire + Config').first().json.fullName.split(' ')[0] + '!' }}",
+            "toRecipients": "={{ $('Parse New Hire + Config').first().json.email }}",
+            "additionalFields": {}
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "18b266d0-10b9-41ab-859e-539d90c322db",
+          "name": "Wait: Teams & Email",
+          "type": "n8n-nodes-base.merge",
+          "position": [
+            4704,
+            1744
+          ],
+          "parameters": {
+            "mode": "wait",
+            "options": {}
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "68b7123b-9df1-4979-a8cc-8d8ceae50fe5",
+          "name": "Wait: All Branches",
+          "type": "n8n-nodes-base.merge",
+          "position": [
+            5264,
+            1088
+          ],
+          "parameters": {
+            "mode": "wait",
+            "options": {}
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "83073cc0-44ea-4749-8f0c-b509a8f9ef1f",
+          "name": "Build HR Summary Card",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            5536,
+            1088
+          ],
+          "parameters": {
+            "jsCode": "const hire = $('Parse New Hire + Config').first().json;\n\n// Dynamically pull execution results from the true parallel branches\nconst spItem = $('SharePoint: Create Onboarding Entry').first().json || {};\nconst odFolder = $('OneDrive: Create Employee Folder').first().json || {};\nconst teamsChannel = $('Teams: Create Onboarding Channel').first().json || {};\nconst emailRes = $('Outlook: Send Welcome Email').first().json || {};\n\nconst spSuccess = spItem.id ? `\u2705 SharePoint List Item ID: ${spItem.id}` : '\u274c SharePoint List Update Failed';\nconst odSuccess = odFolder.webUrl ? `\u2705 [OneDrive Folder Provisioned](${odFolder.webUrl})` : '\u274c OneDrive Provisioning Failed';\nconst teamsSuccess = teamsChannel.webUrl ? `\u2705 [Teams Channel Created](${teamsChannel.webUrl})` : '\u274c Teams Channel Creation Failed';\nconst emailSuccess = emailRes.id ? `\u2705 Welcome email sent to ${hire.email}` : '\u274c AI Generation or Email Failed';\n\nconst adaptiveCard = {\n  type: 'AdaptiveCard',\n  '$schema': 'http://adaptivecards.io/schemas/adaptive-card.json',\n  version: '1.5',\n  body: [\n    {\n      type: 'TextBlock',\n      text: `\ud83c\udf89 New Team Member Onboarded: ${hire.fullName}`,\n      weight: 'Bolder',\n      size: 'Medium',\n      color: 'Good',\n      wrap: true\n    },\n    {\n      type: 'FactSet',\n      facts: [\n        { title: 'Role',        value: hire.role },\n        { title: 'Department',  value: hire.department },\n        { title: 'Start Date',  value: hire.startDate },\n        { title: 'Location',    value: hire.location },\n        { title: 'Manager',     value: hire.managerEmail || 'TBD' }\n      ]\n    },\n    {\n      type: 'TextBlock',\n      text: '**Onboarding Task Status:**',\n      weight: 'Bolder',\n      spacing: 'Medium'\n    },\n    {\n      type: 'TextBlock',\n      text: `${spSuccess}\\n${odSuccess}\\n${teamsSuccess}\\n${emailSuccess}`,\n      wrap: true,\n      spacing: 'None'\n    }\n  ]\n};\n\nreturn [{\n  json: {\n    adaptiveCard: JSON.stringify(adaptiveCard),\n    teamId:     hire.TEAMS_HR_TEAM_ID,\n    channelId:  hire.TEAMS_ONBOARDING_CHANNEL_ID\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "e76850bd-b19e-4b00-bbcc-ca3e8b35ac8b",
+          "name": "Teams: Post HR Summary Card",
+          "type": "n8n-nodes-base.microsoftTeams",
+          "position": [
+            5808,
+            1088
+          ],
+          "webhookId": "2b245f5e-12ea-488c-9fce-ae04971602f6",
+          "parameters": {
+            "operation": "post"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "2fee7dca-1f41-4c26-86b9-f33e54834c65",
+          "name": "Error Trigger",
+          "type": "n8n-nodes-base.errorTrigger",
+          "position": [
+            3104,
+            1904
+          ],
+          "parameters": {},
+          "typeVersion": 1
+        },
+        {
+          "id": "9dbef3e4-4802-4982-b603-45637cdaf587",
+          "name": "Build Error Alert Card",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            3328,
+            1904
+          ],
+          "parameters": {
+            "jsCode": "const errorData = $input.first().json;\n\nconst adaptiveCard = {\n  type: 'AdaptiveCard',\n  '$schema': 'http://adaptivecards.io/schemas/adaptive-card.json',\n  version: '1.5',\n  body: [\n    {\n      type: 'TextBlock',\n      text: `\ud83d\udea8 Onboarding Workflow Critical Failure`,\n      weight: 'Bolder',\n      size: 'Medium',\n      color: 'Attention',\n      wrap: true\n    },\n    {\n      type: 'FactSet',\n      facts: [\n        { title: 'Failed Node',  value: errorData.execution.lastNodeExecuted },\n        { title: 'Error Message', value: errorData.execution.error.message },\n        { title: 'Workflow ID',  value: errorData.workflow.id }\n      ]\n    }\n  ]\n};\n\nreturn [{\n  json: {\n    adaptiveCard: JSON.stringify(adaptiveCard),\n    teamId: 'REPLACE_WITH_YOUR_HR_TEAM_ID',\n    channelId: 'REPLACE_WITH_YOUR_ONBOARDING_CHANNEL_ID'\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "0a87e049-f953-4c1b-a35d-8285285aae99",
+          "name": "Teams: Post Error Alert",
+          "type": "n8n-nodes-base.microsoftTeams",
+          "position": [
+            3552,
+            1904
+          ],
+          "webhookId": "a4931078-fb15-4dfc-8aac-8a7d3931f820",
+          "parameters": {
+            "operation": "post"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "a5907727-c132-4f5d-8cf1-c78d583cef2b",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            3040,
+            1792
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 736,
+            "height": 268,
+            "content": "### Global Error Failsafe\nCatches severe, unhandled workflow crashes (e.g., node timeout, Anthropic API drop, out-of-memory) and alerts the IT/HR channel immediately."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "10f9ded5-d23f-40c8-9fd7-ca8a6b0bbf1e",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            3072,
+            1152
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 560,
+            "height": 300,
+            "content": "### Ingestion & Payload Parsing\nListens for the Agent 365 trigger and extracts the employee data using regex. Sets up core tenant IDs for downstream nodes"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "28fd8c28-9e47-4181-af64-f62d19c8b904",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            3824,
+            912
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1088,
+            "height": 508,
+            "content": "### Ingestion & Payload Parsing\nCreates the employee's SharePoint entry and provisions their personal OneDrive space. Handles the array mapping to generate the 5 required templated sub-folders."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "c15dd002-af34-4bb9-b278-1481fdcd0f54",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            3824,
+            1472
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1088,
+            "height": 588,
+            "content": "### Communications Pipeline\nProvisions the private cohort channel in Teams and leverages Claude to write a highly contextual, personalized welcome email sent via Outlook."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "b476f704-2f3a-4ba3-8873-3b4cf3aa1072",
+          "name": "Sticky Note4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            4960,
+            912
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1088,
+            "height": 508,
+            "content": "### Parallel Sync & Summary\nWaits for all parallel branches to resolve (whether they succeed or pass an error item via 'Continue on Fail'). Dynamically validates the outputs and posts a final markdown summary card to HR."
+          },
+          "typeVersion": 1
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "77157b6c-e1e3-4270-976d-1246ae5e75fd",
+      "connections": {
+        "Error Trigger": {
+          "main": [
+            [
+              {
+                "node": "Build Error Alert Card",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Claude Sonnet 4": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "AI: Generate Welcome Email",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Wait: All Branches": {
+          "main": [
+            [
+              {
+                "node": "Build HR Summary Card",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Microsoft Agent 365": {
+          "main": [
+            [
+              {
+                "node": "Parse New Hire + Config",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Wait: SP & OneDrive": {
+          "main": [
+            [
+              {
+                "node": "Wait: All Branches",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Wait: Teams & Email": {
+          "main": [
+            [
+              {
+                "node": "Wait: All Branches",
+                "type": "main",
+                "index": 1
+              }
+            ]
+          ]
+        },
+        "Build HR Summary Card": {
+          "main": [
+            [
+              {
+                "node": "Teams: Post HR Summary Card",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build SubFolder Paths": {
+          "main": [
+            [
+              {
+                "node": "OneDrive: Create SubFolders",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Error Alert Card": {
+          "main": [
+            [
+              {
+                "node": "Teams: Post Error Alert",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Limit SubFolders Array": {
+          "main": [
+            [
+              {
+                "node": "Wait: SP & OneDrive",
+                "type": "main",
+                "index": 1
+              }
+            ]
+          ]
+        },
+        "Parse New Hire + Config": {
+          "main": [
+            [
+              {
+                "node": "SharePoint: Create Onboarding Entry",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "OneDrive: Create Employee Folder",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Teams: Create Onboarding Channel",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "AI: Generate Welcome Email",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "AI: Generate Welcome Email": {
+          "main": [
+            [
+              {
+                "node": "Outlook: Send Welcome Email",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OneDrive: Create SubFolders": {
+          "main": [
+            [
+              {
+                "node": "Limit SubFolders Array",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Outlook: Send Welcome Email": {
+          "main": [
+            [
+              {
+                "node": "Wait: Teams & Email",
+                "type": "main",
+                "index": 1
+              }
+            ]
+          ]
+        },
+        "OneDrive: Create Employee Folder": {
+          "main": [
+            [
+              {
+                "node": "Build SubFolder Paths",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Teams: Create Onboarding Channel": {
+          "main": [
+            [
+              {
+                "node": "Wait: Teams & Email",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "SharePoint: Create Onboarding Entry": {
+          "main": [
+            [
+              {
+                "node": "Wait: SP & OneDrive",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 25,
+      "nodeTypes": {
+        "n8n-nodes-base.code": {
+          "count": 4
+        },
+        "n8n-nodes-base.merge": {
+          "count": 3
+        },
+        "n8n-nodes-base.itemLists": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 6
+        },
+        "n8n-nodes-base.errorTrigger": {
+          "count": 1
+        },
+        "n8n-nodes-base.microsoftTeams": {
+          "count": 3
+        },
+        "@n8n/n8n-nodes-langchain.agent": {
+          "count": 1
+        },
+        "n8n-nodes-base.microsoftOutlook": {
+          "count": 1
+        },
+        "n8n-nodes-base.microsoftOneDrive": {
+          "count": 2
+        },
+        "n8n-nodes-base.microsoftSharePoint": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.lmChatAnthropic": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.microsoftAgent365Trigger": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Mychel Garzon",
+      "username": "mychel-garzon",
+      "bio": "n8n Verified Creator and Junction 2025 n8n Tech Challenge Winner based in Helsinki, Finland. Full Stack Engineer specializing in AI automation workflows, multi-agent systems, RAG pipelines, and automated incident triage. Node.js, TypeScript, React, LLMs (OpenAI, Anthropic, Gemini, Groq). 99.9% production uptime.\n\nCustom n8n workflows: mychel.garzon@gmail.com",
+      "verified": true,
+      "links": [
+        "https://mychelgarzon.com/"
+      ],
+      "avatar": "https://gravatar.com/avatar/8937dc435f1eb7cc47cfc0139be315f5e28add64bc872edc5e5315137ee12b75?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 12,
+        "icon": "fa:bug",
+        "name": "n8n-nodes-base.errorTrigger",
+        "codex": {
+          "data": {
+            "details": "In n8n, when a workflow execution fails, it can start another workflow. This second workflow can be any arbitrary workflow on your n8n instance. Use the Error Trigger node as your Trigger in the Error workflow.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/creating-error-workflows-in-n8n/",
+                  "icon": "\ud83c\udf2a",
+                  "label": "Creating Error Workflows in n8n"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.errortrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Other Trigger Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Error Trigger",
+          "color": "#0000FF"
+        },
+        "iconData": {
+          "icon": "bug",
+          "type": "icon"
+        },
+        "displayName": "Error Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 24,
+        "icon": "file:merge.svg",
+        "name": "n8n-nodes-base.merge",
+        "codex": {
+          "data": {
+            "alias": [
+              "Join",
+              "Concatenate",
+              "Wait"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-sync-data-between-two-systems/",
+                  "icon": "\ud83c\udfec",
+                  "label": "How to synchronize data between two systems (one-way vs. two-way sync"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/migrating-community-metrics-to-orbit-using-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Migrating Community Metrics to Orbit using n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.merge/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Merge"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTc3XzUxOCkiPgo8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTAgNDhDMCAyMS40OTAzIDIxLjQ5MDMgMCA0OCAwSDExMkMxMzguNTEgMCAxNjAgMjEuNDkwMyAxNjAgNDhWNTZIMTk2LjI1MkMyNDAuNDM1IDU2IDI3Ni4yNTIgOTEuODE3MiAyNzYuMjUyIDEzNlYxOTJDMjc2LjI1MiAyMTQuMDkxIDI5NC4xNjEgMjMyIDMxNi4yNTIgMjMySDM1MlYyMjRDMzUyIDE5Ny40OSAzNzMuNDkgMTc2IDQwMCAxNzZINDY0QzQ5MC41MSAxNzYgNTEyIDE5Ny40OSA1MTIgMjI0VjI4OEM1MTIgMzE0LjUxIDQ5MC41MSAzMzYgNDY0IDMzNkg0MDBDMzczLjQ5IDMzNiAzNTIgMzE0LjUxIDM1MiAyODhWMjgwSDMxNi4yNTJDMjk0LjE2MSAyODAgMjc2LjI1MiAyOTcuOTA5IDI3Ni4yNTIgMzIwVjM3NkMyNzYuMjUyIDQyMC4xODMgMjQwLjQzNSA0NTYgMTk2LjI1MiA0NTZIMTYwVjQ2NEMxNjAgNDkwLjUxIDEzOC41MSA1MTIgMTEyIDUxMkg0OEMyMS40OTAzIDUxMiAwIDQ5MC41MSAwIDQ2NFY0MDBDMCAzNzMuNDkgMjEuNDkwMyAzNTIgNDggMzUySDExMkMxMzguNTEgMzUyIDE2MCAzNzMuNDkgMTYwIDQwMFY0MDhIMTk2LjI1MkMyMTMuOTI1IDQwOCAyMjguMjUyIDM5My42NzMgMjI4LjI1MiAzNzZWMzIwQzIyOC4yNTIgMjk0Ljc4NCAyMzguODU5IDI3Mi4wNDQgMjU1Ljg1MyAyNTZDMjM4Ljg1OSAyMzkuOTU2IDIyOC4yNTIgMjE3LjIxNiAyMjguMjUyIDE5MlYxMzZDMjI4LjI1MiAxMTguMzI3IDIxMy45MjUgMTA0IDE5Ni4yNTIgMTA0SDE2MFYxMTJDMTYwIDEzOC41MSAxMzguNTEgMTYwIDExMiAxNjBINDhDMjEuNDkwMyAxNjAgMCAxMzguNTEgMCAxMTJWNDhaTTEwNCA0OEMxMDguNDE4IDQ4IDExMiA1MS41ODE3IDExMiA1NlYxMDRDMTEyIDEwOC40MTggMTA4LjQxOCAxMTIgMTA0IDExMkg1NkM1MS41ODE3IDExMiA0OCAxMDguNDE4IDQ4IDEwNFY1NkM0OCA1MS41ODE3IDUxLjU4MTcgNDggNTYgNDhIMTA0Wk00NTYgMjI0QzQ2MC40MTggMjI0IDQ2NCAyMjcuNTgyIDQ2NCAyMzJWMjgwQzQ2NCAyODQuNDE4IDQ2MC40MTggMjg4IDQ1NiAyODhINDA4QzQwMy41ODIgMjg4IDQwMCAyODQuNDE4IDQwMCAyODBWMjMyQzQwMCAyMjcuNTgyIDQwMy41ODIgMjI0IDQwOCAyMjRINDU2Wk0xMTIgNDA4QzExMiA0MDMuNTgyIDEwOC40MTggNDAwIDEwNCA0MDBINTZDNTEuNTgxNyA0MDAgNDggNDAzLjU4MiA0OCA0MDhWNDU2QzQ4IDQ2MC40MTggNTEuNTgxNyA0NjQgNTYgNDY0SDEwNEMxMDguNDE4IDQ2NCAxMTIgNDYwLjQxOCAxMTIgNDU2VjQwOFoiIGZpbGw9IiM1NEI4QzkiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTc3XzUxOCI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Merge",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 323,
+        "icon": "file:oneDrive.svg",
+        "name": "n8n-nodes-base.microsoftOneDrive",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.microsoftonedrive/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/microsoft/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Microsoft OneDrive"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgODEgODEiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48ZyBzdHJva2U9Im5vbmUiPjxwYXRoIGZpbGw9IiMwOTRhYjIiIGQ9Ik02LjY2NyAwUTAgMCAwIDYuNjY3djY2LjY2N1EwIDgwIDYuNjY3IDgwaDY2LjY2N1E4MCA4MCA4MCA3My4zMzNWNi42NjdRODAgMCA3My4zMzMgMHoiLz48cGF0aCBkPSJNNjAuMjU2IDQyLjAyM2MyLjg3LjQwNSA0Ljk2NSAyLjk3NSA0LjgzMiA1LjkyOSAwIDIuNTk0LTEuNDIxIDUuNjU1LTQuODMyIDUuNjU1SDMyLjU3NGMtNS4zMDYgMC03LjIzMi0zLjcwNi03LjIzMi03LjUyNCAwLTYuNDQ0IDYuOTc5LTYuNjIxIDYuOTc5LTYuNjIxcy41NjktNi45OTIgNi42NjQtOC40MWMzLjgwNi0xLjExMyA3Ljg3NS40NzcgOS45OCAzLjg5OWE4LjIgOC4yIDAgMCAxIDcuMDU4LS4yNThjMi44MTIgMS4yNTcgNC41MTggNC4yMTIgNC4yMzIgNy4zM3oiLz48cGF0aCBmaWxsPSIjZjlmOWY5IiBkPSJNMjMuNTgzIDQ1LjYwNWMwLTcuMDgyIDcuNDEyLTguMTM5IDcuNDEyLTguMTM5LjcwNy00LjEwOCAzLjY5OS03LjQzNSA3LjY4Mi04LjU0IDQuMDIxLTEuMjg2IDguNDA0LjE4OSAxMC44NTYgMy42NTNhNi4zIDYuMyAwIDAgMSAzLjYzNS0uNzM3Yy0uNTEzLTQuMTc3LTMuMjQ3LTcuNzM2LTcuMTI2LTkuMjc3LTUuMTQxLTIuMTUzLTExLjA1OC4wMjYtMTMuNjE4IDUuMDE1YTguNCA4LjQgMCAwIDAtOC4xMjYtLjE2Yy0zLjE4MSAxLjc2My01LjAwMiA1LjI4Mi00LjYxOSA4LjkyNC0zLjY3NS4zMjMtNi40MzggMy41MjMtNi4yNTQgNy4yNDIuMTE0IDMuODE3IDMuMTM5IDYuODkyIDYuOTIgNy4wMzRoNC42NWE5LjEgOS4xIDAgMCAxLTEuNDEzLTUuMDE1eiIvPjxwYXRoIGZpbGwtb3BhY2l0eT0iLjE5IiBkPSJtLjg0IDIuNjkgNzcuNzUzIDc1LjgxNkE0LjQgNC40IDAgMCAwIDgwIDc1LjI3OVY0LjM5OEE0LjM5IDQuMzkgMCAwIDAgNzUuNjEyIDBINC44ODVBNC4zOSA0LjM5IDAgMCAwIC44NCAyLjY5Ii8+PC9nPjwvc3ltYm9sPjwvc3ZnPg=="
+        },
+        "displayName": "Microsoft OneDrive",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          }
+        ]
+      },
+      {
+        "id": 368,
+        "icon": "file:teams.svg",
+        "name": "n8n-nodes-base.microsoftTeams",
+        "codex": {
+          "data": {
+            "alias": [
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.microsoftteams/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/microsoft/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Microsoft Teams"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMzgxLjQgMjM1NC41Ij48cGF0aCBmaWxsPSIjNTU1OGFmIiBkPSJNMjAxNS42IDg5OS4yYzE5LjUgMTkuNSA0Mi41IDM1IDY3LjkgNDUuOCA1MyAyMi4yIDExMi43IDIyLjIgMTY1LjggMCA1MS4yLTIxLjggOTItNjIuNSAxMTMuNy0xMTMuNyAyMi4yLTUzIDIyLjItMTEyLjcgMC0xNjUuOC0yMS44LTUxLjItNjIuNS05Mi0xMTMuNy0xMTMuNy01My0yMi4yLTExMi43LTIyLjItMTY1LjggMC01MS4yIDIxLjgtOTIgNjIuNS0xMTMuNyAxMTMuNy0yMi4yIDUzLTIyLjIgMTEyLjcgMCAxNjUuOCAxMC44IDI1LjMgMjYuNCA0OC40IDQ1LjggNjcuOW0tNjIuNCAxOTcuOHY2NDIuMWgxMDdjMzYuOC0uMiA3My40LTMuNiAxMDkuNS0xMC40IDM2LjMtNi40IDcxLjMtMTguNiAxMDMuNy0zNi4yIDMwLjYtMTYuNiA1Ny00MCA3Ny4zLTY4LjIgMjEuMy0zMS4zIDMyLTY4LjYgMzAuNS0xMDYuNVYxMDk3em0tMzQ2LjgtMjY5LjJjMjguNC4yIDU2LjYtNS41IDgyLjgtMTYuNyA1MS4yLTIxLjggOTEuOS02Mi41IDExMy42LTExMy43IDIyLjItNTMgMjIuMi0xMTIuNy0uMS0xNjUuOC0yMS44LTUxLjItNjIuNS05Mi0xMTMuNy0xMTMuNy0yNi4yLTExLjItNTQuNC0xNi45LTgyLjktMTYuNy0yOC4zLS4yLTU2LjMgNS41LTgyLjMgMTYuNy0xOS40IDguMy0yNS41IDE5LjEtNTIuMiAzMi4xdjMyOWMyNi44IDEzLjEgMzIuOCAyMy44IDUyLjIgMzIuMSAyNi4xIDExLjMgNTQuMiAxNi45IDgyLjYgMTYuN20tMTM0LjggMTA4MS4xYzI2LjggNS44IDM2LjQgMTAuMyA1NS40IDEyLjkgMjAuOCAzIDQxLjggNC41IDYyLjggNC42IDMyLjQtLjIgNjQuOC0zLjYgOTYuNS0xMC40IDMyLjMtNi41IDYzLjMtMTguNiA5MS41LTM1LjcgMjcuNy0xNyA1MS00MC4yIDY4LjItNjcuNyAxOS0zMi4xIDI4LjMtNjkuMSAyNi45LTEwNi40di03NDNoLTQwMS4zek0wIDIxMTMuN2wxMzkxLjMgMjQwLjhWMEwwIDI0MC44eiIvPjxwYXRoIGZpbGw9IiNmZmYiIGQ9Im0xMDE2LjcgNzIyLjQtNjQyLjEgMzkuMXYxNDguMWwyNDAuOC05Ljd2Njg2LjdsMTYwLjUgOS40Vjg5My42bDI0MC44LTEwLjd6Ii8+PC9zdmc+"
+        },
+        "displayName": "Microsoft Teams",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 433,
+        "icon": "file:outlook.svg",
+        "name": "n8n-nodes-base.microsoftOutlook",
+        "codex": {
+          "data": {
+            "alias": [
+              "email",
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.microsoftoutlook/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/microsoft/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Microsoft Outlook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgODEgODEiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48cGF0aCBmaWxsPSIjMjM3MmJhIiBzdHJva2U9Im5vbmUiIGQ9Ik03Ny45IDE5LjJINDYuODZWMEwwIDguMjMyVjcxLjk4TDQ2Ljg2IDgwVjYxLjg0N0g3Ny45YzEuMjY2IDAgMi4xLTEuMDU1IDIuMS0yLjFWMjEuMzJjMC0xLjI2Ni0uODQ0LTIuMS0yLjEtMi4xek0yMS45NTIgNTQuNDZjLTE1LjQtMS4wNTUtMTQuNzc2LTI5LjEzLjQyMi0yOS45NzQgMTYuNjc1LS44NDQgMTYuMjUzIDMxLjAzLS40MjIgMjkuOTc0bTU1LjUxNSA0LjY0NEg0Ni44NlYzNS4wNGw5LjUgOS4wNzdjLjQyMi40MjIuODQ0LjYzMyAxLjQ3Ny42MzNzMS4wNTUtLjIgMS40NzgtLjYzM0w3Ny40NjcgMjcuMjN6bTAtMzUuNDYyLTE5LjYzIDE4LjE1M0w0Ni44NiAzMS40NXYtOS43aDMwLjM5NnYxLjloLjJ6bS01NS4wOTIgNi41NDNjLTguMjMyLjQyMi04LjQ0MyAxOC4zNjQtLjIgMTguNTc1IDguNjU0LjQyMiA4LjY1NC0xOC45OTcuMi0xOC41NzUiLz48L3N5bWJvbD48L3N2Zz4="
+        },
+        "displayName": "Microsoft Outlook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 516,
+        "icon": "file:itemLists.svg",
+        "name": "n8n-nodes-base.itemLists",
+        "codex": {
+          "data": {
+            "alias": [
+              "Aggregate",
+              "Dedupe",
+              "Deduplicate",
+              "Duplicates",
+              "Limit",
+              "Remove",
+              "Slice",
+              "Sort",
+              "Split",
+              "Unique",
+              "JSON",
+              "Transform",
+              "Array",
+              "List",
+              "Object",
+              "Item",
+              "Map",
+              "Format",
+              "Nested",
+              "Iterate",
+              "Summarise",
+              "Summarize",
+              "Group",
+              "Pivot",
+              "Sum",
+              "Count",
+              "Min",
+              "Max"
+            ],
+            "details": "",
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.itemlists/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Item Lists"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbDpzcGFjZT0icHJlc2VydmUiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDIxMCAyMTAiPjxwYXRoIGQ9Ik0xOC44IDE4LjhDOC40IDE4LjggMCAyNy4xIDAgMzcuNXM4LjQgMTguOCAxOC44IDE4LjggMTguOC04LjQgMTguOC0xOC44LTguNS0xOC43LTE4LjgtMTguN20wIDYyLjRDOC40IDgxLjIgMCA4OS42IDAgMTAwczguNCAxOC44IDE4LjggMTguOCAxOC44LTguNCAxOC44LTE4LjgtOC41LTE4LjgtMTguOC0xOC44bTAgNjIuNkM4LjQgMTQzLjggMCAxNTIuMSAwIDE2Mi41czguNCAxOC44IDE4LjggMTguOCAxOC44LTguNCAxOC44LTE4LjgtOC41LTE4LjctMTguOC0xOC43bTE3NSA2LjJoLTEyNWMtMy41IDAtNi4yIDIuOC02LjIgNi4ydjEyLjVjMCAzLjUgMi44IDYuMiA2LjIgNi4yaDEyNWMzLjUgMCA2LjItMi44IDYuMi02LjJ2LTEyLjVjMC0zLjQtMi44LTYuMi02LjItNi4ybTAtMTI1aC0xMjVjLTMuNSAwLTYuMiAyLjgtNi4yIDYuMnYxMi41YzAgMy41IDIuOCA2LjIgNi4yIDYuMmgxMjVjMy41IDAgNi4yLTIuOCA2LjItNi4yVjMxLjJjMC0zLjQtMi44LTYuMi02LjItNi4ybTAgNjIuNWgtMTI1Yy0zLjUgMC02LjIgMi44LTYuMiA2LjJ2MTIuNWMwIDMuNSAyLjggNi4yIDYuMiA2LjJoMTI1YzMuNSAwIDYuMi0yLjggNi4yLTYuMlY5My44YzAtMy41LTIuOC02LjMtNi4yLTYuMyIgc3R5bGU9ImZpbGw6I2ZmNmQ1YSIvPjwvc3ZnPg=="
+        },
+        "displayName": "Item Lists",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1119,
+        "icon": "fa:robot",
+        "name": "@n8n/n8n-nodes-langchain.agent",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain",
+              "Chat",
+              "Conversational",
+              "Plan and Execute",
+              "ReAct",
+              "Tools"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Agents",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "AI Agent",
+          "color": "#404040"
+        },
+        "iconData": {
+          "icon": "robot",
+          "type": "icon"
+        },
+        "displayName": "AI Agent",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1145,
+        "icon": "file:anthropic.svg",
+        "name": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+        "codex": {
+          "data": {
+            "alias": [
+              "claude",
+              "sonnet",
+              "opus"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmchatanthropic/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Language Models",
+                "Root Nodes"
+              ],
+              "Language Models": [
+                "Chat Models (Recommended)"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Anthropic Chat Model"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NiIgaGVpZ2h0PSIzMiIgZmlsbD0ibm9uZSI+PHBhdGggZmlsbD0iIzdEN0Q4NyIgZD0iTTMyLjczIDBoLTYuOTQ1TDM4LjQ1IDMyaDYuOTQ1ek0xMi42NjUgMCAwIDMyaDcuMDgybDIuNTktNi43MmgxMy4yNWwyLjU5IDYuNzJoNy4wODJMMTkuOTI5IDB6bS0uNzAyIDE5LjMzNyA0LjMzNC0xMS4yNDYgNC4zMzQgMTEuMjQ2eiIvPjwvc3ZnPg=="
+        },
+        "displayName": "Anthropic Chat Model",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1302,
+        "icon": "file:microsoftSharePoint.svg",
+        "name": "n8n-nodes-base.microsoftSharePoint",
+        "codex": {
+          "data": {
+            "categories": []
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Microsoft SharePoint"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDIzLjAuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8IURPQ1RZUEUgc3ZnIFBVQkxJQyAiLS8vVzNDLy9EVEQgU1ZHIDEuMS8vRU4iICJodHRwOi8vd3d3LnczLm9yZy9HcmFwaGljcy9TVkcvMS4xL0RURC9zdmcxMS5kdGQiIFsKCTwhRU5USVRZIG5zX2V4dGVuZCAiaHR0cDovL25zLmFkb2JlLmNvbS9FeHRlbnNpYmlsaXR5LzEuMC8iPgoJPCFFTlRJVFkgbnNfYWkgImh0dHA6Ly9ucy5hZG9iZS5jb20vQWRvYmVJbGx1c3RyYXRvci8xMC4wLyI+Cgk8IUVOVElUWSBuc19ncmFwaHMgImh0dHA6Ly9ucy5hZG9iZS5jb20vR3JhcGhzLzEuMC8iPgoJPCFFTlRJVFkgbnNfdmFycyAiaHR0cDovL25zLmFkb2JlLmNvbS9WYXJpYWJsZXMvMS4wLyI+Cgk8IUVOVElUWSBuc19pbXJlcCAiaHR0cDovL25zLmFkb2JlLmNvbS9JbWFnZVJlcGxhY2VtZW50LzEuMC8iPgoJPCFFTlRJVFkgbnNfc2Z3ICJodHRwOi8vbnMuYWRvYmUuY29tL1NhdmVGb3JXZWIvMS4wLyI+Cgk8IUVOVElUWSBuc19jdXN0b20gImh0dHA6Ly9ucy5hZG9iZS5jb20vR2VuZXJpY0N1c3RvbU5hbWVzcGFjZS8xLjAvIj4KCTwhRU5USVRZIG5zX2Fkb2JlX3hwYXRoICJodHRwOi8vbnMuYWRvYmUuY29tL1hQYXRoLzEuMC8iPgpdPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxpdmVsbG9fMSIgeG1sbnM6eD0iJm5zX2V4dGVuZDsiIHhtbG5zOmk9IiZuc19haTsiIHhtbG5zOmdyYXBoPSImbnNfZ3JhcGhzOyIKCSB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4PSIwcHgiIHk9IjBweCIgdmlld0JveD0iMCAwIDE5OTIuMzMzIDE5NDYiCgkgZW5hYmxlLWJhY2tncm91bmQ9Im5ldyAwIDAgMTk5Mi4zMzMgMTk0NiIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxtZXRhZGF0YT4KCTxzZncgIHhtbG5zPSImbnNfc2Z3OyI+CgkJPHNsaWNlcz48L3NsaWNlcz4KCQk8c2xpY2VTb3VyY2VCb3VuZHMgIGJvdHRvbUxlZnRPcmlnaW49InRydWUiIGhlaWdodD0iMTk0NiIgd2lkdGg9IjE5OTIuMzMzIiB4PSItOTk1LjMzMyIgeT0iLTk0OSI+PC9zbGljZVNvdXJjZUJvdW5kcz4KCTwvc2Z3Pgo8L21ldGFkYXRhPgo8Y2lyY2xlIGZpbGw9IiMwMzZDNzAiIGN4PSIxMDE5LjMzMyIgY3k9IjU1NiIgcj0iNTU2Ii8+CjxjaXJjbGUgZmlsbD0iIzFBOUJBMSIgY3g9IjE0ODIuNjY3IiBjeT0iMTA2NS42NjciIHI9IjUwOS42NjciLz4KPGNpcmNsZSBmaWxsPSIjMzdDNkQwIiBjeD0iMTA4OC44MzMiIGN5PSIxNTUyLjE2NyIgcj0iMzkzLjgzMyIvPgo8cGF0aCBvcGFjaXR5PSIwLjEiIGVuYWJsZS1iYWNrZ3JvdW5kPSJuZXcgICAgIiBkPSJNMTExMiw1MDEuNzl2OTg4Ljc1M2MtMC4yMywzNC4zNTctMjEuMDUsNjUuMjIyLTUyLjgyLDc4LjMwMwoJYy0xMC4xMTYsNC4yNzktMjAuOTg3LDYuNDg0LTMxLjk3LDYuNDg3SDY5NS40NjNjLTAuNDYzLTcuODc3LTAuNDYzLTE1LjI5LTAuNDYzLTIzLjE2N2MtMC4xNTQtNy43MzQsMC4xNTUtMTUuNDcsMC45MjctMjMuMTY3CgljOC40OC0xNDguMTA2LDk5LjcyMS0yNzguNzgyLDIzNS44MzctMzM3Ljc3di04Ni4xOGMtMzAyLjkzMi00OC4wMDUtNTA5LjU5Mi0zMzIuNDk1LTQ2MS41ODctNjM1LjQyNwoJYzAuMzMzLTIuMDk4LDAuNjc3LTQuMTk1LDEuMDM0LTYuMjg5YzIuMzA2LTE1LjYyNiw1LjU1Ni0zMS4wOTksOS43My00Ni4zMzNoNTQ2LjI3QzEwNzMuOTY0LDQxNy4xNzgsMTExMS44MjIsNDU1LjAzNiwxMTEyLDUwMS43OQoJeiIvPgo8cGF0aCBvcGFjaXR5PSIwLjIiIGVuYWJsZS1iYWNrZ3JvdW5kPSJuZXcgICAgIiBkPSJNOTgwLjg3Nyw0NjMuMzMzSDQ3MS4yMWMtNTEuNDg2LDMwMi4zODYsMTUxLjkwOCw1ODkuMjU2LDQ1NC4yOTMsNjQwLjc0MgoJYzkuMTU2LDEuNTU5LDE4LjM1LDIuODg4LDI3LjU3MywzLjk4NmMtMTQzLjYzMyw2OC4xMS0yNDguMywyNjEuNTUyLTI1Ny4xOTYsNDIwLjkzOGMtMC43NzEsNy42OTctMS4wODEsMTUuNDMzLTAuOTI3LDIzLjE2NwoJYzAsNy44NzcsMCwxNS4yOSwwLjQ2MywyMy4xNjdjMC44MzYsMTUuNTc0LDIuODUsMzEuMDYzLDYuMDIzLDQ2LjMzM2gyNzkuMzljMzQuMzU3LTAuMjMsNjUuMjIyLTIxLjA1LDc4LjMwMy01Mi44MgoJYzQuMjc5LTEwLjExNSw2LjQ4NS0yMC45ODcsNi40ODctMzEuOTdWNTQ4LjEyM0MxMDY1LjQ0Myw1MDEuMzg3LDEwMjcuNjEzLDQ2My41MzcsOTgwLjg3Nyw0NjMuMzMzeiIvPgo8cGF0aCBvcGFjaXR5PSIwLjIiIGVuYWJsZS1iYWNrZ3JvdW5kPSJuZXcgICAgIiBkPSJNOTgwLjg3Nyw0NjMuMzMzSDQ3MS4yMWMtNTEuNDc1LDMwMi40MTQsMTUxLjk1LDU4OS4yOTcsNDU0LjM2NCw2NDAuNzczCgljNi4xODYsMS4wNTMsMTIuMzg5LDIuMDAxLDE4LjYwNywyLjg0NGMtMTM5LDczLjAyMS0yMzkuNTQzLDI2Ni0yNDguMjU0LDQyMi4wNWgyODQuOTVjNDYuNjgxLTAuMzUzLDg0LjQzNy0zOC4xMDksODQuNzktODQuNzkKCVY1NDguMTIzQzEwNjUuNDg5LDUwMS4zNjksMTAyNy42MzEsNDYzLjUxMSw5ODAuODc3LDQ2My4zMzN6Ii8+CjxwYXRoIG9wYWNpdHk9IjAuMiIgZW5hYmxlLWJhY2tncm91bmQ9Im5ldyAgICAiIGQ9Ik05MzQuNTQzLDQ2My4zMzNINDcxLjIxYy00OC42MDYsMjg1LjQ4MiwxMzAuMjc5LDU2MC40MDQsNDEwLjk3Nyw2MzEuNjE2CglDNzc1LjkwMSwxMjE2LjM4NCw3MTAuNzExLDEzNjguMzAxLDY5NS45MjcsMTUyOWgyMzguNjE3YzQ2Ljc1NC0wLjE3OCw4NC42MTItMzguMDM2LDg0Ljc5LTg0Ljc5VjU0OC4xMjMKCUMxMDE5LjMwOCw1MDEuMzA2LDk4MS4zNjEsNDYzLjM1OSw5MzQuNTQzLDQ2My4zMzN6Ii8+CjxsaW5lYXJHcmFkaWVudCBpZD0iU1ZHSURfMV8iIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iMTc3LjA3ODgiIHkxPSIxNTUxLjAyODQiIHgyPSI4NDIuMjU0NSIgeTI9IjM5OC45NzE2IiBncmFkaWVudFRyYW5zZm9ybT0ibWF0cml4KDEgMCAwIC0xIDAgMTk0OCkiPgoJPHN0b3AgIG9mZnNldD0iMCIgc3R5bGU9InN0b3AtY29sb3I6IzA1OEY5MiIvPgoJPHN0b3AgIG9mZnNldD0iMC41IiBzdHlsZT0ic3RvcC1jb2xvcjojMDM4NDg5Ii8+Cgk8c3RvcCAgb2Zmc2V0PSIxIiBzdHlsZT0ic3RvcC1jb2xvcjojMDI2RDcxIi8+CjwvbGluZWFyR3JhZGllbnQ+CjxwYXRoIGZpbGw9InVybCgjU1ZHSURfMV8pIiBkPSJNODQuOTI5LDQ2My4zMzNoODQ5LjQ3NWM0Ni45MDUsMCw4NC45MjksMzguMDI0LDg0LjkyOSw4NC45Mjl2ODQ5LjQ3NQoJYzAsNDYuOTA1LTM4LjAyNCw4NC45MjktODQuOTI5LDg0LjkyOUg4NC45MjljLTQ2LjkwNSwwLTg0LjkyOS0zOC4wMjQtODQuOTI5LTg0LjkyOVY1NDguMjYyCglDMCw1MDEuMzU3LDM4LjAyNCw0NjMuMzMzLDg0LjkyOSw0NjMuMzMzeiIvPgo8cGF0aCBmaWxsPSIjRkZGRkZGIiBkPSJNMzc5LjMzMSw5NjIuNjIxYy0xOS45MDMtMTMuMjAyLTM2LjUyOC0zMC43NzctNDguNjA0LTUxLjM4NGMtMTEuNzAxLTIxLjU0Mi0xNy41MzMtNDUuNzgxLTE2LjkxMi03MC4yODgKCWMtMS4wNDItMzMuMTgxLDEwLjE1NS02NS41ODYsMzEuNDYtOTEuMDQ1YzIyLjM4OC0yNS40OSw1MS4zMjYtNDQuMzY2LDgzLjY3OC01NC41ODFjMzYuODcxLTEyLjEzNiw3NS40OS0xOC4xMTYsMTE0LjMwNC0xNy42OTkKCWM1MS4wNDMtMS44NjUsMTAyLjAxNSw1LjI3MiwxNTAuNTgzLDIxLjA4MnYxMDYuNTY3Yy0yMS4xMDMtMTIuNzg0LTQ0LjA4OC0yMi4xNjYtNjguMTEtMjcuOAoJYy0yNi4wNjUtNi4zOTItNTIuODEtOS41OTctNzkuNjQ3LTkuNTQ1Yy0yOC4zLTEuMDM5LTU2LjQxOSw0LjkxMy04MS44NzEsMTcuMzI5Yy0xOS42NSw4LjQ3NS0zMi4zOTIsMjcuODA3LTMyLjQzMyw0OS4yMDYKCWMtMC4wOCwxMi45ODEsNC45MDcsMjUuNDgxLDEzLjksMzQuODQzYzEwLjYyMiwxMS4wMzcsMjMuMTg3LDIwLjAyMSwzNy4wNjcsMjYuNTAzYzE1LjQ0NCw3LjY5MSwzOC42MTEsMTcuOTE2LDY5LjUsMzAuNjczCgljMy40MDEsMS4wNzUsNi43MTYsMi40MDcsOS45MTUsMy45ODVjMzAuNDAxLDExLjg4MSw1OS43MjksMjYuMzQ0LDg3LjY2Myw0My4yMjljMjEuMTU0LDEzLjA0MywzOC45MDgsMzAuOTI0LDUxLjgwMSw1Mi4xNzEKCWMxMy4yMTgsMjQuMDg1LDE5LjYyNSw1MS4zMTUsMTguNTMzLDc4Ljc2N2MxLjUwOSwzNC4wNjYtOC45MTMsNjcuNTkxLTI5LjQ2OCw5NC43OThjLTIwLjQ4OCwyNS4wMTItNDcuODgsNDMuNDQ2LTc4Ljc2Nyw1My4wMDUKCWMtMzYuMzI5LDExLjM4Ny03NC4yNDUsMTYuODkyLTExMi4zMTIsMTYuMzA5Yy0zNC4xNTQsMC4xNTUtNjguMjU4LTIuNjM1LTEwMS45MzMtOC4zNGMtMjguNDM0LTQuNjUzLTU2LjE4Mi0xMi44MDctODIuNjEyLTI0LjI3OQoJdi0xMTIuMzU4YzI1LjI2NCwxOC4wNDMsNTMuNDg5LDMxLjUyOSw4My40LDM5Ljg0N2MyOS44MSw5LjI4OSw2MC43OTgsMTQuMjUxLDkyLjAxOCwxNC43MzRjMjguODk1LDEuODMsNTcuNzM5LTQuMjkxLDgzLjQtMTcuNjk5CgljMTcuOTc2LTEwLjE0NCwyOC45MDktMjkuMzU4LDI4LjQ0OS00OS45OTRjMC4xMi0xNC4zNTktNS41Ni0yOC4xNTgtMTUuNzUzLTM4LjI3MWMtMTIuNjc2LTEyLjQ0NC0yNy4zNTItMjIuNjcxLTQzLjQxNC0zMC4yNTYKCWMtMTguNTMzLTkuMjY3LTQ1LjgyNC0yMS40ODMtODEuODcxLTM2LjY1QzQzMi42MTgsOTkzLjk1MSw0MDUuMTYxLDk3OS41OTQsMzc5LjMzMSw5NjIuNjIxeiIvPgo8L3N2Zz4K"
+        },
+        "displayName": "Microsoft SharePoint",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": null,
+            "name": null
+          }
+        ]
+      },
+      {
+        "id": 1329,
+        "icon": "file:Agent365.svg",
+        "name": "@n8n/n8n-nodes-langchain.microsoftAgent365Trigger",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.microsoftAgent365Trigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes",
+              "Langchain"
+            ]
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Microsoft Agent 365"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCA5NiA5NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgY2xpcC1wYXRoPSJ1cmwoI2NsaXAwXzQzMDNfMTIzMCkiPgo8ZyBjbGlwLXBhdGg9InVybCgjY2xpcDFfNDMwM18xMjMwKSI+CjxwYXRoIGQ9Ik00OC42MjczIDIzLjk5MThDNDguNDQzMyAxNi45NTY1IDQ4LjM1MTQgMTMuNDM4OCA0OS4zNTE0IDEwLjYzMTJDNTAuOTE1MiA2LjI0MTE3IDU0LjMxNTIgMi43NTEwNiA1OC42NjI5IDEuMDczMTFDNjEuNDQzNCAwIDY0Ljk2MjMgMCA3MiAwQzc5LjExMDIgMCA4NS4yNjMzIDEyLjUxMDkgODkuNDA4OSAyOS45MzU2QzkxLjMwOTUgMzcuOTI0MSA5Mi4yNTk3IDQxLjkxODQgODkuODU3NSA0NC45NTkyQzg3LjQ1NTMgNDggODMuMDk1IDQ4IDc0LjM3NDYgNDhINjVDNTUuNjUyNCA0OCA1MS4xOTIyIDUwLjAyMzcgNDkuNjIxMyA2Mi4wMDc0TDQ4LjYyNzMgMjMuOTkxOFoiIGZpbGw9InVybCgjcGFpbnQwX2xpbmVhcl80MzAzXzEyMzApIi8+CjxwYXRoIGQ9Ik00OC42MjczIDIzLjk5MThDNDguNDQzMyAxNi45NTY1IDQ4LjM1MTQgMTMuNDM4OCA0OS4zNTE0IDEwLjYzMTJDNTAuOTE1MiA2LjI0MTE3IDU0LjMxNTIgMi43NTEwNiA1OC42NjI5IDEuMDczMTFDNjEuNDQzNCAwIDY0Ljk2MjMgMCA3MiAwQzc5LjExMDIgMCA4NS4yNjMzIDEyLjUxMDkgODkuNDA4OSAyOS45MzU2QzkxLjMwOTUgMzcuOTI0MSA5Mi4yNTk3IDQxLjkxODQgODkuODU3NSA0NC45NTkyQzg3LjQ1NTMgNDggODMuMDk1IDQ4IDc0LjM3NDYgNDhINjVDNTUuNjUyNCA0OCA1MS4xOTIyIDUwLjAyMzcgNDkuNjIxMyA2Mi4wMDc0TDQ4LjYyNzMgMjMuOTkxOFoiIGZpbGw9InVybCgjcGFpbnQxX3JhZGlhbF80MzAzXzEyMzApIi8+CjxwYXRoIGQ9Ik01NiA3NkM1NiA2NC45NTQzIDY0Ljk1NDMgNTYgNzYgNTZDODcuMDQ1NyA1NiA5NiA2NC45NTQzIDk2IDc2Qzk2IDg3LjA0NTcgODcuMDQ1NyA5NiA3NiA5NkM2NC45NTQzIDk2IDU2IDg3LjA0NTcgNTYgNzZaIiBmaWxsPSJ1cmwoI3BhaW50Ml9saW5lYXJfNDMwM18xMjMwKSIvPgo8cGF0aCBkPSJNNTYgNzZDNTYgNjQuOTU0MyA2NC45NTQzIDU2IDc2IDU2Qzg3LjA0NTcgNTYgOTYgNjQuOTU0MyA5NiA3NkM5NiA4Ny4wNDU3IDg3LjA0NTcgOTYgNzYgOTZDNjQuOTU0MyA5NiA1NiA4Ny4wNDU3IDU2IDc2WiIgZmlsbD0idXJsKCNwYWludDNfcmFkaWFsXzQzMDNfMTIzMCkiLz4KPHBhdGggZD0iTTQ4IDBDMjUuMzM0MyAwIDYuODk2OTEgMzEuNzExOSAxLjU2MTQ2IDcyLjA2NEMwLjE3MjY2OCA4Mi41Njc1IC0wLjUyMTczIDg3LjgxOTIgMy4wNjM0MSA5MS45MDk2QzYuNjQ4NTUgOTYgMTIuNDMyNCA5NiAyNCA5NkMzNS4xMzUzIDk2IDQwLjcwMyA5NiA0NC4xNjEzIDkyLjc3MDNDNDcuNjE5NyA4OS41NDA2IDQ4LjAxOTggODMuNjk4MiA0OC44MTk4IDcyLjAxMzNDNTEuNDc2MyAzMy4yMTQgNjAuMzU0MiAwIDcyIDBINDhaIiBmaWxsPSJ1cmwoI3BhaW50NF9saW5lYXJfNDMwM18xMjMwKSIvPgo8cGF0aCBkPSJNNDggMEMyNS4zMzQzIDAgNi44OTY5MSAzMS43MTE5IDEuNTYxNDYgNzIuMDY0QzAuMTcyNjY4IDgyLjU2NzUgLTAuNTIxNzMgODcuODE5MiAzLjA2MzQxIDkxLjkwOTZDNi42NDg1NSA5NiAxMi40MzI0IDk2IDI0IDk2QzM1LjEzNTMgOTYgNDAuNzAzIDk2IDQ0LjE2MTMgOTIuNzcwM0M0Ny42MTk3IDg5LjU0MDYgNDguMDE5OCA4My42OTgyIDQ4LjgxOTggNzIuMDEzM0M1MS40NzYzIDMzLjIxNCA2MC4zNTQyIDAgNzIgMEg0OFoiIGZpbGw9InVybCgjcGFpbnQ1X2xpbmVhcl80MzAzXzEyMzApIi8+CjwvZz4KPC9nPgo8ZGVmcz4KPGxpbmVhckdyYWRpZW50IGlkPSJwYWludDBfbGluZWFyXzQzMDNfMTIzMCIgeDE9IjYyIiB5MT0iNS41IiB4Mj0iODciIHkyPSI2NC41IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3AtY29sb3I9IiMxQjQ0QjEiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMjc2NEU3Ii8+CjwvbGluZWFyR3JhZGllbnQ+CjxyYWRpYWxHcmFkaWVudCBpZD0icGFpbnQxX3JhZGlhbF80MzAzXzEyMzAiIGN4PSIwIiBjeT0iMCIgcj0iMSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiIGdyYWRpZW50VHJhbnNmb3JtPSJ0cmFuc2xhdGUoODAuNSA3MSkgcm90YXRlKC05Mi4wMTY2KSBzY2FsZSg3MS4wNDQxIDMxLjkzMDQpIj4KPHN0b3Agb2Zmc2V0PSIwLjUzOTQ0NiIgc3RvcC1jb2xvcj0iIzIwNTJDQiIgc3RvcC1vcGFjaXR5PSIwIi8+CjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE2MzY5NyIvPgo8L3JhZGlhbEdyYWRpZW50Pgo8bGluZWFyR3JhZGllbnQgaWQ9InBhaW50Ml9saW5lYXJfNDMwM18xMjMwIiB4MT0iOTYuNjAxNSIgeTE9Ijk2IiB4Mj0iOTYuNzEyOCIgeTI9IjU2LjAwMDMiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KPHN0b3Agc3RvcC1jb2xvcj0iIzM2N0FGMiIvPgo8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNCQUJBRkYiLz4KPC9saW5lYXJHcmFkaWVudD4KPHJhZGlhbEdyYWRpZW50IGlkPSJwYWludDNfcmFkaWFsXzQzMDNfMTIzMCIgY3g9IjAiIGN5PSIwIiByPSIxIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgZ3JhZGllbnRUcmFuc2Zvcm09InRyYW5zbGF0ZSg3MSA5My43Nzc4KSByb3RhdGUoLTc0LjI2OCkgc2NhbGUoNDAuOTc5NSAzNS4zOTU0KSI+CjxzdG9wIG9mZnNldD0iMC41MTM2OTciIHN0b3AtY29sb3I9IiNCQUJBRkYiIHN0b3Atb3BhY2l0eT0iMCIvPgo8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNGRUNCRTYiLz4KPC9yYWRpYWxHcmFkaWVudD4KPGxpbmVhckdyYWRpZW50IGlkPSJwYWludDRfbGluZWFyXzQzMDNfMTIzMCIgeDE9IjU3IiB5MT0iMCIgeDI9IjU3IiB5Mj0iOTYiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KPHN0b3Agc3RvcC1jb2xvcj0iI0JBQkFGRiIvPgo8c3RvcCBvZmZzZXQ9IjAuNTEzMjMzIiBzdG9wLWNvbG9yPSIjNDg5NEZFIi8+CjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzI3NjRFNyIvPgo8L2xpbmVhckdyYWRpZW50Pgo8bGluZWFyR3JhZGllbnQgaWQ9InBhaW50NV9saW5lYXJfNDMwM18xMjMwIiB4MT0iNTEiIHkxPSIzMy41IiB4Mj0iNTEiIHkyPSItMi4yMTM5OGUtMDYiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KPHN0b3Agc3RvcC1jb2xvcj0iI0JBQkFGRiIgc3RvcC1vcGFjaXR5PSIwIi8+CjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI0ZFQ0JFNiIvPgo8L2xpbmVhckdyYWRpZW50Pgo8Y2xpcFBhdGggaWQ9ImNsaXAwXzQzMDNfMTIzMCI+CjxyZWN0IHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgZmlsbD0id2hpdGUiLz4KPC9jbGlwUGF0aD4KPGNsaXBQYXRoIGlkPSJjbGlwMV80MzAzXzEyMzAiPgo8cmVjdCB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIGZpbGw9IndoaXRlIi8+CjwvY2xpcFBhdGg+CjwvZGVmcz4KPC9zdmc+Cg=="
+        },
+        "displayName": "Microsoft Agent 365 Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 17,
+        "name": "HR"
+      },
+      {
+        "id": 47,
+        "name": "AI Chatbot"
+      }
+    ],
+    "image": []
+  }
+}

@@ -1,0 +1,1477 @@
+{
+  "workflow": {
+    "id": 15473,
+    "name": "Generate competitor SEO topical maps with Gemini 2.5 Flash, Olostep and Google Sheets",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-04T15:20:00.110Z",
+    "description": "## AI SEO Content Strategy: Competitor Topical Map Generator\n\nCrush your competition's SEO strategy by visualizing their entire content architecture in seconds. The **AI SEO Content Strategy: Competitor Topical Map Generator** workflow automates the \"topical mapping\" process\u2014a task that usually takes SEO specialists hours of manual scraping and categorization. \n\nBy analyzing a competitor's blog URL, it uses **Gemini 2.5 Flash** and **Olostep** to reverse-engineer their content hubs, identify weak points in their coverage, and provide you with a ready-to-execute \"spoke-and-hub\" content plan to overtake them in search rankings.\n\n---\n\n### Who\u2019s it for?\n*   **SEO Specialists:** Perform deep competitive analysis without manual spreadsheet work.\n*   **Content Strategists:** Identify \"Content Gaps\" where competitors are under-investing.\n*   **Niche Site Owners:** Build topical authority quickly by mapping out the most successful hubs in your industry.\n*   **Digital Agencies:** Provide instant, high-value content audits for prospective clients.\n\n### How it works / What it does\n1.  **Trigger:** Provide a competitor's blog URL through an n8n Form.\n2.  **Scrape:** The **Olostep** node extracts all published article titles from the site.\n3.  **Pillar Analysis:** Gemini analyzes the raw titles and clusters them into 8-12 high-level \"Pillar Topics\" (content hubs).\n4.  **Strategic Gap Discovery:** A specialized \"Strategy Director\" node identifies the two thinnest content clusters that are critical for enterprise growth.\n5.  **Execution Plan:** For each identified gap, the AI suggests a definitive pillar guide title and multiple \"spoke\" article ideas to fill the void.\n6.  **Data Logging:** The entire map\u2014including pillars, competitor article counts, and your new suggested content plan\u2014is saved to a **Google Sheet** for easy tracking.\n\n### How to set up\n1.  **Credentials:** Connect your **Google Gemini (PaLM)**, **Olostep**, and **Google Sheets** credentials.\n2.  **Google Sheet Setup:** Prepare a spreadsheet with headers for `pillars`, `articleTitles`, `lowest Article Count Piller`, `count`, `gap_summary`, `pillar_article_suggestion`, and `spoke_articles_suggested`.\n3.  **Form Trigger:** Activate the workflow to get your public submission link.\n\n### Requirements\n*   **Google Gemini API:** For advanced semantic clustering and strategic content ideation.\n*   **Olostep API:** To handle high-volume scraping of blog indices and article lists.\n*   **Google Sheets (OAuth2):** To store the final topical map and strategy report.\n\n### How to customize the workflow\n*   **Scale the Analysis:** Modify the **Strategy Director** prompt to identify more than two gaps if you are planning a long-term content roadmap.\n*   **Target Different Sites:** While optimized for blogs, you can adjust the **Olostep** task to scrape product categories or documentation hubs.\n*   **Project Management Integration:** Replace the Google Sheets node with **ClickUp**, **Notion**, or **Trello** to automatically turn the AI's content suggestions into actionable tasks for your writing team.",
+    "workflow": {
+      "id": "AOgxQwRQXoSRXkqU",
+      "meta": {
+        "instanceId": "6f81894254c2852bfe28b07fc1f6652b03481706dd714d6609cc88e8521956d2",
+        "templateCredsSetupCompleted": true
+      },
+      "name": "AI SEO Content Strategy: Competitor Topical Map Generator",
+      "tags": [
+        {
+          "id": "xRJNyiRIpAsEzL8y",
+          "name": "Olostep",
+          "createdAt": "2026-01-31T11:17:46.807Z",
+          "updatedAt": "2026-01-31T11:17:46.807Z"
+        }
+      ],
+      "nodes": [
+        {
+          "id": "385e849a-5a7a-418c-b334-ad11fd0bac6b",
+          "name": "On form submission",
+          "type": "n8n-nodes-base.formTrigger",
+          "position": [
+            0,
+            192
+          ],
+          "webhookId": "673f05b2-a52f-4ab0-ab78-ceeb9f95a8d8",
+          "parameters": {
+            "options": {},
+            "formTitle": "Competitor Topical Map Generator",
+            "formFields": {
+              "values": [
+                {
+                  "fieldLabel": "blog URL",
+                  "requiredField": true
+                }
+              ]
+            },
+            "formDescription": "Enter the blog URL, please."
+          },
+          "typeVersion": 2.5
+        },
+        {
+          "id": "513380a3-7bf7-4f38-ba3b-019947abfa0e",
+          "name": "Get article titles",
+          "type": "n8n-nodes-olostep.olostepScrape",
+          "position": [
+            224,
+            192
+          ],
+          "parameters": {
+            "task": "=Extract all the article titles from this blog: {{ $json['blog URL'] }}",
+            "resource": "answer"
+          },
+          "credentials": {
+            "olostepScrapeApi": {
+              "id": "FJ1cjVsEF4o1TIVS",
+              "name": "Olostep Scrape account"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "1ff02257-84d1-42d9-b943-38e66557490c",
+          "name": "Strategy director",
+          "type": "@n8n/n8n-nodes-langchain.googleGemini",
+          "position": [
+            800,
+            -32
+          ],
+          "parameters": {
+            "modelId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "models/gemini-2.5-flash",
+              "cachedResultName": "models/gemini-2.5-flash"
+            },
+            "options": {},
+            "messages": {
+              "values": [
+                {
+                  "role": "model",
+                  "content": "You are a helpful, intelligent, Content Strategy Director analyzing a competitor's topical map."
+                },
+                {
+                  "content": "=I have the following content clusters and their respective article counts.\n\nTask 1: Identify Gaps. Find the two smallest clusters (lowest article count) that are still critical for enterprise audience strategy (i.e., NOT 'Community' or 'Culture').\n\nTask 2: Suggest Action. For those two identified gap clusters, generate a detailed content plan.\n\nYour Output MUST be a single, valid JSON object:\n\n{\n\n\u00a0\u00a0\"content_gaps_identified\": [\n\n\u00a0\u00a0\u00a0\u00a0{\n\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"pillar_topic\": \"Web Scraping Legal & Compliance\",\n\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"competitor_count\": 7,\n\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"gap_summary\": \"Competitor has minimal coverage on compliance and legal topics, which is crucial for enterprise adoption.\",\n\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"pillar_article_suggestion\": \"The Definitive Guide to GDPR & CCPA Compliant AI Web Scraping\",\n\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"spoke_articles_suggested\": [\n\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"How to Implement SOC2 Controls in Your Scraping Pipeline\",\n\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"Legal vs. Ethical Scraping: A Developer's Checklist\",\n\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\"Avoiding Cease and Desist: Compliance Auditing for Web Scraping\"\n\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0]\n\n\u00a0\u00a0\u00a0\u00a0}\n\n\u00a0\u00a0\u00a0\u00a0// Include the second identified gap here\n\n\u00a0\u00a0]\n\n}\n\nYour output MUST be only the body, do not output something like \"json\" or anything but the body."
+                },
+                {
+                  "content": "=Competitor Map Data: {{ $json.content.parts[0].text }}"
+                }
+              ]
+            },
+            "jsonOutput": true,
+            "builtInTools": {}
+          },
+          "credentials": {
+            "googlePalmApi": {
+              "id": "oMvbIs3B4qbtiwlg",
+              "name": "Gemini(PaLM) Api"
+            }
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "00cb8306-ffa4-41b0-80a8-1b2e3eb8f00a",
+          "name": "Merge",
+          "type": "n8n-nodes-base.merge",
+          "position": [
+            1600,
+            176
+          ],
+          "parameters": {
+            "mode": "combine",
+            "options": {
+              "includeUnpaired": true
+            },
+            "combineBy": "combineByPosition",
+            "numberInputs": 3
+          },
+          "typeVersion": 3.2
+        },
+        {
+          "id": "3920f173-b466-419f-88a5-2145eee0b8e8",
+          "name": "Append row in sheet",
+          "type": "n8n-nodes-base.googleSheets",
+          "onError": "continueRegularOutput",
+          "position": [
+            2048,
+            128
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "count": "={{ $json.competitor_count }}",
+                "pillars": "={{ $json.pillars }}",
+                "gap_summary": "={{ $json.gap_summary }}",
+                "articleTitles": "={{ $json.articles }}",
+                "spoke_articles_suggested": "={{ $json.spoke_articles_suggested.join('\\n\\n') }}",
+                "pillar_article_suggestion": "={{ $json.pillar_article_suggestion }}",
+                "lowest Article Count PIller": "={{ $json.pillar_topic }}"
+              },
+              "schema": [
+                {
+                  "id": "articleTitles",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "articleTitles",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "pillars",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "pillars",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "lowest Article Count PIller",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "lowest Article Count PIller",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "count",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "count",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "gap_summary",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "gap_summary",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "pillar_article_suggestion",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "pillar_article_suggestion",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "spoke_articles_suggested",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "spoke_articles_suggested",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                }
+              ],
+              "mappingMode": "defineBelow",
+              "matchingColumns": [],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "options": {},
+            "operation": "append",
+            "sheetName": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gid=0",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1CtPqibM2JxGZpq571gpKoSUnq6aZsm0UXSYIEx1b7gE/edit#gid=0",
+              "cachedResultName": "\u0627\u0644\u0648\u0631\u0642\u06291"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "1CtPqibM2JxGZpq571gpKoSUnq6aZsm0UXSYIEx1b7gE",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1CtPqibM2JxGZpq571gpKoSUnq6aZsm0UXSYIEx1b7gE/edit?usp=drivesdk",
+              "cachedResultName": "Blog Analisys"
+            }
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "Yvqvis1tnFBurcXp",
+              "name": "Google Sheets account"
+            }
+          },
+          "retryOnFail": true,
+          "typeVersion": 4.7
+        },
+        {
+          "id": "6c01b299-0acb-4840-a07a-d1c1663fe8cb",
+          "name": "content gaps",
+          "type": "n8n-nodes-base.splitOut",
+          "position": [
+            1376,
+            -32
+          ],
+          "parameters": {
+            "options": {},
+            "fieldToSplitOut": "test.content_gaps_identified"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "31276c02-56f5-45fc-bdc4-fdf725c5f899",
+          "name": "articles",
+          "type": "n8n-nodes-base.splitOut",
+          "position": [
+            1328,
+            496
+          ],
+          "parameters": {
+            "options": {
+              "destinationFieldName": "articles"
+            },
+            "fieldToSplitOut": "result.result"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "2279f911-1b7d-4840-bf60-ec811b9eb98b",
+          "name": "parse pillers",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            1152,
+            224
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "d64d00f9-3ca5-4f5e-99a6-1e24de8df89f",
+                  "name": "pillars",
+                  "type": "array",
+                  "value": "={{ $json.content.parts[0].text.parseJson().keys() }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "fcac6d61-586f-4e2d-846d-901ca5f61f1f",
+          "name": "pillers",
+          "type": "n8n-nodes-base.splitOut",
+          "position": [
+            1376,
+            224
+          ],
+          "parameters": {
+            "options": {},
+            "fieldToSplitOut": "pillars"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "e6ca1a72-0e86-430f-b2c6-67ff0e26d0ea",
+          "name": "Loop Over Items",
+          "type": "n8n-nodes-base.splitInBatches",
+          "position": [
+            1824,
+            192
+          ],
+          "parameters": {
+            "options": {}
+          },
+          "typeVersion": 3
+        },
+        {
+          "id": "a5ed5221-ccbc-47cd-ac87-b8b5479f1a4e",
+          "name": "Wait",
+          "type": "n8n-nodes-base.wait",
+          "position": [
+            2272,
+            192
+          ],
+          "webhookId": "542df0ba-7ec2-461b-ae74-9ceba0448c42",
+          "parameters": {
+            "amount": 2
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "0a524055-8451-417a-99cb-f17970741e84",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -832,
+            -320
+          ],
+          "parameters": {
+            "width": 704,
+            "height": 992,
+            "content": "## AI SEO Content Strategy: Competitor Topical Map Generator\n\nCrush your competition's SEO strategy by visualizing their entire content architecture in seconds. The **AI SEO Content Strategy: Competitor Topical Map Generator** workflow automates the \"topical mapping\" process\u2014a task that usually takes SEO specialists hours of manual scraping and categorization. \n\nBy analyzing a competitor's blog URL, it uses **Gemini 2.5 Flash** and **Olostep** to reverse-engineer their content hubs, identify weak points in their coverage, and provide you with a ready-to-execute \"spoke-and-hub\" content plan to overtake them in search rankings.\n\n---\n\n### Who\u2019s it for?\n*   **SEO Specialists:** Perform deep competitive analysis without manual spreadsheet work.\n*   **Content Strategists:** Identify \"Content Gaps\" where competitors are under-investing.\n*   **Niche Site Owners:** Build topical authority quickly by mapping out the most successful hubs in your industry.\n*   **Digital Agencies:** Provide instant, high-value content audits for prospective clients.\n\n### How it works / What it does\n1.  **Trigger:** Provide a competitor's blog URL through an n8n Form.\n2.  **Scrape:** The **Olostep** node extracts all published article titles from the site.\n3.  **Pillar Analysis:** Gemini analyzes the raw titles and clusters them into 8-12 high-level \"Pillar Topics\" (content hubs).\n4.  **Strategic Gap Discovery:** A specialized \"Strategy Director\" node identifies the two thinnest content clusters that are critical for enterprise growth.\n5.  **Execution Plan:** For each identified gap, the AI suggests a definitive pillar guide title and multiple \"spoke\" article ideas to fill the void.\n6.  **Data Logging:** The entire map\u2014including pillars, competitor article counts, and your new suggested content plan\u2014is saved to a **Google Sheet** for easy tracking.\n\n### How to set up\n1.  **Credentials:** Connect your **Google Gemini (PaLM)**, **Olostep**, and **Google Sheets** credentials.\n2.  **Google Sheet Setup:** Prepare a spreadsheet with headers for `pillars`, `articleTitles`, `lowest Article Count Piller`, `count`, `gap_summary`, `pillar_article_suggestion`, and `spoke_articles_suggested`.\n3.  **Form Trigger:** Activate the workflow to get your public submission link.\n\n### Requirements\n*   **Google Gemini API:** For advanced semantic clustering and strategic content ideation.\n*   **Olostep API:** To handle high-volume scraping of blog indices and article lists.\n*   **Google Sheets (OAuth2):** To store the final topical map and strategy report.\n\n### How to customize the workflow\n*   **Scale the Analysis:** Modify the **Strategy Director** prompt to identify more than two gaps if you are planning a long-term content roadmap.\n*   **Target Different Sites:** While optimized for blogs, you can adjust the **Olostep** task to scrape product categories or documentation hubs.\n*   **Project Management Integration:** Replace the Google Sheets node with **ClickUp**, **Notion**, or **Trello** to automatically turn the AI's content suggestions into actionable tasks for your writing team."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "b6866672-3ffb-4112-8efb-3438eee10abd",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -48,
+            80
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 192,
+            "height": 272,
+            "content": "## Input form\nEnter the blog URL"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "f36dd015-a06d-46ac-a7e4-32cf5d579992",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            176,
+            80
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 208,
+            "height": 272,
+            "content": "## Olostep API\nGets article titles in this blog"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "c335b708-de20-45e6-a738-3372c4eb5e4f",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            400,
+            -16
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 320,
+            "height": 272,
+            "content": "## Pillar analyzer\nAnalyzes all article titles and groups them into high-level Pillar Topics"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "569e205b-ead9-4470-9114-510d9db53ea5",
+          "name": "Pillar analyzer",
+          "type": "@n8n/n8n-nodes-langchain.googleGemini",
+          "position": [
+            448,
+            96
+          ],
+          "parameters": {
+            "modelId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "models/gemini-2.5-flash",
+              "cachedResultName": "models/gemini-2.5-flash"
+            },
+            "options": {},
+            "messages": {
+              "values": [
+                {
+                  "role": "model",
+                  "content": "You are a helpful, intelligent, Content Strategy Director."
+                },
+                {
+                  "content": "=I have provided a list of all published article titles from a key competitor.\n\nTask: Analyze the titles and group them into 8-12 distinct, high-level Pillar Topics (content hubs).\n\nYour Output MUST be a single, valid JSON object where the keys are the Pillar Topic Names and the values are the list of article titles that belong to that cluster. Do not output anything like \"json\", spaces, or anything just the body.\n\nExample: {'Pillar Name': ['Article Title 1', 'Article Title 2']}"
+                },
+                {
+                  "content": "=Competitor Article Titles: {{ $json.result.result }}"
+                }
+              ]
+            },
+            "jsonOutput": true,
+            "builtInTools": {}
+          },
+          "credentials": {
+            "googlePalmApi": {
+              "id": "oMvbIs3B4qbtiwlg",
+              "name": "Gemini(PaLM) Api"
+            }
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "b614242f-83e4-462c-a0e6-8f6fc0789e0f",
+          "name": "Sticky Note4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            752,
+            -112
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 304,
+            "height": 240,
+            "content": "## Strategy director\nIdentifies gaps and suggests actions"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "859938fe-eee5-4136-9248-f6cd0b6e5204",
+          "name": "Sticky Note5",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1056,
+            -112
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 464,
+            "height": 240,
+            "content": "## Parse JSON\nParses all content gaps identified and separates each in a single item"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "d786b3d0-f221-41f8-8c59-11b60c5e6e47",
+          "name": "Sticky Note6",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1088,
+            144
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 432,
+            "height": 240,
+            "content": "## Parse JSON\nParses all pillars  and separates each in a single item"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "810e89d3-dcd5-427d-96cf-324dc23f1dfb",
+          "name": "Sticky Note7",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1536,
+            64
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 224,
+            "height": 304,
+            "content": "## Merge\nMerges all content and make it ready for google sheet insertion"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "d955ee29-e6be-421f-be5e-b92562a6147b",
+          "name": "Sticky Note8",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1232,
+            400
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 288,
+            "height": 256,
+            "content": "## Split articles\nSeparates article titles each in a single item"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "0cc5bbbd-12c1-450d-93c9-1a5f1d015da4",
+          "name": "Sticky Note9",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1808,
+            48
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 592,
+            "height": 304,
+            "content": "## Google sheet\nAppends all content into a google sheet"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "c16fa5fd-73d9-4b69-b67d-c145f0793678",
+          "name": "Parse content gaps",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            1152,
+            -32
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "9b0e76c3-651e-4c35-b627-82b7aad91150",
+                  "name": "test",
+                  "type": "object",
+                  "value": "={{ $json.content.parts[0].text.parseJson() }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "b5635553-19e4-4a12-bdb2-0a3f7b2a2898",
+      "connections": {
+        "Wait": {
+          "main": [
+            [
+              {
+                "node": "Loop Over Items",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Merge": {
+          "main": [
+            [
+              {
+                "node": "Loop Over Items",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "pillers": {
+          "main": [
+            [
+              {
+                "node": "Merge",
+                "type": "main",
+                "index": 1
+              }
+            ]
+          ]
+        },
+        "articles": {
+          "main": [
+            [
+              {
+                "node": "Merge",
+                "type": "main",
+                "index": 2
+              }
+            ]
+          ]
+        },
+        "content gaps": {
+          "main": [
+            [
+              {
+                "node": "Merge",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "parse pillers": {
+          "main": [
+            [
+              {
+                "node": "pillers",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Loop Over Items": {
+          "main": [
+            [],
+            [
+              {
+                "node": "Append row in sheet",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Pillar analyzer": {
+          "main": [
+            [
+              {
+                "node": "Strategy director",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "parse pillers",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Strategy director": {
+          "main": [
+            [
+              {
+                "node": "Parse content gaps",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Get article titles": {
+          "main": [
+            [
+              {
+                "node": "Pillar analyzer",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "articles",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "On form submission": {
+          "main": [
+            [
+              {
+                "node": "Get article titles",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Parse content gaps": {
+          "main": [
+            [
+              {
+                "node": "content gaps",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Append row in sheet": {
+          "main": [
+            [
+              {
+                "node": "Wait",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 23,
+      "nodeTypes": {
+        "n8n-nodes-base.set": {
+          "count": 2
+        },
+        "n8n-nodes-base.wait": {
+          "count": 1
+        },
+        "n8n-nodes-base.merge": {
+          "count": 1
+        },
+        "n8n-nodes-base.splitOut": {
+          "count": 3
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 10
+        },
+        "n8n-nodes-base.formTrigger": {
+          "count": 1
+        },
+        "n8n-nodes-base.googleSheets": {
+          "count": 1
+        },
+        "n8n-nodes-base.splitInBatches": {
+          "count": 1
+        },
+        "n8n-nodes-olostep.olostepScrape": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.googleGemini": {
+          "count": 2
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Yasser Sami",
+      "username": "yassersami",
+      "bio": "AI Automation Architect building smart workflows with n8n. I help businesses save time by automating processes, connecting apps, and integrating AI. My focus is on creating efficient, reliable systems that streamline operations and reduce manual work.",
+      "verified": true,
+      "links": [
+        "https://www.linkedin.com/in/yasser-sami-425333228/"
+      ],
+      "avatar": "https://gravatar.com/avatar/e11e6f15924e7365111150fae6284b733d02fae20e05bd32cc026eee22d6a975?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 18,
+        "icon": "file:googleSheets.svg",
+        "name": "n8n-nodes-base.googleSheets",
+        "codex": {
+          "data": {
+            "alias": [
+              "CSV",
+              "Sheet",
+              "Spreadsheet",
+              "GS"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/love-at-first-sight-ricardos-n8n-journey/",
+                  "icon": "\u2764\ufe0f",
+                  "label": "Love at first sight: Ricardo\u2019s n8n journey"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-triggers-for-n8n-workflows-using-polling/",
+                  "icon": "\u23f2",
+                  "label": "Creating triggers for n8n workflows using polling"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/migrating-community-metrics-to-orbit-using-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Migrating Community Metrics to Orbit using n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-honest-burgers-use-automation-to-save-100k-per-year/",
+                  "icon": "\ud83c\udf54",
+                  "label": "How Honest Burgers Use Automation to Save $100k per year"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "\ud83d\udcbb",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googlesheets/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage",
+              "Productivity"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\",\"output\"]",
+        "defaults": {
+          "name": "Google Sheets"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNS42OSAxIDUyIDE3LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0OC4yOTMgNjBIMTIuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDkgNTYuMzEyVjQuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTIuNzA3IDF6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM1LjY5IDEgNTIgMTcuMjI1SDM5LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzkuMjExIDE3LjIyNSA1MiAyMi40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTIwLjEyIDMxLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMS42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzEuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNC42OSAwIDUxIDE2LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0Ny4yOTMgNTlIMTEuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDggNTUuMzEyVjMuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTEuNzA3IDB6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM0LjY5IDAgNTEgMTYuMjI1SDM4LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzguMjExIDE2LjIyNSA1MSAyMS40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTE5LjEyIDMwLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMC42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzAuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjwvZz48L3N2Zz4="
+        },
+        "displayName": "Google Sheets",
+        "typeVersion": 5,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          },
+          {
+            "id": 4,
+            "name": "Productivity"
+          }
+        ]
+      },
+      {
+        "id": 24,
+        "icon": "file:merge.svg",
+        "name": "n8n-nodes-base.merge",
+        "codex": {
+          "data": {
+            "alias": [
+              "Join",
+              "Concatenate",
+              "Wait"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-sync-data-between-two-systems/",
+                  "icon": "\ud83c\udfec",
+                  "label": "How to synchronize data between two systems (one-way vs. two-way sync"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/migrating-community-metrics-to-orbit-using-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Migrating Community Metrics to Orbit using n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.merge/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Merge"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTc3XzUxOCkiPgo8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTAgNDhDMCAyMS40OTAzIDIxLjQ5MDMgMCA0OCAwSDExMkMxMzguNTEgMCAxNjAgMjEuNDkwMyAxNjAgNDhWNTZIMTk2LjI1MkMyNDAuNDM1IDU2IDI3Ni4yNTIgOTEuODE3MiAyNzYuMjUyIDEzNlYxOTJDMjc2LjI1MiAyMTQuMDkxIDI5NC4xNjEgMjMyIDMxNi4yNTIgMjMySDM1MlYyMjRDMzUyIDE5Ny40OSAzNzMuNDkgMTc2IDQwMCAxNzZINDY0QzQ5MC41MSAxNzYgNTEyIDE5Ny40OSA1MTIgMjI0VjI4OEM1MTIgMzE0LjUxIDQ5MC41MSAzMzYgNDY0IDMzNkg0MDBDMzczLjQ5IDMzNiAzNTIgMzE0LjUxIDM1MiAyODhWMjgwSDMxNi4yNTJDMjk0LjE2MSAyODAgMjc2LjI1MiAyOTcuOTA5IDI3Ni4yNTIgMzIwVjM3NkMyNzYuMjUyIDQyMC4xODMgMjQwLjQzNSA0NTYgMTk2LjI1MiA0NTZIMTYwVjQ2NEMxNjAgNDkwLjUxIDEzOC41MSA1MTIgMTEyIDUxMkg0OEMyMS40OTAzIDUxMiAwIDQ5MC41MSAwIDQ2NFY0MDBDMCAzNzMuNDkgMjEuNDkwMyAzNTIgNDggMzUySDExMkMxMzguNTEgMzUyIDE2MCAzNzMuNDkgMTYwIDQwMFY0MDhIMTk2LjI1MkMyMTMuOTI1IDQwOCAyMjguMjUyIDM5My42NzMgMjI4LjI1MiAzNzZWMzIwQzIyOC4yNTIgMjk0Ljc4NCAyMzguODU5IDI3Mi4wNDQgMjU1Ljg1MyAyNTZDMjM4Ljg1OSAyMzkuOTU2IDIyOC4yNTIgMjE3LjIxNiAyMjguMjUyIDE5MlYxMzZDMjI4LjI1MiAxMTguMzI3IDIxMy45MjUgMTA0IDE5Ni4yNTIgMTA0SDE2MFYxMTJDMTYwIDEzOC41MSAxMzguNTEgMTYwIDExMiAxNjBINDhDMjEuNDkwMyAxNjAgMCAxMzguNTEgMCAxMTJWNDhaTTEwNCA0OEMxMDguNDE4IDQ4IDExMiA1MS41ODE3IDExMiA1NlYxMDRDMTEyIDEwOC40MTggMTA4LjQxOCAxMTIgMTA0IDExMkg1NkM1MS41ODE3IDExMiA0OCAxMDguNDE4IDQ4IDEwNFY1NkM0OCA1MS41ODE3IDUxLjU4MTcgNDggNTYgNDhIMTA0Wk00NTYgMjI0QzQ2MC40MTggMjI0IDQ2NCAyMjcuNTgyIDQ2NCAyMzJWMjgwQzQ2NCAyODQuNDE4IDQ2MC40MTggMjg4IDQ1NiAyODhINDA4QzQwMy41ODIgMjg4IDQwMCAyODQuNDE4IDQwMCAyODBWMjMyQzQwMCAyMjcuNTgyIDQwMy41ODIgMjI0IDQwOCAyMjRINDU2Wk0xMTIgNDA4QzExMiA0MDMuNTgyIDEwOC40MTggNDAwIDEwNCA0MDBINTZDNTEuNTgxNyA0MDAgNDggNDAzLjU4MiA0OCA0MDhWNDU2QzQ4IDQ2MC40MTggNTEuNTgxNyA0NjQgNTYgNDY0SDEwNEMxMDguNDE4IDQ2NCAxMTIgNDYwLjQxOCAxMTIgNDU2VjQwOFoiIGZpbGw9IiM1NEI4QzkiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTc3XzUxOCI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Merge",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 39,
+        "icon": "fa:sync",
+        "name": "n8n-nodes-base.splitInBatches",
+        "codex": {
+          "data": {
+            "alias": [
+              "Loop",
+              "Concatenate",
+              "Batch",
+              "Split",
+              "Split In Batches"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Loop Over Items",
+          "color": "#007755"
+        },
+        "iconData": {
+          "icon": "sync",
+          "type": "icon"
+        },
+        "displayName": "Loop Over Items (Split in Batches)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 514,
+        "icon": "fa:pause-circle",
+        "name": "n8n-nodes-base.wait",
+        "codex": {
+          "data": {
+            "alias": [
+              "pause",
+              "sleep",
+              "delay",
+              "timeout"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.wait/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Wait",
+          "color": "#804050"
+        },
+        "iconData": {
+          "icon": "pause-circle",
+          "type": "icon"
+        },
+        "displayName": "Wait",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1225,
+        "icon": "file:form.svg",
+        "name": "n8n-nodes-base.formTrigger",
+        "codex": {
+          "data": {
+            "alias": [
+              "table",
+              "submit",
+              "post"
+            ],
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.formtrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Other Trigger Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "On form submission"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NiIgaGVpZ2h0PSI0MCIgZmlsbD0ibm9uZSI+PHBhdGggZmlsbD0iIzAwQjdCQyIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzQuOTc4IDM3LjczMmExLjU2IDEuNTYgMCAwIDEtMS41NjIgMS41NjNINi4yNmExLjU2IDEuNTYgMCAwIDEtMS41NjMtMS41NjNWOS42MDdjMC0uNDA1LjE1Ny0uNzk0LjQzOC0xLjA4Nmw2LjMwNC02LjUzMXY1LjM0NEg4LjIxM2ExLjE3MiAxLjE3MiAwIDEgMCAwIDIuMzQzaDQuNDNhMS4xNyAxLjE3IDAgMCAwIDEuMTcxLTEuMTcxVi4yMzJoMTkuNjAyYTEuNTYgMS41NiAwIDAgMSAxLjU2MiAxLjU2M3YxMC4zMjdsLTIuODYgMi44Ni04LjI1MiA4LjI3NmE0MTMuMDA2IDQxMy4wMDYgMCAwIDEtMS42NTQgMS42NjJsLS4zMzcuMzM3YTIgMiAwIDAgMC0uNTU3IDEuMDhMMjAuMyAzMS45MjJjLS4xMDguNjM4LS4yMTUgMS4wNzkuMjExIDEuNDE4LjQwMy4zMi45LjE3NCAxLjU0LjA2Nmw1LjQwOC0uOTI4YTIgMiAwIDAgMCAxLjA4LS41NTZsNi40NC02LjQyOXptLTI0LjAzLTIxLjI2NWExLjE4IDEuMTggMCAwIDAgMS4xNzEgMS4xNzJoMTMuMTYzYTEuMTcyIDEuMTcyIDAgMSAwIDAtMi4zNDRIMTIuMTE5YTEuMTcgMS4xNyAwIDAgMC0xLjE3MiAxLjE3Mm03LjI5NCAxNC43NjZhMS4xNyAxLjE3IDAgMCAwLTEuMTcyLTEuMTcySDEyLjEyYTEuMTcyIDEuMTcyIDAgMSAwIDAgMi4zNDNoNC45NTFhMS4xNyAxLjE3IDAgMCAwIDEuMTcyLTEuMTcybS44Ni03LjM5MWExLjE3IDEuMTcgMCAwIDAtMS4xNzItMS4xNzJoLTUuODExYTEuMTcyIDEuMTcyIDAgMSAwIDAgMi4zNDNoNS44MWExLjE2NCAxLjE2NCAwIDAgMCAxLjE3My0xLjE3MSIgY2xpcC1ydWxlPSJldmVub2RkIi8+PHBhdGggZmlsbD0iIzAwQjdCQyIgZD0ibTMzLjUzMiAxNi4zOTcgNC4yODktNC4yODkgMy43NTggMy43MSAxLjYxNy0xLjYxNiAyLjI1OCAyLjI1N2MuMjE4LjIxOC4zNC41MTMuMzQzLjgyLS4wMDIuMzExLS4xMjUuNjA4LS4zNDQuODNsLTYuODA0IDYuNzk2YTEuMTMgMS4xMyAwIDAgMS0uODI4LjM0MyAxLjE1IDEuMTUgMCAwIDEtLjgyOC0uMzQzIDEuMTggMS4xOCAwIDAgMSAwLTEuNjU3bDUuOTc2LTUuOTY4LTEuMzEyLTEuMzEzLTEuMzgzIDEuNDE0LTEzLjE0OSAxMy4xMjUtNC42MTcuNzgyLjc4Mi00LjYxNy4zMzYtLjMzNyAyLjU2MiAyLjU1NWExLjEgMS4xIDAgMCAwIC44MjguMzQ0Yy4zMTIuMDA1LjYxMi0uMTIuODI4LS4zNDRhMS4xOCAxLjE4IDAgMCAwIDAtMS42NTZsLTIuNTYyLTIuNTYyek00NC43MzYgMTIuMjRjMCAuNDE0LS4xNjMuODEtLjQ1NCAxLjEwMmwtLjkyMi45MTQtMy44NTItMy44MjguOTMtLjkzYTEuNTYzIDEuNTYzIDAgMCAxIDIuMjAzIDBsMS42NCAxLjY0MWMuMjkxLjI5My40NTUuNjkuNDU1IDEuMTAyIi8+PC9zdmc+"
+        },
+        "displayName": "n8n Form Trigger",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1239,
+        "icon": "file:splitOut.svg",
+        "name": "n8n-nodes-base.splitOut",
+        "codex": {
+          "data": {
+            "alias": [
+              "Split",
+              "Nested",
+              "Transform",
+              "Array",
+              "List",
+              "Item"
+            ],
+            "details": "",
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.splitout/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Split Out"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJub25lIj48ZyBmaWxsPSIjOUI2REQ1IiBjbGlwLXBhdGg9InVybCgjYSkiPjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTQ4MCAxNDhjMC02LjYyNy01LjM3My0xMi0xMi0xMkgzMjJjLTYuNjI3IDAtMTIgNS4zNzMtMTIgMTJ2MjRjMCA2LjYyNyA1LjM3MyAxMiAxMiAxMmgxNDZjNi42MjcgMCAxMi01LjM3MyAxMi0xMnptMCA5NmMwLTYuNjI3LTUuMzczLTEyLTEyLTEySDMyMmMtNi42MjcgMC0xMiA1LjM3My0xMiAxMnYyNGMwIDYuNjI3IDUuMzczIDEyIDEyIDEyaDE0NmM2LjYyNyAwIDEyLTUuMzczIDEyLTEyem0wIDk2YzAtNi42MjctNS4zNzMtMTItMTItMTJIMzIyYy02LjYyNyAwLTEyIDUuMzczLTEyIDEydjI0YzAgNi42MjcgNS4zNzMgMTIgMTIgMTJoMTQ2YzYuNjI3IDAgMTItNS4zNzMgMTItMTJ6IiBjbGlwLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBkPSJNNDM4IDc2YzAgNi42MjctNS4zNzMgMTItMTIgMTJIMzA5Ljc4M2MtMTcuNjczIDAtMzIgMTQuMzI3LTMyIDMydjU2YzAgMjYuOTc4LTEwLjI3MiA1MS41NTctMjcuMTE5IDcwLjAzOS01LjA1NSA1LjU0NS01LjA1NSAxNC4zNzcgMCAxOS45MjIgMTYuODQ3IDE4LjQ4MiAyNy4xMTkgNDMuMDYxIDI3LjExOSA3MC4wMzl2NTZjMCAxNy42NzMgMTQuMzI3IDMyIDMyIDMySDQyNmM2LjYyNyAwIDEyIDUuMzczIDEyIDEydjI0YzAgNi42MjctNS4zNzMgMTItMTIgMTJIMzA5Ljc4M2MtNDQuMTgzIDAtODAtMzUuODE3LTgwLTgwdi01NmMwLTMwLjkyOC0yNS4wNzItNTYtNTYtNTZhNS43ODMgNS43ODMgMCAwIDEtNS43ODMtNS43ODN2LTM2LjQzNGE1Ljc4MyA1Ljc4MyAwIDAgMSA1Ljc4My01Ljc4M2MzMC45MjggMCA1Ni0yNS4wNzIgNTYtNTZ2LTU2YzAtNDQuMTgzIDM1LjgxNy04MCA4MC04MEg0MjZjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnoiLz48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMzYgMjQ0YzAtNi42MjctNS4zNzMtMTItMTItMTJIMTJjLTYuNjI3IDAtMTIgNS4zNzMtMTIgMTJ2MjRjMCA2LjYyNyA1LjM3MyAxMiAxMiAxMmgxMTJjNi42MjcgMCAxMi01LjM3MyAxMi0xMnoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvZz48ZGVmcz48Y2xpcFBhdGggaWQ9ImEiPjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik01MTIgMEgwdjUxMmg1MTJ6Ii8+PC9jbGlwUGF0aD48L2RlZnM+PC9zdmc+"
+        },
+        "displayName": "Split Out",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1309,
+        "icon": "file:gemini.svg",
+        "name": "@n8n/n8n-nodes-langchain.googleGemini",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain",
+              "video",
+              "document",
+              "audio",
+              "transcribe",
+              "assistant"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-langchain.googlegemini/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Agents",
+                "Miscellaneous",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Google Gemini"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyBjbGFzcz0iX2Zvb3RlclNwYXJrXzk4dWR0XzE1MSIgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiB2aWV3Qm94PSIwIDAgNjQgNjQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTU3LjA2NjcgMjguNjEwM0M1Mi4xMzU5IDI2LjQ4NzggNDcuODIxNyAyMy41NzYgNDQuMTIyMyAxOS44Nzg0QzQwLjQyNDcgMTYuMTgwOCAzNy41MTI4IDExLjg2NDkgMzUuMzkwMiA2LjkzNDJDMzQuNTc1NCA1LjA0NDQ5IDMzLjkyMDYgMy4xMDIwNCAzMy40MTg2IDEuMTEwNDlDMzMuMjU0OSAwLjQ1OTM2OCAzMi42NzExIDAuMDAxMDM3NiAzMiAwLjAwMTAzNzZDMzEuMzI4OCAwLjAwMTAzNzYgMzAuNzQ1IDAuNDU5MzY4IDMwLjU4MTMgMS4xMTA0OUMzMC4wNzkzIDMuMTAyMDQgMjkuNDI0NiA1LjA0MjY3IDI4LjYwOTcgNi45MzQyQzI2LjQ4NzIgMTEuODY0OSAyMy41NzUzIDE2LjE4MDggMTkuODc3NyAxOS44Nzg0QzE2LjE4IDIzLjU3NiAxMS44NjQgMjYuNDg3OCA2LjkzMzI3IDI4LjYxMDNDNS4wNDM1MyAyOS40MjUxIDMuMTAxMDUgMzAuMDc5OSAxLjEwOTQ3IDMwLjU4MTlDMC40NTgzMzggMzAuNzQ1NiAwIDMxLjMyOTQgMCAzMi4wMDA1QzAgMzIuNjcxNiAwLjQ1ODMzOCAzMy4yNTU1IDEuMTA5NDcgMzMuNDE5MUMzLjEwMTA1IDMzLjkyMTEgNS4wNDE3MiAzNC41NzU5IDYuOTMzMjcgMzUuMzkwN0MxMS44NjQgMzcuNTEzMiAxNi4xNzgyIDQwLjQyNTEgMTkuODc3NyA0NC4xMjI2QzIzLjU3NzEgNDcuODIwMiAyNi40ODcyIDUyLjEzNjEgMjguNjA5NyA1Ny4wNjY4QzI5LjQyNDYgNTguOTU2NSAzMC4wNzkzIDYwLjg5OSAzMC41ODEzIDYyLjg5MDVDMzAuNzQ1IDYzLjU0MTYgMzEuMzI4OCA2NCAzMiA2NEMzMi42NzExIDY0IDMzLjI1NDkgNjMuNTQxNiAzMy40MTg2IDYyLjg5MDVDMzMuOTIwNiA2MC44OTkgMzQuNTc1NCA1OC45NTgzIDM1LjM5MDIgNTcuMDY2OEMzNy41MTI4IDUyLjEzNjEgNDAuNDI0NyA0Ny44MjIgNDQuMTIyMyA0NC4xMjI2QzQ3LjgxOTkgNDAuNDI1MSA1Mi4xMzU5IDM3LjUxMzIgNTcuMDY2NyAzNS4zOTA3QzU4Ljk1NjQgMzQuNTc1OSA2MC44OTg5IDMzLjkyMTEgNjIuODkwNSAzMy40MTkxQzYzLjU0MTYgMzMuMjU1NSA2NCAzMi42NzE2IDY0IDMyLjAwMDVDNjQgMzEuMzI5NCA2My41NDE2IDMwLjc0NTYgNjIuODkwNSAzMC41ODE5QzYwLjg5ODkgMzAuMDc5OSA1OC45NTgyIDI5LjQyNTEgNTcuMDY2NyAyOC42MTAzWiIgZmlsbD0id2hpdGUiPjwvcGF0aD48bWFzayBpZD0ibWFzazBfMTA4NTlfNDg5NCIgc3R5bGU9Im1hc2stdHlwZTphbHBoYSIgbWFza1VuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeD0iMCIgeT0iMCIgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0Ij48cGF0aCBkPSJNMzIgMEMzMi42NzExIDEuMTQ0ZS0wNSAzMy4yNTUzIDAuNDU4MjYzIDMzLjQxODkgMS4xMDkzOEMzMy45MjA5IDMuMTAwOTMgMzQuNTc1OCA1LjA0Mzg5IDM1LjM5MDYgNi45MzM1OUMzNy41MTMxIDExLjg2MzkgNDAuNDI0NyAxNi4xNzk2IDQ0LjEyMjEgMTkuODc3QzQ3LjgyMTUgMjMuNTc0NSA1Mi4xMzU3IDI2LjQ4NjkgNTcuMDY2NCAyOC42MDk0QzU4Ljk1OCAyOS40MjQyIDYwLjg5OSAzMC4wNzkxIDYyLjg5MDYgMzAuNTgxMUM2My41NDE1IDMwLjc0NDggNjMuOTk5OCAzMS4zMjgxIDY0IDMxLjk5OUM2NCAzMi42NzAxIDYzLjU0MTcgMzMuMjU0MiA2Mi44OTA2IDMzLjQxOEM2MC44OTkgMzMuOTE5OSA1OC45NTYxIDM0LjU3NDggNTcuMDY2NCAzNS4zODk2QzUyLjEzNTggMzcuNTEyMSA0Ny44MTk2IDQwLjQyMzcgNDQuMTIyMSA0NC4xMjExQzQwLjQyNDYgNDcuODIwNCAzNy41MTMxIDUyLjEzNDkgMzUuMzkwNiA1Ny4wNjU0QzM0LjU3NTggNTguOTU3IDMzLjkyMDkgNjAuODk4MSAzMy40MTg5IDYyLjg4OTZDMzMuMjU1MiA2My41NDA3IDMyLjY3MTEgNjMuOTk5IDMyIDYzLjk5OUMzMS4zMjg5IDYzLjk5OSAzMC43NDQ4IDYzLjU0MDcgMzAuNTgxMSA2Mi44ODk2QzMwLjA3OTEgNjAuODk4MSAyOS40MjQyIDU4Ljk1NTEgMjguNjA5NCA1Ny4wNjU0QzI2LjQ4NjkgNTIuMTM0OSAyMy41NzczIDQ3LjgxODYgMTkuODc3OSA0NC4xMjExQzE2LjE3ODYgNDAuNDIzNyAxMS44NjQyIDM3LjUxMjEgNi45MzM1OSAzNS4zODk2QzUuMDQyMDQgMzQuNTc0OCAzLjEwMDk2IDMzLjkxOTkgMS4xMDkzOCAzMy40MThDMC40NTgzMDkgMzMuMjU0MiAwIDMyLjY3MDEgMCAzMS45OTlDMC4wMDAyMDE1NDggMzEuMzI4MSAwLjQ1ODQ2MyAzMC43NDQ4IDEuMTA5MzggMzAuNTgxMUMzLjEwMDk2IDMwLjA3OTEgNS4wNDM4NiAyOS40MjQyIDYuOTMzNTkgMjguNjA5NEMxMS44NjQzIDI2LjQ4NjkgMTYuMTgwNCAyMy41NzQ1IDE5Ljg3NzkgMTkuODc3QzIzLjU3NTMgMTYuMTc5NiAyNi40ODY5IDExLjg2MzkgMjguNjA5NCA2LjkzMzU5QzI5LjQyNDIgNS4wNDIwNyAzMC4wNzkxIDMuMTAwOTMgMzAuNTgxMSAxLjEwOTM4QzMwLjc0NDggMC40NTgyNiAzMS4zMjg5IDAgMzIgMFoiIGZpbGw9ImJsYWNrIj48L3BhdGg+PHBhdGggZD0iTTMyIDBDMzIuNjcxMSAxLjE0NGUtMDUgMzMuMjU1MyAwLjQ1ODI2MyAzMy40MTg5IDEuMTA5MzhDMzMuOTIwOSAzLjEwMDkzIDM0LjU3NTggNS4wNDM4OSAzNS4zOTA2IDYuOTMzNTlDMzcuNTEzMSAxMS44NjM5IDQwLjQyNDcgMTYuMTc5NiA0NC4xMjIxIDE5Ljg3N0M0Ny44MjE1IDIzLjU3NDUgNTIuMTM1NyAyNi40ODY5IDU3LjA2NjQgMjguNjA5NEM1OC45NTggMjkuNDI0MiA2MC44OTkgMzAuMDc5MSA2Mi44OTA2IDMwLjU4MTFDNjMuNTQxNSAzMC43NDQ4IDYzLjk5OTggMzEuMzI4MSA2NCAzMS45OTlDNjQgMzIuNjcwMSA2My41NDE3IDMzLjI1NDIgNjIuODkwNiAzMy40MThDNjAuODk5IDMzLjkxOTkgNTguOTU2MSAzNC41NzQ4IDU3LjA2NjQgMzUuMzg5NkM1Mi4xMzU4IDM3LjUxMjEgNDcuODE5NiA0MC40MjM3IDQ0LjEyMjEgNDQuMTIxMUM0MC40MjQ2IDQ3LjgyMDQgMzcuNTEzMSA1Mi4xMzQ5IDM1LjM5MDYgNTcuMDY1NEMzNC41NzU4IDU4Ljk1NyAzMy45MjA5IDYwLjg5ODEgMzMuNDE4OSA2Mi44ODk2QzMzLjI1NTIgNjMuNTQwNyAzMi42NzExIDYzLjk5OSAzMiA2My45OTlDMzEuMzI4OSA2My45OTkgMzAuNzQ0OCA2My41NDA3IDMwLjU4MTEgNjIuODg5NkMzMC4wNzkxIDYwLjg5ODEgMjkuNDI0MiA1OC45NTUxIDI4LjYwOTQgNTcuMDY1NEMyNi40ODY5IDUyLjEzNDkgMjMuNTc3MyA0Ny44MTg2IDE5Ljg3NzkgNDQuMTIxMUMxNi4xNzg2IDQwLjQyMzcgMTEuODY0MiAzNy41MTIxIDYuOTMzNTkgMzUuMzg5NkM1LjA0MjA0IDM0LjU3NDggMy4xMDA5NiAzMy45MTk5IDEuMTA5MzggMzMuNDE4QzAuNDU4MzA5IDMzLjI1NDIgMCAzMi42NzAxIDAgMzEuOTk5QzAuMDAwMjAxNTQ4IDMxLjMyODEgMC40NTg0NjMgMzAuNzQ0OCAxLjEwOTM4IDMwLjU4MTFDMy4xMDA5NiAzMC4wNzkxIDUuMDQzODYgMjkuNDI0MiA2LjkzMzU5IDI4LjYwOTRDMTEuODY0MyAyNi40ODY5IDE2LjE4MDQgMjMuNTc0NSAxOS44Nzc5IDE5Ljg3N0MyMy41NzUzIDE2LjE3OTYgMjYuNDg2OSAxMS44NjM5IDI4LjYwOTQgNi45MzM1OUMyOS40MjQyIDUuMDQyMDcgMzAuMDc5MSAzLjEwMDkzIDMwLjU4MTEgMS4xMDkzOEMzMC43NDQ4IDAuNDU4MjYgMzEuMzI4OSAwIDMyIDBaIiBmaWxsPSJ1cmwoI3BhaW50MF9saW5lYXJfMTA4NTlfNDg5NCkiPjwvcGF0aD48L21hc2s+PGcgbWFzaz0idXJsKCNtYXNrMF8xMDg1OV80ODk0KSI+PGcgZmlsdGVyPSJ1cmwoI2ZpbHRlcjBfZl8xMDg1OV80ODk0KSI+PGVsbGlwc2UgY3g9IjE0LjIwODQiIGN5PSIxNi43MTY0IiByeD0iMTQuMjA4NCIgcnk9IjE2LjcxNjQiIHRyYW5zZm9ybT0ibWF0cml4KDAuOTQyMzQzIDAuMzM0NjQ5IC0wLjMzNDY1NiAwLjk0MjM0IC03Ljk3OSAxMy43NzM1KSIgZmlsbD0iI0ZGRTQzMiI+PC9lbGxpcHNlPjwvZz48ZyBmaWx0ZXI9InVybCgjZmlsdGVyMV9mXzEwODU5XzQ4OTQpIj48ZWxsaXBzZSBjeD0iMjcuMDU0MyIgY3k9IjIuNTUxMTQiIHJ4PSIxOC4zOTQ0IiByeT0iMTguNzk4NSIgZmlsbD0iI0ZDNDEzRCI+PC9lbGxpcHNlPjwvZz48ZyBmaWx0ZXI9InVybCgjZmlsdGVyMl9mXzEwODU5XzQ4OTQpIj48ZWxsaXBzZSBjeD0iMTkuMjI0NSIgY3k9IjI0LjkwNDIiIHJ4PSIxOS4yMjQ1IiByeT0iMjQuOTA0MiIgdHJhbnNmb3JtPSJtYXRyaXgoMC45OTg4MDcgLTAuMDQ4ODI1NCAwLjA0ODgyNjYgMC45OTg4MDcgLTEuNzI3NzggMzIuNjU3MykiIGZpbGw9IiMwMEI5NUMiPjwvZWxsaXBzZT48L2c+PGcgZmlsdGVyPSJ1cmwoI2ZpbHRlcjNfZl8xMDg1OV80ODk0KSI+PGVsbGlwc2UgY3g9IjE5LjIyNDUiIGN5PSIyNC45MDQyIiByeD0iMTkuMjI0NSIgcnk9IjI0LjkwNDIiIHRyYW5zZm9ybT0ibWF0cml4KDAuOTk4ODA3IC0wLjA0ODgyNTQgMC4wNDg4MjY2IDAuOTk4ODA3IC0xLjcyNzc4IDMyLjY1NzMpIiBmaWxsPSIjMDBCOTVDIj48L2VsbGlwc2U+PC9nPjxnIGZpbHRlcj0idXJsKCNmaWx0ZXI0X2ZfMTA4NTlfNDg5NCkiPjxlbGxpcHNlIGN4PSIxOC44NDI5IiBjeT0iMjAuNzQ0MSIgcng9IjE4Ljg0MjkiIHJ5PSIyMC43NDQxIiB0cmFuc2Zvcm09Im1hdHJpeCgwLjg1NDMwMSAtMC41MTk3NzkgMC41MTk3OSAwLjg1NDI5NCAtNy4xMzU3NCA0Ny41MDc4KSIgZmlsbD0iIzAwQjk1QyI+PC9lbGxpcHNlPjwvZz48ZyBmaWx0ZXI9InVybCgjZmlsdGVyNV9mXzEwODU5XzQ4OTQpIj48ZWxsaXBzZSBjeD0iNjYuNDYxNyIgY3k9IjI0Ljk3NyIgcng9IjE4LjA5MzMiIHJ5PSIxNy40MjI5IiBmaWxsPSIjMzE4NkZGIj48L2VsbGlwc2U+PC9nPjxnIGZpbHRlcj0idXJsKCNmaWx0ZXI2X2ZfMTA4NTlfNDg5NCkiPjxlbGxpcHNlIGN4PSIyMC45MjkyIiBjeT0iMjIuMDc1MiIgcng9IjIwLjkyOTIiIHJ5PSIyMi4wNzUyIiB0cmFuc2Zvcm09Im1hdHJpeCgwLjc5NTk5IDAuNjA1MzEgLTAuNjA1MzIgMC43OTU5ODIgLTIuODE4ODUgLTcuNDMzMjMpIiBmaWxsPSIjRkJCQzA0Ij48L2VsbGlwc2U+PC9nPjxnIGZpbHRlcj0idXJsKCNmaWx0ZXI3X2ZfMTA4NTlfNDg5NCkiPjxlbGxpcHNlIGN4PSIyNC4xMzExIiBjeT0iMjIuMjkxOSIgcng9IjI0LjEzMTEiIHJ5PSIyMi4yOTE5IiB0cmFuc2Zvcm09Im1hdHJpeCgwLjgyNDAzNyAwLjU2NjUzNiAtMC41NjY1NDYgMC44MjQwMyAzOS42MzM4IDAuMzEwNjA4KSIgZmlsbD0iIzMxODZGRiI+PC9lbGxpcHNlPjwvZz48ZyBmaWx0ZXI9InVybCgjZmlsdGVyOF9mXzEwODU5XzQ4OTQpIj48cGF0aCBkPSJNNTQuMjI1NSAtMi4zMDQwM0M1Ny4wMTk1IDEuNDk0NjIgNTMuNDI5NCA4Ljg4MDQgNDYuMjA2OCAxNC4xOTI2QzM4Ljk4NDIgMTkuNTA0OCAzMC44NjQyIDIwLjczMTggMjguMDcwMiAxNi45MzMxQzI1LjI3NjIgMTMuMTM0NSAyOC44NjYzIDUuNzQ4NjcgMzYuMDg4OSAwLjQzNjQ4NkM0My4zMTE1IC00Ljg3NTcgNTEuNDMxNSAtNi4xMDI2NyA1NC4yMjU1IC0yLjMwNDAzWiIgZmlsbD0iIzc0OUJGRiI+PC9wYXRoPjwvZz48ZyBmaWx0ZXI9InVybCgjZmlsdGVyOV9mXzEwODU5XzQ4OTQpIj48ZWxsaXBzZSBjeD0iMjcuNTg1MyIgY3k9IjE3LjE0NzgiIHJ4PSIyNy41ODUzIiByeT0iMTcuMTQ3OCIgdHJhbnNmb3JtPSJtYXRyaXgoMC43MzMxNjYgLTAuNjgwMDQ5IDAuNjgwMDYxIDAuNzMzMTU1IC0xMi4yNTgzIDkuNDk2OTUpIiBmaWxsPSIjRkM0MTNEIj48L2VsbGlwc2U+PC9nPjxnIGZpbHRlcj0idXJsKCNmaWx0ZXIxMF9mXzEwODU5XzQ4OTQpIj48ZWxsaXBzZSBjeD0iMTQuNzgxOSIgY3k9IjguNTk2MzciIHJ4PSIxNC43ODE5IiByeT0iOC41OTYzNyIgdHJhbnNmb3JtPSJtYXRyaXgoMC44MTMxODYgMC41ODIwMDQgLTAuNTgyMDE2IDAuODEzMTc3IDYuMzc4NDIgMzAuNTExKSIgZmlsbD0iI0ZGRUU0OCI+PC9lbGxpcHNlPjwvZz48L2c+PGRlZnM+PGZpbHRlciBpZD0iZmlsdGVyMF9mXzEwODU5XzQ4OTQiIHg9Ii0xOS42MTgiIHk9IjEyLjkwMjciIHdpZHRoPSIzOC44NjgxIiBoZWlnaHQ9IjQyLjc1NjIiIGZpbHRlclVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgY29sb3ItaW50ZXJwb2xhdGlvbi1maWx0ZXJzPSJzUkdCIj48ZmVGbG9vZCBmbG9vZC1vcGFjaXR5PSIwIiByZXN1bHQ9IkJhY2tncm91bmRJbWFnZUZpeCI+PC9mZUZsb29kPjxmZUJsZW5kIG1vZGU9Im5vcm1hbCIgaW49IlNvdXJjZUdyYXBoaWMiIGluMj0iQmFja2dyb3VuZEltYWdlRml4IiByZXN1bHQ9InNoYXBlIj48L2ZlQmxlbmQ+PGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMi40NTk2NSIgcmVzdWx0PSJlZmZlY3QxX2ZvcmVncm91bmRCbHVyXzEwODU5XzQ4OTQiPjwvZmVHYXVzc2lhbkJsdXI+PC9maWx0ZXI+PGZpbHRlciBpZD0iZmlsdGVyMV9mXzEwODU5XzQ4OTQiIHg9Ii0xNS4xMjIzIiB5PSItNDAuMDI5NiIgd2lkdGg9Ijg0LjM1MzMiIGhlaWdodD0iODUuMTYxNSIgZmlsdGVyVW5pdHM9InVzZXJTcGFjZU9uVXNlIiBjb2xvci1pbnRlcnBvbGF0aW9uLWZpbHRlcnM9InNSR0IiPjxmZUZsb29kIGZsb29kLW9wYWNpdHk9IjAiIHJlc3VsdD0iQmFja2dyb3VuZEltYWdlRml4Ij48L2ZlRmxvb2Q+PGZlQmxlbmQgbW9kZT0ibm9ybWFsIiBpbj0iU291cmNlR3JhcGhpYyIgaW4yPSJCYWNrZ3JvdW5kSW1hZ2VGaXgiIHJlc3VsdD0ic2hhcGUiPjwvZmVCbGVuZD48ZmVHYXVzc2lhbkJsdXIgc3RkRGV2aWF0aW9uPSIxMS44OTExIiByZXN1bHQ9ImVmZmVjdDFfZm9yZWdyb3VuZEJsdXJfMTA4NTlfNDg5NCI+PC9mZUdhdXNzaWFuQmx1cj48L2ZpbHRlcj48ZmlsdGVyIGlkPSJmaWx0ZXIyX2ZfMTA4NTlfNDg5NCIgeD0iLTIwLjc2ODIiIHk9IjExLjQ4MzUiIHdpZHRoPSI3OC45MTYxIiBoZWlnaHQ9IjkwLjIxOTYiIGZpbHRlclVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgY29sb3ItaW50ZXJwb2xhdGlvbi1maWx0ZXJzPSJzUkdCIj48ZmVGbG9vZCBmbG9vZC1vcGFjaXR5PSIwIiByZXN1bHQ9IkJhY2tncm91bmRJbWFnZUZpeCI+PC9mZUZsb29kPjxmZUJsZW5kIG1vZGU9Im5vcm1hbCIgaW49IlNvdXJjZUdyYXBoaWMiIGluMj0iQmFja2dyb3VuZEltYWdlRml4IiByZXN1bHQ9InNoYXBlIj48L2ZlQmxlbmQ+PGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMTAuMTA4NiIgcmVzdWx0PSJlZmZlY3QxX2ZvcmVncm91bmRCbHVyXzEwODU5XzQ4OTQiPjwvZmVHYXVzc2lhbkJsdXI+PC9maWx0ZXI+PGZpbHRlciBpZD0iZmlsdGVyM19mXzEwODU5XzQ4OTQiIHg9Ii0yMC43NjgyIiB5PSIxMS40ODM1IiB3aWR0aD0iNzguOTE2MSIgaGVpZ2h0PSI5MC4yMTk2IiBmaWx0ZXJVbml0cz0idXNlclNwYWNlT25Vc2UiIGNvbG9yLWludGVycG9sYXRpb24tZmlsdGVycz0ic1JHQiI+PGZlRmxvb2QgZmxvb2Qtb3BhY2l0eT0iMCIgcmVzdWx0PSJCYWNrZ3JvdW5kSW1hZ2VGaXgiPjwvZmVGbG9vZD48ZmVCbGVuZCBtb2RlPSJub3JtYWwiIGluPSJTb3VyY2VHcmFwaGljIiBpbjI9IkJhY2tncm91bmRJbWFnZUZpeCIgcmVzdWx0PSJzaGFwZSI+PC9mZUJsZW5kPjxmZUdhdXNzaWFuQmx1ciBzdGREZXZpYXRpb249IjEwLjEwODYiIHJlc3VsdD0iZWZmZWN0MV9mb3JlZ3JvdW5kQmx1cl8xMDg1OV80ODk0Ij48L2ZlR2F1c3NpYW5CbHVyPjwvZmlsdGVyPjxmaWx0ZXIgaWQ9ImZpbHRlcjRfZl8xMDg1OV80ODk0IiB4PSItMTkuODUiIHk9IjE0Ljk2NjQiIHdpZHRoPSI3OS4xODg2IiBoZWlnaHQ9IjgwLjkzNzgiIGZpbHRlclVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgY29sb3ItaW50ZXJwb2xhdGlvbi1maWx0ZXJzPSJzUkdCIj48ZmVGbG9vZCBmbG9vZC1vcGFjaXR5PSIwIiByZXN1bHQ9IkJhY2tncm91bmRJbWFnZUZpeCI+PC9mZUZsb29kPjxmZUJsZW5kIG1vZGU9Im5vcm1hbCIgaW49IlNvdXJjZUdyYXBoaWMiIGluMj0iQmFja2dyb3VuZEltYWdlRml4IiByZXN1bHQ9InNoYXBlIj48L2ZlQmxlbmQ+PGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMTAuMTA4NiIgcmVzdWx0PSJlZmZlY3QxX2ZvcmVncm91bmRCbHVyXzEwODU5XzQ4OTQiPjwvZmVHYXVzc2lhbkJsdXI+PC9maWx0ZXI+PGZpbHRlciBpZD0iZmlsdGVyNV9mXzEwODU5XzQ4OTQiIHg9IjI5LjE1NjEiIHk9Ii0xMS42NTgyIiB3aWR0aD0iNzQuNjExMSIgaGVpZ2h0PSI3My4yNzAzIiBmaWx0ZXJVbml0cz0idXNlclNwYWNlT25Vc2UiIGNvbG9yLWludGVycG9sYXRpb24tZmlsdGVycz0ic1JHQiI+PGZlRmxvb2QgZmxvb2Qtb3BhY2l0eT0iMCIgcmVzdWx0PSJCYWNrZ3JvdW5kSW1hZ2VGaXgiPjwvZmVGbG9vZD48ZmVCbGVuZCBtb2RlPSJub3JtYWwiIGluPSJTb3VyY2VHcmFwaGljIiBpbjI9IkJhY2tncm91bmRJbWFnZUZpeCIgcmVzdWx0PSJzaGFwZSI+PC9mZUJsZW5kPjxmZUdhdXNzaWFuQmx1ciBzdGREZXZpYXRpb249IjkuNjA2MTMiIHJlc3VsdD0iZWZmZWN0MV9mb3JlZ3JvdW5kQmx1cl8xMDg1OV80ODk0Ij48L2ZlR2F1c3NpYW5CbHVyPjwvZmlsdGVyPjxmaWx0ZXIgaWQ9ImZpbHRlcjZfZl8xMDg1OV80ODk0IiB4PSItMzguMjkxIiB5PSItMTYuMjY4NyIgd2lkdGg9Ijc3LjUzOCIgaGVpZ2h0PSI3OC4xNTEzIiBmaWx0ZXJVbml0cz0idXNlclNwYWNlT25Vc2UiIGNvbG9yLWludGVycG9sYXRpb24tZmlsdGVycz0ic1JHQiI+PGZlRmxvb2QgZmxvb2Qtb3BhY2l0eT0iMCIgcmVzdWx0PSJCYWNrZ3JvdW5kSW1hZ2VGaXgiPjwvZmVGbG9vZD48ZmVCbGVuZCBtb2RlPSJub3JtYWwiIGluPSJTb3VyY2VHcmFwaGljIiBpbjI9IkJhY2tncm91bmRJbWFnZUZpeCIgcmVzdWx0PSJzaGFwZSI+PC9mZUJsZW5kPjxmZUdhdXNzaWFuQmx1ciBzdGREZXZpYXRpb249IjguNzA1OTEiIHJlc3VsdD0iZWZmZWN0MV9mb3JlZ3JvdW5kQmx1cl8xMDg1OV80ODk0Ij48L2ZlR2F1c3NpYW5CbHVyPjwvZmlsdGVyPjxmaWx0ZXIgaWQ9ImZpbHRlcjdfZl8xMDg1OV80ODk0IiB4PSI3Ljc4MDM4IiB5PSItNi4wOTgxIiB3aWR0aD0iNzguMjE4MSIgaGVpZ2h0PSI3Ni44OTgyIiBmaWx0ZXJVbml0cz0idXNlclNwYWNlT25Vc2UiIGNvbG9yLWludGVycG9sYXRpb24tZmlsdGVycz0ic1JHQiI+PGZlRmxvb2QgZmxvb2Qtb3BhY2l0eT0iMCIgcmVzdWx0PSJCYWNrZ3JvdW5kSW1hZ2VGaXgiPjwvZmVGbG9vZD48ZmVCbGVuZCBtb2RlPSJub3JtYWwiIGluPSJTb3VyY2VHcmFwaGljIiBpbjI9IkJhY2tncm91bmRJbWFnZUZpeCIgcmVzdWx0PSJzaGFwZSI+PC9mZUJsZW5kPjxmZUdhdXNzaWFuQmx1ciBzdGREZXZpYXRpb249IjcuNzc0NzMiIHJlc3VsdD0iZWZmZWN0MV9mb3JlZ3JvdW5kQmx1cl8xMDg1OV80ODk0Ij48L2ZlR2F1c3NpYW5CbHVyPjwvZmlsdGVyPjxmaWx0ZXIgaWQ9ImZpbHRlcjhfZl8xMDg1OV80ODk0IiB4PSIxMy4yMDgyIiB5PSItMTguNDI1IiB3aWR0aD0iNTUuODc5MyIgaGVpZ2h0PSI1MS40NzkxIiBmaWx0ZXJVbml0cz0idXNlclNwYWNlT25Vc2UiIGNvbG9yLWludGVycG9sYXRpb24tZmlsdGVycz0ic1JHQiI+PGZlRmxvb2QgZmxvb2Qtb3BhY2l0eT0iMCIgcmVzdWx0PSJCYWNrZ3JvdW5kSW1hZ2VGaXgiPjwvZmVGbG9vZD48ZmVCbGVuZCBtb2RlPSJub3JtYWwiIGluPSJTb3VyY2VHcmFwaGljIiBpbjI9IkJhY2tncm91bmRJbWFnZUZpeCIgcmVzdWx0PSJzaGFwZSI+PC9mZUJsZW5kPjxmZUdhdXNzaWFuQmx1ciBzdGREZXZpYXRpb249IjYuOTU2OTQiIHJlc3VsdD0iZWZmZWN0MV9mb3JlZ3JvdW5kQmx1cl8xMDg1OV80ODk0Ij48L2ZlR2F1c3NpYW5CbHVyPjwvZmlsdGVyPjxmaWx0ZXIgaWQ9ImZpbHRlcjlfZl8xMDg1OV80ODk0IiB4PSItMTUuNDczOSIgeT0iLTMxLjAyNzIiIHdpZHRoPSI3MC4yMDM0IiBoZWlnaHQ9IjY4LjY3MzUiIGZpbHRlclVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgY29sb3ItaW50ZXJwb2xhdGlvbi1maWx0ZXJzPSJzUkdCIj48ZmVGbG9vZCBmbG9vZC1vcGFjaXR5PSIwIiByZXN1bHQ9IkJhY2tncm91bmRJbWFnZUZpeCI+PC9mZUZsb29kPjxmZUJsZW5kIG1vZGU9Im5vcm1hbCIgaW49IlNvdXJjZUdyYXBoaWMiIGluMj0iQmFja2dyb3VuZEltYWdlRml4IiByZXN1bHQ9InNoYXBlIj48L2ZlQmxlbmQ+PGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iNS44NzU5OCIgcmVzdWx0PSJlZmZlY3QxX2ZvcmVncm91bmRCbHVyXzEwODU5XzQ4OTQiPjwvZmVHYXVzc2lhbkJsdXI+PC9maWx0ZXI+PGZpbHRlciBpZD0iZmlsdGVyMTBfZl8xMDg1OV80ODk0IiB4PSItMTQuMTczIiB5PSIyMC40NzQiIHdpZHRoPSI1NS4xMzczIiBoZWlnaHQ9IjUxLjI2MSIgZmlsdGVyVW5pdHM9InVzZXJTcGFjZU9uVXNlIiBjb2xvci1pbnRlcnBvbGF0aW9uLWZpbHRlcnM9InNSR0IiPjxmZUZsb29kIGZsb29kLW9wYWNpdHk9IjAiIHJlc3VsdD0iQmFja2dyb3VuZEltYWdlRml4Ij48L2ZlRmxvb2Q+PGZlQmxlbmQgbW9kZT0ibm9ybWFsIiBpbj0iU291cmNlR3JhcGhpYyIgaW4yPSJCYWNrZ3JvdW5kSW1hZ2VGaXgiIHJlc3VsdD0ic2hhcGUiPjwvZmVCbGVuZD48ZmVHYXVzc2lhbkJsdXIgc3RkRGV2aWF0aW9uPSI3LjI3MjUzIiByZXN1bHQ9ImVmZmVjdDFfZm9yZWdyb3VuZEJsdXJfMTA4NTlfNDg5NCI+PC9mZUdhdXNzaWFuQmx1cj48L2ZpbHRlcj48bGluZWFyR3JhZGllbnQgaWQ9InBhaW50MF9saW5lYXJfMTA4NTlfNDg5NCIgeDE9IjE4LjE5MzEiIHkxPSI0Mi44MjEiIHgyPSI1MS40MzM1IiB5Mj0iMTQuNzk1OSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIHN0b3AtY29sb3I9IiM0ODkzRkMiPjwvc3RvcD48c3RvcCBvZmZzZXQ9IjAuMjciIHN0b3AtY29sb3I9IiM0ODkzRkMiPjwvc3RvcD48c3RvcCBvZmZzZXQ9IjAuNzc2OTgxIiBzdG9wLWNvbG9yPSIjOTY5REZGIj48L3N0b3A+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjQkQ5OUZFIj48L3N0b3A+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PC9zdmc+Cg=="
+        },
+        "displayName": "Google Gemini",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 32,
+        "name": "Market Research"
+      },
+      {
+        "id": 49,
+        "name": "AI Summarization"
+      }
+    ],
+    "image": []
+  }
+}

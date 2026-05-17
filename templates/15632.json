@@ -1,0 +1,1240 @@
+{
+  "workflow": {
+    "id": 15632,
+    "name": "Create a travel support RAG chatbot with Google Drive, Pinecone and OpenAI",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-11T17:26:03.931Z",
+    "description": "\ud83d\udcca Description\n\nThis workflow helps travel, booking, and customer support businesses create an AI chatbot that answers customer questions from their own knowledge base. Instead of manually replying to repeated questions about bookings, cancellations, refunds, pricing, policies, or service details, the business can upload a knowledge document and let the chatbot respond through a webhook.\n\nBuilt for travel agencies, booking platforms, hotels, shortlets, service businesses, and automation builders who want to create a simple RAG chatbot using Google Drive, OpenAI, Pinecone, and n8n.\n\nWhat This Workflow Does\n\n\ud83d\udcc4 Downloads a knowledge document from Google Drive\n\u2702\ufe0f Splits the document into smaller chunks for better retrieval\n\ud83e\udde0 Creates embeddings using OpenAI\n\ud83d\udce6 Stores the knowledge base inside a Pinecone vector index\n\ud83d\udcac Receives customer questions through a webhook\n\ud83d\udd0e Searches Pinecone for the most relevant information\n\ud83e\udd16 Uses OpenAI to generate a short, helpful answer\n\ud83d\udce4 Returns the chatbot response back to the connected frontend, chatbot, or app\n\nKey Benefits\n\n\u2705 Turns a simple document into a searchable AI knowledge base\n\u2705 Helps answer repeated customer questions faster\n\u2705 Uses RAG so responses are based on the uploaded business information\n\u2705 Works with any frontend, chatbot, or app that can send a POST request\n\u2705 Easy to customize for different travel, booking, or support businesses\n\u2705 Separates knowledge indexing from live chatbot responses\n\u2705 Includes a simple response formatting step before returning the answer\n\nHow It Works\n\nSW1 \u2014 Knowledge Base Indexing\n\nThe workflow starts with a manual trigger. It downloads a knowledge document from Google Drive, loads the document content, splits it into smaller text chunks, creates embeddings with OpenAI, and stores those chunks inside a Pinecone vector index.\n\nThis section should be run first because the chatbot can only answer from information that has already been indexed into Pinecone.\n\nSW2 \u2014 Chatbot Question Answering\n\nThe webhook receives a customer question from a frontend, chatbot, or app. The workflow sends the question into a retrieval QA chain, searches the Pinecone vector store for relevant context, and uses OpenAI to generate a short answer based on the retrieved information.\n\nThe response is then cleaned by a Code node and returned through Respond to Webhook.\n\nFeatures\n\nGoogle Drive knowledge document download\nOpenAI embeddings\nPinecone vector storage\nRecursive text splitting\nWebhook-based chatbot input\nRetrieval QA chain for context-aware answers\nShort customer-support style responses\nResponse cleanup before returning to the frontend\nReusable structure for travel, booking, hotel, shortlet, and service businesses\n\nRequirements\n\nGoogle Drive account\nOpenAI API key\nPinecone account and index\nn8n account or self-hosted n8n instance\nA prepared knowledge document such as FAQs, policies, service details, or booking information\nA frontend, chatbot, or app that can send questions to the webhook\n\nSetup Steps\n\n1. Connect your Google Drive, OpenAI, and Pinecone accounts.\n2. Add your own knowledge document to Google Drive.\n3. Create or select a Pinecone index for the vector database.\n4. Replace the Google Drive file placeholder with your own file.\n5. Replace the Pinecone index placeholder with your own index name.\n6. Run the indexing section once to store your document in Pinecone.\n7. Connect your frontend, chatbot, or app to the webhook URL.\n8. Send a test question using the chatInput field.\n9. Customize the system prompt for your business or client use case.\n\nTarget Audience\n\n\u2708\ufe0f Travel agencies answering booking and policy questions\n\ud83c\udfe8 Hotels and shortlet businesses handling repeated guest enquiries\n\ud83e\uddf3 Booking platforms that need a lightweight support chatbot\n\ud83e\udd16 Automation builders creating RAG chatbot demos for clients\n\ud83d\udcde Customer support teams that want answers based on internal documents",
+    "workflow": {
+      "id": "IcDm4gOustCzuLFt",
+      "meta": {
+        "instanceId": "a7cfc7b956da3ae0fc5b100d6b39f145d3e1d537ef159bf2c6566d97b5926781"
+      },
+      "name": "Travel Support RAG Chatbot with Pinecone and OpenAI",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "cee1eb3d-6ea1-435c-a1af-b0251ae00660",
+          "name": "Workflow Overview",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -272,
+            -64
+          ],
+          "parameters": {
+            "color": 4,
+            "width": 512,
+            "height": 768,
+            "content": "## Travel Support RAG Chatbot\n\nThis workflow creates a simple RAG chatbot for a travel, booking, or customer support business.\n\nIt has two parts:\n\n1. Knowledge indexing: download a knowledge document from Google Drive, split it into chunks, create embeddings, and store them in Pinecone.\n\n2. Chatbot response: receive a customer question through a webhook, retrieve relevant context from Pinecone, generate a short answer with OpenAI, and return the answer to the frontend.\n\nBefore using this template, add your own Google Drive, OpenAI, and Pinecone credentials."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "9b09d6eb-24fb-4742-b353-04c60c25f0be",
+          "name": "Knowledge Indexing Notes",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            320,
+            -48
+          ],
+          "parameters": {
+            "color": 5,
+            "width": 816,
+            "height": 912,
+            "content": "## 1. Knowledge indexing setup\n\nRun this section first.\n\nReplace the Google Drive file placeholder with your own document file ID. The file should contain the business knowledge you want the chatbot to answer from.\n\nReplace the Pinecone index placeholder with your own Pinecone index name. Make sure the embedding dimensions match your Pinecone index configuration."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "31c6acbb-2367-49d6-8e58-508794ff54fa",
+          "name": "Chatbot Response Notes",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1216,
+            -48
+          ],
+          "parameters": {
+            "color": 4,
+            "width": 1184,
+            "height": 1088,
+            "content": "## 2. Chatbot response setup\n\nThis section receives a POST request with a chatInput value.\n\nExample request body:\n\n{\n  \"chatInput\": \"What is your refund policy?\"\n}\n\nThe workflow retrieves relevant context from Pinecone, generates a short answer, formats the response, and returns it through Respond to Webhook.\n\nUpdate the system prompt to match your business tone and support rules."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "0746ed68-a5e1-437b-9fb4-b7fc26d5d643",
+          "name": "Download Knowledge File",
+          "type": "n8n-nodes-base.googleDrive",
+          "position": [
+            528,
+            320
+          ],
+          "parameters": {
+            "fileId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "REPLACE_WITH_YOUR_GOOGLE_DRIVE_FILE_ID"
+            },
+            "options": {},
+            "operation": "download"
+          },
+          "typeVersion": 3
+        },
+        {
+          "id": "3c1716b0-3b38-4c94-97b5-1335d637316a",
+          "name": "Insert Documents into Pinecone",
+          "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+          "position": [
+            736,
+            320
+          ],
+          "parameters": {
+            "mode": "insert",
+            "options": {},
+            "pineconeIndex": {
+              "__rl": true,
+              "mode": "id",
+              "value": "YOUR_PINECONE_INDEX_NAME"
+            }
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "6f9ddd37-4020-4a35-881c-26bea9f4bdfd",
+          "name": "Create Embeddings for Indexing",
+          "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+          "position": [
+            736,
+            528
+          ],
+          "parameters": {
+            "options": {
+              "batchSize": 512,
+              "dimensions": 512,
+              "stripNewLines": true
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "e9870dcf-0868-468c-83a2-a5c464daee2a",
+          "name": "Load Downloaded Document",
+          "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+          "position": [
+            896,
+            512
+          ],
+          "parameters": {
+            "options": {},
+            "dataType": "binary",
+            "textSplittingMode": "custom"
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "bd1fe332-140c-419a-92af-b0e78ebdef93",
+          "name": "Split Document into Chunks",
+          "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+          "position": [
+            896,
+            672
+          ],
+          "parameters": {
+            "options": {},
+            "chunkOverlap": 200
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "46bd004e-f348-4d19-9910-8a35a97284c0",
+          "name": "Manual Trigger - Index Knowledge Base",
+          "type": "n8n-nodes-base.manualTrigger",
+          "position": [
+            320,
+            320
+          ],
+          "parameters": {},
+          "typeVersion": 1
+        },
+        {
+          "id": "da3046ed-e482-4966-b8a1-3854b2e810c7",
+          "name": "Answer Question with Retrieved Context",
+          "type": "@n8n/n8n-nodes-langchain.chainRetrievalQa",
+          "maxTries": 2,
+          "position": [
+            1616,
+            272
+          ],
+          "parameters": {
+            "text": "={{ $json.body.chatInput }}\n{{ $json.chatInput }}",
+            "options": {
+              "systemPromptTemplate": "You are a helpful customer support assistant for a travel, booking, or service business. Your role is to answer customer questions about bookings, cancellations, refunds, and services using the retrieved knowledge base context.\n\nIMPORTANT RESPONSE RULES:\n1. Keep responses SHORT and focused - max 2-3 sentences per message\n2. Answer ONLY what was asked - don't volunteer extra information\n3. Use simple, conversational language\n4. One idea per message\n5. If uncertain, say \"I'm not sure - let me connect you with our team\"\n\nContext: {context}"
+            },
+            "promptType": "define"
+          },
+          "retryOnFail": true,
+          "typeVersion": 1.7
+        },
+        {
+          "id": "a24e8829-9fbf-4442-a9cd-0830c01cb870",
+          "name": "OpenAI Chat Model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "maxTries": 2,
+          "position": [
+            1616,
+            496
+          ],
+          "parameters": {
+            "model": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gpt-4.1"
+            },
+            "options": {},
+            "builtInTools": {}
+          },
+          "retryOnFail": true,
+          "typeVersion": 1.3
+        },
+        {
+          "id": "d449ddbc-133a-4085-a7f0-6fcd0516d469",
+          "name": "Retrieve Matching Knowledge",
+          "type": "@n8n/n8n-nodes-langchain.retrieverVectorStore",
+          "position": [
+            1824,
+            528
+          ],
+          "parameters": {},
+          "typeVersion": 1
+        },
+        {
+          "id": "e8f1c760-0903-4102-b9a0-8dc7d3336fcc",
+          "name": "Search Pinecone Knowledge Base",
+          "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+          "position": [
+            1648,
+            704
+          ],
+          "parameters": {
+            "options": {},
+            "pineconeIndex": {
+              "__rl": true,
+              "mode": "id",
+              "value": "YOUR_PINECONE_INDEX_NAME"
+            }
+          },
+          "typeVersion": 1.3
+        },
+        {
+          "id": "00e75502-63fd-4b86-bf7a-f0875c6100c5",
+          "name": "Create Query Embedding",
+          "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+          "position": [
+            1648,
+            848
+          ],
+          "parameters": {
+            "options": {
+              "dimensions": 512,
+              "stripNewLines": false
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "27d6828d-c45a-43b7-bf82-f4a85e554cdc",
+          "name": "Format Chatbot Response",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1968,
+            272
+          ],
+          "parameters": {
+            "jsCode": "// Get the response from input\nconst response = $input.all()[0].json.response;\n\n// Remove all newlines and trim extra spaces\nconst cleanedResponse = response.replace(/\\n/g, \" \").trim();\n\nreturn [\n  {\n    json: {\n      text: cleanedResponse\n    }\n  }\n];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "cc24081f-10d2-43b5-b39d-b963d7f9531e",
+          "name": "Chatbot Webhook Trigger",
+          "type": "n8n-nodes-base.webhook",
+          "position": [
+            1328,
+            272
+          ],
+          "webhookId": "travel-rag-chatbot-webhook",
+          "parameters": {
+            "path": "travel-rag-chatbot",
+            "options": {
+              "allowedOrigins": "*",
+              "responseHeaders": {
+                "entries": [
+                  {
+                    "name": "Access-Control-Allow-Headers",
+                    "value": "Content-Type"
+                  },
+                  {
+                    "name": "Access-Control-Allow-Origin",
+                    "value": "*"
+                  },
+                  {
+                    "name": "Access-Control-Allow-Methods",
+                    "value": "GET, POST, OPTIONS "
+                  }
+                ]
+              }
+            },
+            "httpMethod": "POST",
+            "responseMode": "responseNode"
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "46a123df-1975-4fc6-b8f2-f50d5f694bfa",
+          "name": "Return Answer to Frontend",
+          "type": "n8n-nodes-base.respondToWebhook",
+          "position": [
+            2176,
+            272
+          ],
+          "parameters": {
+            "options": {}
+          },
+          "typeVersion": 1.5
+        },
+        {
+          "id": "f4d67e47-1491-4801-b065-40831f3a113e",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1472,
+            -336
+          ],
+          "parameters": {
+            "width": 960,
+            "height": 272,
+            "content": "## Setup required\n\nConnect your own:\n- Google Drive account\n- OpenAI account\n- Pinecone account\n\nThen replace:\n- Google Drive file placeholder\n- Pinecone index placeholder\n- System prompt business details\n- Webhook path if needed"
+          },
+          "typeVersion": 1
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "67a46195-45d4-4146-afe6-5d8fbda0c964",
+      "connections": {
+        "OpenAI Chat Model": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "Answer Question with Retrieved Context",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Create Query Embedding": {
+          "ai_embedding": [
+            [
+              {
+                "node": "Search Pinecone Knowledge Base",
+                "type": "ai_embedding",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Chatbot Webhook Trigger": {
+          "main": [
+            [
+              {
+                "node": "Answer Question with Retrieved Context",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Download Knowledge File": {
+          "main": [
+            [
+              {
+                "node": "Insert Documents into Pinecone",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Format Chatbot Response": {
+          "main": [
+            [
+              {
+                "node": "Return Answer to Frontend",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Load Downloaded Document": {
+          "ai_document": [
+            [
+              {
+                "node": "Insert Documents into Pinecone",
+                "type": "ai_document",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Split Document into Chunks": {
+          "ai_textSplitter": [
+            [
+              {
+                "node": "Load Downloaded Document",
+                "type": "ai_textSplitter",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Retrieve Matching Knowledge": {
+          "ai_retriever": [
+            [
+              {
+                "node": "Answer Question with Retrieved Context",
+                "type": "ai_retriever",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Create Embeddings for Indexing": {
+          "ai_embedding": [
+            [
+              {
+                "node": "Insert Documents into Pinecone",
+                "type": "ai_embedding",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Search Pinecone Knowledge Base": {
+          "ai_vectorStore": [
+            [
+              {
+                "node": "Retrieve Matching Knowledge",
+                "type": "ai_vectorStore",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Manual Trigger - Index Knowledge Base": {
+          "main": [
+            [
+              {
+                "node": "Download Knowledge File",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Answer Question with Retrieved Context": {
+          "main": [
+            [
+              {
+                "node": "Format Chatbot Response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 18,
+      "nodeTypes": {
+        "n8n-nodes-base.code": {
+          "count": 1
+        },
+        "n8n-nodes-base.webhook": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 4
+        },
+        "n8n-nodes-base.googleDrive": {
+          "count": 1
+        },
+        "n8n-nodes-base.manualTrigger": {
+          "count": 1
+        },
+        "n8n-nodes-base.respondToWebhook": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.lmChatOpenAi": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.chainRetrievalQa": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.embeddingsOpenAi": {
+          "count": 2
+        },
+        "@n8n/n8n-nodes-langchain.vectorStorePinecone": {
+          "count": 2
+        },
+        "@n8n/n8n-nodes-langchain.retrieverVectorStore": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.documentDefaultDataLoader": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "ayo.o",
+      "username": "flowgramming101",
+      "bio": "AI automation builder focused on n8n, AI agents, RAG-chatbots and business process automation. I create practical workflow templates with clean structure, clear setup notes, and real use cases for founders, agencies, and small business teams.",
+      "verified": false,
+      "links": [
+        "https://www.titkok.com/theworkflow_dev"
+      ],
+      "avatar": "https://gravatar.com/avatar/dfac033510bf6c571156c8408d0037064d421a5081bb2c789992dff26cb1a56d?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 47,
+        "icon": "file:webhook.svg",
+        "name": "n8n-nodes-base.webhook",
+        "codex": {
+          "data": {
+            "alias": [
+              "HTTP",
+              "API",
+              "Build",
+              "WH"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "\ud83d\udcbb",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-automatically-give-kudos-to-contributors-with-github-slack-and-n8n/",
+                  "icon": "\ud83d\udc4f",
+                  "label": "How to automatically give kudos to contributors with GitHub, Slack, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-custom-incident-response-workflows-with-n8n/",
+                  "label": "How to automate every step of an incident response workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Webhook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTM1IDM3Yy0yLjIgMC00LTEuOC00LTRzMS44LTQgNC00IDQgMS44IDQgNC0xLjggNC00IDQiLz48cGF0aCBmaWxsPSIjMzc0NzRmIiBkPSJNMzUgNDNjLTMgMC01LjktMS40LTcuOC0zLjdsMy4xLTIuNWMxLjEgMS40IDIuOSAyLjMgNC43IDIuMyAzLjMgMCA2LTIuNyA2LTZzLTIuNy02LTYtNmMtMSAwLTIgLjMtMi45LjdsLTEuNyAxTDIzLjMgMTZsMy41LTEuOSA1LjMgOS40YzEtLjMgMi0uNSAzLS41IDUuNSAwIDEwIDQuNSAxMCAxMFM0MC41IDQzIDM1IDQzIi8+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTE0IDQzQzguNSA0MyA0IDM4LjUgNCAzM2MwLTQuNiAzLjEtOC41IDcuNS05LjdsMSAzLjlDOS45IDI3LjkgOCAzMC4zIDggMzNjMCAzLjMgMi43IDYgNiA2czYtMi43IDYtNnYtMmgxNXY0SDIzLjhjLS45IDQuNi01IDgtOS44IDgiLz48cGF0aCBmaWxsPSIjZTkxZTYzIiBkPSJNMTQgMzdjLTIuMiAwLTQtMS44LTQtNHMxLjgtNCA0LTQgNCAxLjggNCA0LTEuOCA0LTQgNCIvPjxwYXRoIGZpbGw9IiMzNzQ3NGYiIGQ9Ik0yNSAxOWMtMi4yIDAtNC0xLjgtNC00czEuOC00IDQtNCA0IDEuOCA0IDQtMS44IDQtNCA0Ii8+PHBhdGggZmlsbD0iI2U5MWU2MyIgZD0ibTE1LjcgMzQtMy40LTIgNS45LTkuN2MtMi0xLjktMy4yLTQuNS0zLjItNy4zIDAtNS41IDQuNS0xMCAxMC0xMHMxMCA0LjUgMTAgMTBjMCAuOS0uMSAxLjctLjMgMi41bC0zLjktMWMuMS0uNS4yLTEgLjItMS41IDAtMy4zLTIuNy02LTYtNnMtNiAyLjctNiA2YzAgMi4xIDEuMSA0IDIuOSA1LjFsMS43IDF6Ii8+PC9zdmc+"
+        },
+        "displayName": "Webhook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 58,
+        "icon": "file:googleDrive.svg",
+        "name": "n8n-nodes-base.googleDrive",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googledrive/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Google Drive"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgODEgNzMiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48ZyBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSI+PHBhdGggZmlsbD0iIzAwNjZkYSIgZD0ibTYuMDQ4IDYxLjI2IDMuNTI4IDYuMDk0Yy43MzMgMS4yODMgMS43ODcgMi4yOTEgMy4wMjQgMy4wMjRsMTIuNi0yMS44MUgwYTguMyA4LjMgMCAwIDAgMS4xIDQuMTI0eiIvPjxwYXRoIGZpbGw9IiMwMGFjNDciIGQ9Ik00MCAyMi45MSAyNy40IDEuMWMtMS4yMzcuNzMzLTIuMjkxIDEuNzQxLTMuMDI0IDMuMDI0TDEuMSA0NC40NDVBOC4zIDguMyAwIDAgMCAwIDQ4LjU2OGgyNS4yeiIvPjxwYXRoIGZpbGw9IiNlYTQzMzUiIGQ9Ik02Ny40IDcwLjM3OGMxLjIzNy0uNzMzIDIuMjkxLTEuNzQxIDMuMDI0LTMuMDI0bDEuNDY2LTIuNTIgNy4wMS0xMi4xNDJhOC4zIDguMyAwIDAgMCAxLjEtNC4xMjRINTQuNzk4bDUuMzYzIDEwLjUzOHoiLz48cGF0aCBmaWxsPSIjMDA4MzJkIiBkPSJNNDAgMjIuOTEgNTIuNiAxLjFDNTEuMzYzLjM2NyA0OS45NDMgMCA0OC40NzcgMEgzMS41MjRjLTEuNDY2IDAtMi44ODcuNDEyLTQuMTI0IDEuMXoiLz48cGF0aCBmaWxsPSIjMjY4NGZjIiBkPSJNNTQuNzk5IDQ4LjU2OEgyNS4ybC0xMi42IDIxLjgxYzEuMjM3LjczMyAyLjY1NyAxLjEgNC4xMjQgMS4xaDQ2LjU1MmMxLjQ2NiAwIDIuODg3LS40MTIgNC4xMjQtMS4xeiIvPjxwYXRoIGZpbGw9IiNmZmJhMDAiIGQ9Ik02Ny4yNjIgMjQuMjg0IDU1LjYyNCA0LjEyNEM1NC44OTEgMi44NDEgNTMuODM3IDEuODMzIDUyLjYgMS4xTDQwIDIyLjkxbDE0LjggMjUuNjU5aDI1LjE1NWE4LjMgOC4zIDAgMCAwLTEuMS00LjEyNHoiLz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Google Drive",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          }
+        ]
+      },
+      {
+        "id": 535,
+        "icon": "file:webhook.svg",
+        "name": "n8n-nodes-base.respondToWebhook",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.respondtowebhook/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes",
+              "Utility"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Respond to Webhook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTM1IDM3Yy0yLjIgMC00LTEuOC00LTRzMS44LTQgNC00IDQgMS44IDQgNC0xLjggNC00IDQiLz48cGF0aCBmaWxsPSIjMzc0NzRmIiBkPSJNMzUgNDNjLTMgMC01LjktMS40LTcuOC0zLjdsMy4xLTIuNWMxLjEgMS40IDIuOSAyLjMgNC43IDIuMyAzLjMgMCA2LTIuNyA2LTZzLTIuNy02LTYtNmMtMSAwLTIgLjMtMi45LjdsLTEuNyAxTDIzLjMgMTZsMy41LTEuOSA1LjMgOS40YzEtLjMgMi0uNSAzLS41IDUuNSAwIDEwIDQuNSAxMCAxMFM0MC41IDQzIDM1IDQzIi8+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTE0IDQzQzguNSA0MyA0IDM4LjUgNCAzM2MwLTQuNiAzLjEtOC41IDcuNS05LjdsMSAzLjlDOS45IDI3LjkgOCAzMC4zIDggMzNjMCAzLjMgMi43IDYgNiA2czYtMi43IDYtNnYtMmgxNXY0SDIzLjhjLS45IDQuNi01IDgtOS44IDgiLz48cGF0aCBmaWxsPSIjZTkxZTYzIiBkPSJNMTQgMzdjLTIuMiAwLTQtMS44LTQtNHMxLjgtNCA0LTQgNCAxLjggNCA0LTEuOCA0LTQgNCIvPjxwYXRoIGZpbGw9IiMzNzQ3NGYiIGQ9Ik0yNSAxOWMtMi4yIDAtNC0xLjgtNC00czEuOC00IDQtNCA0IDEuOCA0IDQtMS44IDQtNCA0Ii8+PHBhdGggZmlsbD0iI2U5MWU2MyIgZD0ibTE1LjcgMzQtMy40LTIgNS45LTkuN2MtMi0xLjktMy4yLTQuNS0zLjItNy4zIDAtNS41IDQuNS0xMCAxMC0xMHMxMCA0LjUgMTAgMTBjMCAuOS0uMSAxLjctLjMgMi41bC0zLjktMWMuMS0uNS4yLTEgLjItMS41IDAtMy4zLTIuNy02LTYtNnMtNiAyLjctNiA2YzAgMi4xIDEuMSA0IDIuOSA1LjFsMS43IDF6Ii8+PC9zdmc+"
+        },
+        "displayName": "Respond to Webhook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 7,
+            "name": "Utility"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 838,
+        "icon": "fa:mouse-pointer",
+        "name": "n8n-nodes-base.manualTrigger",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.manualworkflowtrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "When clicking \u2018Execute workflow\u2019",
+          "color": "#909298"
+        },
+        "iconData": {
+          "icon": "mouse-pointer",
+          "type": "icon"
+        },
+        "displayName": "Manual Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1125,
+        "icon": "fa:link",
+        "name": "@n8n/n8n-nodes-langchain.chainRetrievalQa",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.chainretrievalqa/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Chains",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Question and Answer Chain",
+          "color": "#909298"
+        },
+        "iconData": {
+          "icon": "link",
+          "type": "icon"
+        },
+        "displayName": "Question and Answer Chain",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1141,
+        "icon": "file:openAiLight.svg",
+        "name": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.embeddingsopenai/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Embeddings"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Embeddings OpenAI"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTM2Ljg2NzEgMTYuMzcxOEMzNy43NzQ2IDEzLjY0OCAzNy40NjIxIDEwLjY2NDIgMzYuMDEwOCA4LjE4NjYxQzMzLjgyODIgNC4zODY1MyAyOS40NDA3IDIuNDMxNDkgMjUuMTU1NiAzLjM1MTUxQzIzLjI0OTMgMS4yMDM5NiAyMC41MTA1IC0wLjAxNzMxNDggMTcuNjM5MiAwLjAwMDE4NTUzM0MxMy4yNTkxIC0wLjAwOTgxNDY4IDkuMzcyNzMgMi44MTAyNSA4LjAyNTIgNi45Nzc4M0M1LjIxMTM5IDcuNTU0MSAyLjc4MjU4IDkuMzE1MzggMS4zNjEzIDExLjgxMTdDLTAuODM3NDkzIDE1LjYwMTggLTAuMzM2MjMyIDIwLjM3OTQgMi42MDEzMyAyMy42Mjk0QzEuNjkzODEgMjYuMzUzMiAyLjAwNjMyIDI5LjMzNzEgMy40NTc2IDMxLjgxNDZDNS42NDAxNSAzNS42MTQ3IDEwLjAyNzcgMzcuNTY5NyAxNC4zMTI4IDM2LjY0OTdDMTYuMjE3OSAzOC43OTczIDE4Ljk1NzkgNDAuMDE4NSAyMS44MjkyIDM5Ljk5OThDMjYuMjExOCA0MC4wMTEgMzAuMDk5NCAzNy4xODg1IDMxLjQ0NjkgMzMuMDE3MUMzNC4yNjA4IDMyLjQ0MDkgMzYuNjg5NiAzMC42Nzk2IDM4LjExMDggMjguMTgzM0M0MC4zMDcxIDI0LjM5MzIgMzkuODA0NiAxOS42MTk0IDM2Ljg2ODMgMTYuMzY5M0wzNi44NjcxIDE2LjM3MThaTTIxLjgzMTcgMzcuMzg2QzIwLjA3OCAzNy4zODg1IDE4LjM3OTIgMzYuNzc0NyAxNy4wMzI5IDM1LjY1MDlDMTcuMDk0MSAzNS42MTg0IDE3LjIwMDQgMzUuNTU5NyAxNy4yNjkxIDM1LjUxNzJMMjUuMjM0MyAzMC45MTcxQzI1LjY0MTggMzAuNjg1OCAyNS44OTE4IDMwLjI1MjEgMjUuODg5MyAyOS43ODMzVjE4LjU1NDNMMjkuMjU1NyAyMC40OTgxQzI5LjI5MTkgMjAuNTE1NiAyOS4zMTU3IDIwLjU1MDYgMjkuMzIwNyAyMC41OTA2VjI5Ljg4OTZDMjkuMzE1NyAzNC4wMjQ3IDI1Ljk2NjggMzcuMzc3MiAyMS44MzE3IDM3LjM4NlpNNS43MjY0IDMwLjUwNzFDNC44NDc2MyAyOC45ODk2IDQuNTMxMzcgMjcuMjEwOCA0LjgzMjYzIDI1LjQ4NDVDNC44OTEzOCAyNS41MTk1IDQuOTk1MTMgMjUuNTgzMiA1LjA2ODg4IDI1LjYyNTdMMTMuMDM0MSAzMC4yMjU4QzEzLjQzNzggMzAuNDYyMSAxMy45Mzc4IDMwLjQ2MjEgMTQuMzQyOCAzMC4yMjU4TDI0LjA2NjggMjQuNjEwN1YyOC40OTgzQzI0LjA2OTMgMjguNTM4MyAyNC4wNTA1IDI4LjU3NyAyNC4wMTkzIDI4LjYwMkwxNS45Njc5IDMzLjI1MDlDMTIuMzgxNSAzNS4zMTU5IDcuODAxNDQgMzQuMDg4NCA1LjcyNzY1IDMwLjUwNzFINS43MjY0Wk0zLjYzMDEgMTMuMTIwNUM0LjUwNTEyIDExLjYwMDQgNS44ODY0IDEwLjQzNzkgNy41MzE0NCA5LjgzNDE1QzcuNTMxNDQgOS45MDI5IDcuNTI3NjkgMTAuMDI0MiA3LjUyNzY5IDEwLjEwOTJWMTkuMzEwNkM3LjUyNTE5IDE5Ljc3ODEgNy43NzUxOSAyMC4yMTE5IDguMTgxNDUgMjAuNDQzMUwxNy45MDU0IDI2LjA1N0wxNC41MzkxIDI4LjAwMDhDMTQuNTA1MyAyOC4wMjMzIDE0LjQ2MjggMjguMDI3IDE0LjQyNTMgMjguMDEwOEw2LjM3MjY2IDIzLjM1ODJDMi43OTM4MyAyMS4yODU2IDEuNTY2MzEgMTYuNzA2OCAzLjYyODg1IDEzLjEyMTdMMy42MzAxIDEzLjEyMDVaTTMxLjI4ODIgMTkuNTU2OUwyMS41NjQyIDEzLjk0MTdMMjQuOTMwNiAxMS45OTkyQzI0Ljk2NDMgMTEuOTc2NyAyNS4wMDY4IDExLjk3MjkgMjUuMDQ0MyAxMS45ODkyTDMzLjA5NyAxNi42MzhDMzYuNjgyMSAxOC43MDkzIDM3LjkxMDggMjMuMjk1NyAzNS44Mzk1IDI2Ljg4MDhDMzQuOTYzMyAyOC4zOTgzIDMzLjU4MzIgMjkuNTYwOCAzMS45Mzk1IDMwLjE2NThWMjAuNjg5NEMzMS45NDMyIDIwLjIyMTkgMzEuNjk0NSAxOS43ODk0IDMxLjI4OTQgMTkuNTU2OUgzMS4yODgyWk0zNC42MzgzIDE0LjUxNDJDMzQuNTc5NSAxNC40NzggMzQuNDc1OCAxNC40MTU1IDM0LjQwMiAxNC4zNzNMMjYuNDM2OCA5Ljc3Mjg5QzI2LjAzMzEgOS41MzY2NCAyNS41MzMxIDkuNTM2NjQgMjUuMTI4MSA5Ljc3Mjg5TDE1LjQwNDEgMTUuMzg4VjExLjUwMDRDMTUuNDAxNiAxMS40NjA0IDE1LjQyMDQgMTEuNDIxNyAxNS40NTE2IDExLjM5NjdMMjMuNTAzIDYuNzUxNThDMjcuMDg5NCA0LjY4Mjc5IDMxLjY3NDUgNS45MTQwNiAzMy43NDIgOS41MDE2NEMzNC42MTU4IDExLjAxNjcgMzQuOTMyIDEyLjc5MDUgMzQuNjM1OCAxNC41MTQySDM0LjYzODNaTTEzLjU3NDEgMjEuNDQzMUwxMC4yMDY1IDE5LjQ5OTRDMTAuMTcwMiAxOS40ODE5IDEwLjE0NjUgMTkuNDQ2OCAxMC4xNDE1IDE5LjQwNjhWMTAuMTA3OUMxMC4xNDQgNS45Njc4MSAxMy41MDI4IDIuNjEyNzQgMTcuNjQyOSAyLjYxNTI0QzE5LjM5NDIgMi42MTUyNCAyMS4wODkyIDMuMjMwMjUgMjIuNDM1NSA0LjM1MDI4QzIyLjM3NDMgNC4zODI3OCAyMi4yNjkzIDQuNDQxNTMgMjIuMTk5MiA0LjQ4NDAzTDE0LjIzNDEgOS4wODQxM0MxMy44MjY2IDkuMzE1MzggMTMuNTc2NiA5Ljc0Nzg5IDEzLjU3OTEgMTAuMjE2N0wxMy41NzQxIDIxLjQ0MDZWMjEuNDQzMVpNMTUuNDAyOSAxNy41MDA2TDE5LjczNDIgMTQuOTk5M0wyNC4wNjU1IDE3LjQ5OTNWMjIuNTAwN0wxOS43MzQyIDI1LjAwMDdMMTUuNDAyOSAyMi41MDA3VjE3LjUwMDZaIiBmaWxsPSIjN0Q3RDg3Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "Embeddings OpenAI",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1153,
+        "icon": "file:openAiLight.svg",
+        "name": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmchatopenai/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Language Models",
+                "Root Nodes"
+              ],
+              "Language Models": [
+                "Chat Models (Recommended)"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "OpenAI Chat Model"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTM2Ljg2NzEgMTYuMzcxOEMzNy43NzQ2IDEzLjY0OCAzNy40NjIxIDEwLjY2NDIgMzYuMDEwOCA4LjE4NjYxQzMzLjgyODIgNC4zODY1MyAyOS40NDA3IDIuNDMxNDkgMjUuMTU1NiAzLjM1MTUxQzIzLjI0OTMgMS4yMDM5NiAyMC41MTA1IC0wLjAxNzMxNDggMTcuNjM5MiAwLjAwMDE4NTUzM0MxMy4yNTkxIC0wLjAwOTgxNDY4IDkuMzcyNzMgMi44MTAyNSA4LjAyNTIgNi45Nzc4M0M1LjIxMTM5IDcuNTU0MSAyLjc4MjU4IDkuMzE1MzggMS4zNjEzIDExLjgxMTdDLTAuODM3NDkzIDE1LjYwMTggLTAuMzM2MjMyIDIwLjM3OTQgMi42MDEzMyAyMy42Mjk0QzEuNjkzODEgMjYuMzUzMiAyLjAwNjMyIDI5LjMzNzEgMy40NTc2IDMxLjgxNDZDNS42NDAxNSAzNS42MTQ3IDEwLjAyNzcgMzcuNTY5NyAxNC4zMTI4IDM2LjY0OTdDMTYuMjE3OSAzOC43OTczIDE4Ljk1NzkgNDAuMDE4NSAyMS44MjkyIDM5Ljk5OThDMjYuMjExOCA0MC4wMTEgMzAuMDk5NCAzNy4xODg1IDMxLjQ0NjkgMzMuMDE3MUMzNC4yNjA4IDMyLjQ0MDkgMzYuNjg5NiAzMC42Nzk2IDM4LjExMDggMjguMTgzM0M0MC4zMDcxIDI0LjM5MzIgMzkuODA0NiAxOS42MTk0IDM2Ljg2ODMgMTYuMzY5M0wzNi44NjcxIDE2LjM3MThaTTIxLjgzMTcgMzcuMzg2QzIwLjA3OCAzNy4zODg1IDE4LjM3OTIgMzYuNzc0NyAxNy4wMzI5IDM1LjY1MDlDMTcuMDk0MSAzNS42MTg0IDE3LjIwMDQgMzUuNTU5NyAxNy4yNjkxIDM1LjUxNzJMMjUuMjM0MyAzMC45MTcxQzI1LjY0MTggMzAuNjg1OCAyNS44OTE4IDMwLjI1MjEgMjUuODg5MyAyOS43ODMzVjE4LjU1NDNMMjkuMjU1NyAyMC40OTgxQzI5LjI5MTkgMjAuNTE1NiAyOS4zMTU3IDIwLjU1MDYgMjkuMzIwNyAyMC41OTA2VjI5Ljg4OTZDMjkuMzE1NyAzNC4wMjQ3IDI1Ljk2NjggMzcuMzc3MiAyMS44MzE3IDM3LjM4NlpNNS43MjY0IDMwLjUwNzFDNC44NDc2MyAyOC45ODk2IDQuNTMxMzcgMjcuMjEwOCA0LjgzMjYzIDI1LjQ4NDVDNC44OTEzOCAyNS41MTk1IDQuOTk1MTMgMjUuNTgzMiA1LjA2ODg4IDI1LjYyNTdMMTMuMDM0MSAzMC4yMjU4QzEzLjQzNzggMzAuNDYyMSAxMy45Mzc4IDMwLjQ2MjEgMTQuMzQyOCAzMC4yMjU4TDI0LjA2NjggMjQuNjEwN1YyOC40OTgzQzI0LjA2OTMgMjguNTM4MyAyNC4wNTA1IDI4LjU3NyAyNC4wMTkzIDI4LjYwMkwxNS45Njc5IDMzLjI1MDlDMTIuMzgxNSAzNS4zMTU5IDcuODAxNDQgMzQuMDg4NCA1LjcyNzY1IDMwLjUwNzFINS43MjY0Wk0zLjYzMDEgMTMuMTIwNUM0LjUwNTEyIDExLjYwMDQgNS44ODY0IDEwLjQzNzkgNy41MzE0NCA5LjgzNDE1QzcuNTMxNDQgOS45MDI5IDcuNTI3NjkgMTAuMDI0MiA3LjUyNzY5IDEwLjEwOTJWMTkuMzEwNkM3LjUyNTE5IDE5Ljc3ODEgNy43NzUxOSAyMC4yMTE5IDguMTgxNDUgMjAuNDQzMUwxNy45MDU0IDI2LjA1N0wxNC41MzkxIDI4LjAwMDhDMTQuNTA1MyAyOC4wMjMzIDE0LjQ2MjggMjguMDI3IDE0LjQyNTMgMjguMDEwOEw2LjM3MjY2IDIzLjM1ODJDMi43OTM4MyAyMS4yODU2IDEuNTY2MzEgMTYuNzA2OCAzLjYyODg1IDEzLjEyMTdMMy42MzAxIDEzLjEyMDVaTTMxLjI4ODIgMTkuNTU2OUwyMS41NjQyIDEzLjk0MTdMMjQuOTMwNiAxMS45OTkyQzI0Ljk2NDMgMTEuOTc2NyAyNS4wMDY4IDExLjk3MjkgMjUuMDQ0MyAxMS45ODkyTDMzLjA5NyAxNi42MzhDMzYuNjgyMSAxOC43MDkzIDM3LjkxMDggMjMuMjk1NyAzNS44Mzk1IDI2Ljg4MDhDMzQuOTYzMyAyOC4zOTgzIDMzLjU4MzIgMjkuNTYwOCAzMS45Mzk1IDMwLjE2NThWMjAuNjg5NEMzMS45NDMyIDIwLjIyMTkgMzEuNjk0NSAxOS43ODk0IDMxLjI4OTQgMTkuNTU2OUgzMS4yODgyWk0zNC42MzgzIDE0LjUxNDJDMzQuNTc5NSAxNC40NzggMzQuNDc1OCAxNC40MTU1IDM0LjQwMiAxNC4zNzNMMjYuNDM2OCA5Ljc3Mjg5QzI2LjAzMzEgOS41MzY2NCAyNS41MzMxIDkuNTM2NjQgMjUuMTI4MSA5Ljc3Mjg5TDE1LjQwNDEgMTUuMzg4VjExLjUwMDRDMTUuNDAxNiAxMS40NjA0IDE1LjQyMDQgMTEuNDIxNyAxNS40NTE2IDExLjM5NjdMMjMuNTAzIDYuNzUxNThDMjcuMDg5NCA0LjY4Mjc5IDMxLjY3NDUgNS45MTQwNiAzMy43NDIgOS41MDE2NEMzNC42MTU4IDExLjAxNjcgMzQuOTMyIDEyLjc5MDUgMzQuNjM1OCAxNC41MTQySDM0LjYzODNaTTEzLjU3NDEgMjEuNDQzMUwxMC4yMDY1IDE5LjQ5OTRDMTAuMTcwMiAxOS40ODE5IDEwLjE0NjUgMTkuNDQ2OCAxMC4xNDE1IDE5LjQwNjhWMTAuMTA3OUMxMC4xNDQgNS45Njc4MSAxMy41MDI4IDIuNjEyNzQgMTcuNjQyOSAyLjYxNTI0QzE5LjM5NDIgMi42MTUyNCAyMS4wODkyIDMuMjMwMjUgMjIuNDM1NSA0LjM1MDI4QzIyLjM3NDMgNC4zODI3OCAyMi4yNjkzIDQuNDQxNTMgMjIuMTk5MiA0LjQ4NDAzTDE0LjIzNDEgOS4wODQxM0MxMy44MjY2IDkuMzE1MzggMTMuNTc2NiA5Ljc0Nzg5IDEzLjU3OTEgMTAuMjE2N0wxMy41NzQxIDIxLjQ0MDZWMjEuNDQzMVpNMTUuNDAyOSAxNy41MDA2TDE5LjczNDIgMTQuOTk5M0wyNC4wNjU1IDE3LjQ5OTNWMjIuNTAwN0wxOS43MzQyIDI1LjAwMDdMMTUuNDAyOSAyMi41MDA3VjE3LjUwMDZaIiBmaWxsPSIjN0Q3RDg3Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "OpenAI Chat Model",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1183,
+        "icon": "fa:box-open",
+        "name": "@n8n/n8n-nodes-langchain.retrieverVectorStore",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.retrievervectorstore/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Retrievers"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Vector Store Retriever"
+        },
+        "iconData": {
+          "icon": "box-open",
+          "type": "icon"
+        },
+        "displayName": "Vector Store Retriever",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1191,
+        "icon": "fa:grip-lines-vertical",
+        "name": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.textsplitterrecursivecharactertextsplitter/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Text Splitters"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Recursive Character Text Splitter"
+        },
+        "iconData": {
+          "icon": "grip-lines-vertical",
+          "type": "icon"
+        },
+        "displayName": "Recursive Character Text Splitter",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1230,
+        "icon": "file:pinecone.svg",
+        "name": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.vectorstorepinecone/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Vector Stores",
+                "Tools",
+                "Root Nodes"
+              ],
+              "Tools": [
+                "Other Tools"
+              ],
+              "Vector Stores": [
+                "Other Vector Stores"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Pinecone Vector Store"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzUiIHZpZXdCb3g9IjAgMCAzMiAzNSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEzLjg1NTUgMzQuMjk2MkMxNC45MzI1IDM0LjI5NjIgMTUuODA1NSAzMy40NDUxIDE1LjgwNTUgMzIuMzk1NEMxNS44MDU1IDMxLjM0NTYgMTQuOTMyNSAzMC40OTQ2IDEzLjg1NTUgMzAuNDk0NkMxMi43Nzg2IDMwLjQ5NDYgMTEuOTA1NSAzMS4zNDU2IDExLjkwNTUgMzIuMzk1NEMxMS45MDU1IDMzLjQ0NTEgMTIuNzc4NiAzNC4yOTYyIDEzLjg1NTUgMzQuMjk2MloiIGZpbGw9ImJsYWNrIi8+CjxwYXRoIGQ9Ik0xOC40MTM4IDcuMTk2NzVMMTkuMjUxMiAyLjY2MDA1IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjIuMTE3ODYiIHN0cm9rZS1saW5lY2FwPSJzcXVhcmUiLz4KPHBhdGggZD0iTTIyLjI2NTYgNS41ODU1TDE5LjM0NjYgMi4xMTA5OUwxNS4zNzQ4IDQuMzcyOTIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMi4xMTc4NiIgc3Ryb2tlLWxpbmVjYXA9InNxdWFyZSIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8cGF0aCBkPSJNMTQuOTIwMiAyNi41NTI4TDE1LjczMzcgMjIuMDE2OSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIyLjExNzg2IiBzdHJva2UtbGluZWNhcD0ic3F1YXJlIi8+CjxwYXRoIGQ9Ik0xOC43NzI5IDI0LjkzMDRMMTUuODMgMjEuNDY3MUwxMS44NzAxIDIzLjc0MSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIyLjExNzg2IiBzdHJva2UtbGluZWNhcD0ic3F1YXJlIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxwYXRoIGQ9Ik0xNi42MDc3IDE3LjE5OTZMMTcuNDIxMiAxMi42NjMzIiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjIuMTE3ODYiIHN0cm9rZS1saW5lY2FwPSJzcXVhcmUiLz4KPHBhdGggZD0iTTIwLjQ1ODcgMTUuNThMMTcuNTI3NyAxMi4xMjhMMTMuNTY3OSAxNC4zOTA0IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjIuMTE3ODYiIHN0cm9rZS1saW5lY2FwPSJzcXVhcmUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBhdGggZD0iTTguMzI4NzEgMjYuMTU1NEw0Ljc1MTcxIDI4LjU4MTUiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMi4wMTAxNyIgc3Ryb2tlLWxpbmVjYXA9InNxdWFyZSIvPgo8cGF0aCBkPSJNOC41NDM4MyAzMC4wODY1TDQuMzIwOCAyOC44NzM4TDQuNjMxODUgMjQuNTk0NCIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIyLjAxMDE3IiBzdHJva2UtbGluZWNhcD0ic3F1YXJlIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxwYXRoIGQ9Ik0yMS4zMjEzIDI4LjQyOTlMMjMuODA5NiAzMS45MjgyIiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjIuMDEwMTciIHN0cm9rZS1saW5lY2FwPSJzcXVhcmUiLz4KPHBhdGggZD0iTTE5LjcxOCAzMi4wNDVMMjQuMTA4NSAzMi4zMzY1TDI1LjM1MjcgMjguMjQzOCIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIyLjAxMDE3IiBzdHJva2UtbGluZWNhcD0ic3F1YXJlIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxwYXRoIGQ9Ik0yNS4zOTk5IDIxLjMyOTFMMjkuNzc4NCAyMi4wOTk2IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjIuMDU4MDQiIHN0cm9rZS1saW5lY2FwPSJzcXVhcmUiLz4KPHBhdGggZD0iTTI2LjkwNzIgMjUuMDcyTDMwLjMwNDggMjIuMTkxOUwyOC4xNjM0IDE4LjM1NTciIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMi4wNTgwNCIgc3Ryb2tlLWxpbmVjYXA9InNxdWFyZSIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8cGF0aCBkPSJNMjQuMTE5NiAxMi44NjE1TDI4LjAxOTcgMTAuNzYzIiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjIuMDU4MDQiIHN0cm9rZS1saW5lY2FwPSJzcXVhcmUiLz4KPHBhdGggZD0iTTI0LjMzNTcgOC44Mzk2NUwyOC40ODY5IDEwLjUxODhMMjcuNzA5MyAxNC44MjE2IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjIuMDU4MDQiIHN0cm9rZS1saW5lY2FwPSJzcXVhcmUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBhdGggZD0iTTYuOTE2MzkgMTguMTU3MkwyLjUyNTg4IDE3LjQxMDEiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMi4wNTgwNCIgc3Ryb2tlLWxpbmVjYXA9InNxdWFyZSIvPgo8cGF0aCBkPSJNNC4xNzczMSAyMS4xNjQ1TDIgMTcuMzI4TDUuMzYxNjcgMTQuNDM2IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjIuMDU4MDQiIHN0cm9rZS1saW5lY2FwPSJzcXVhcmUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBhdGggZD0iTTExLjA3OTkgMTAuNjEyOUw4LjE0ODkzIDcuMzQ3NjkiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMi4wNTgwNCIgc3Ryb2tlLWxpbmVjYXA9InNxdWFyZSIvPgo8cGF0aCBkPSJNMTIuMjg5NyA2Ljc3NDk2TDcuODAzNDkgNi45NjE1Nkw3LjAxMzkyIDExLjI2NDkiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMi4wNTgwNCIgc3Ryb2tlLWxpbmVjYXA9InNxdWFyZSIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4K"
+        },
+        "displayName": "Pinecone Vector Store",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1243,
+        "icon": "file:binary.svg",
+        "name": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.documentdefaultdataloader/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Document Loaders"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Default Data Loader"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3NjgiIGhlaWdodD0iMTAyNCI+PHBhdGggZmlsbD0iIzdEN0Q4NyIgZD0iTTAgOTYwVjY0aDU3NmwxOTIgMTkydjcwNHptNzA0LTY0MEw1MTIgMTI4SDY0djc2OGg2NDB6TTMyMCA1MTJIMTI4VjI1NmgxOTJ6bS02NC0xOTJoLTY0djEyOGg2NHptMCA0NDhoNjR2NjRIMTI4di02NGg2NFY2NDBoLTY0di02NGgxMjh6bTI1Ni0zMjBoNjR2NjRIMzg0di02NGg2NFYzMjBoLTY0di02NGgxMjh6bTY0IDM4NEgzODRWNTc2aDE5MnptLTY0LTE5MmgtNjR2MTI4aDY0eiIvPjwvc3ZnPg=="
+        },
+        "displayName": "Default Data Loader",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 40,
+        "name": "Support Chatbot"
+      },
+      {
+        "id": 48,
+        "name": "AI RAG"
+      }
+    ],
+    "image": [
+      {
+        "id": 6256,
+        "url": "https://n8niostorageaccount.blob.core.windows.net/n8nio-strapi-blobs-prod/assets/Screenshot_from_2026_05_11_18_16_08_49eb4506a7.png"
+      }
+    ]
+  }
+}

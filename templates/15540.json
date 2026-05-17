@@ -1,0 +1,2112 @@
+{
+  "workflow": {
+    "id": 15540,
+    "name": "Enrich and deduplicate Slack-uploaded companies in HubSpot with Coresignal",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-08T07:21:47.596Z",
+    "description": "This workflow automates the full company enrichment pipeline: Simply import CSV company lists to Slack and save time on enrichment and CRM maintenance. It processes uploaded files, extracts company domains, checks for existing records in HubSpot, and uses conditional logic with user approval to decide which companies to enrich. The result is a clean, enriched CRM dataset without duplicates and context rich company profiles. Ideal for B2B sales, marketing, and RevOps teams.\n\n## How It Works\n1. A file is uploaded to a Slack channel.\nThe workflow downloads and extracts company data from the file.\n2. Company domains are inserted into a temporary data table.\n3. HubSpot is queried to identify existing companies (duplicates).\n4. If duplicates are found, the user is asked via Slack whether to enrich them.\n5. Approved companies are enriched using Coresignal multi-source data.\n6. Existing companies are updated, and new companies are created in HubSpot.\n7. A summary of results (created, updated, skipped) is posted to Slack.\n\n## Tools used\n|Tool / Node|What it does in the workflow|Free / credentials needed?|\n|-|-|-|\n|Slack Trigger|Waits for a file to be uploaded in a Slack channel and sends file metadata|Slack app configuration required|\n|Slack Get File|Fetches the file download URL|Slack app configuration required|\n|Slack Message|Notifies user that workflow has started|Slack app configuration required|\n|HTTP Request|Downloads the file from Slack|Slack credentials required|\n|Extract from File|Parses CSV/Excel data|No credentials required|\n|Data Table (insert)|Stores company domains|No credentials required|\n|HubSpot Search Company|Checks for duplicates in HubSpot|HubSpot credentials required|\n|IF Node|Determines if company exists|No credentials required|\n|Slack Send & Wait|Asks user whether to enrich duplicates|Slack app configuration required|\n|Merge Node|Combines approval results|No credentials required|\n|Data Table (delete/get)|Manages temporary dataset|No credentials required|\n|Coresignal Enrich Company|Fetches company enrichment data|Coresignal API key required|\n|Code Node|Maps domains to HubSpot company IDs|No credentials required|\n|HubSpot Update Company|Updates existing companies|HubSpot credentials required|\n|HubSpot Create Company|Creates new companies|HubSpot credentials required|\n|Summarize Node|Counts number of companies (created, updated, skipped) throughout the workflow|No credentials required|\n|Merge Node (final)|Combines all summary results into one output|No credentials required|\n|Slack Message (final)|Sends summary of results to Slack channel|Slack app configuration required|\n\n## How to Set Up\n\n**1. Slack Trigger** - listen for the file_share event on your chosen channel. Select the channel by ID, connect your Slack API credential, and ensure your Slack app has permissions to read files and post messages.\n**2. Notify Slack on file download** - send an informational message to the channel confirming processing has started. Use ephemeral mode if the message should only be visible to the triggering user.\n**3. Download & setch file contents** - use a Slack node (resource: file, operation: get) to download the file using the trigger's file_id. Follow this with an HTTP Request node using your Slack credentials to fetch the private download URL - set responseFormat to file to retrieve a binary buffer.\n**4. Extract & stage data** - parse the file with an Extract from File node (supports CSV, Excel, and other tabular formats). Before inserting, use a Data Table node (deleteRows) to clear any existing rows matching the current domain, then insert the fresh data with insertRows. Use the same Data Table ID for both operations.\n**5. Search HubSpot by domain** - use a HubSpot node (searchByDomain) with the expression ={{ $json.Website }} and returnAll enabled to check whether the company already exists. Connect via OAuth2.\n**6. Branch: existing vs. new company** - use an IF node to check whether a HubSpot company ID was returned. The true branch handles updates and duplicates; the false branch handles creation.\n**7. Slack approval for duplicates** - for duplicate companies, use a sendAndWait Slack node with approvalType: double to ask the user whether to proceed with enrichment. Follow with an IF node - if declined, delete or skip the rows.\n**8. Enrich via Coresignal** - use the Coresignal node (resource: company, operation: enrich) with the company website expression. Configure your Coresignal API key in credentials.\n**9. Map fields with a code node** - run custom JavaScript to transform the Coresignal response into HubSpot-ready fields -  calculate annual revenue, extract headquarters location, and build a description string.\n**10. Create or update in HubSpot** -\n* new company: HubSpot node (create) - map name, revenue, city, country, and description.\n* Existing company: HubSpot node (update) - provide the companyId from the search result and map the same enriched fields.\n\n**11. Summarize & report** - use Summarize nodes to count created, updated, and duplicate records. Merge the totals and post a summary message to the Slack channel.\n**12. Error handling** - on HTTP Request and HubSpot nodes, configure retries and backoff under the Options tab. Enable continueOnFail where appropriate to prevent one failed record from stopping the workflow. Use Slack nodes to alert on critical failures.\n\n## Customization Options\n* You can easily adapt this workflow to:\nSupport additional file formats or columns\n* Enrich only specific companies based on filters\n* Map additional Coresignal fields into HubSpot\n* Route enriched data to other tools (CRM, database, BI tools)\n* Automate lead scoring, segmentation or outreach after enrichment\n* Add validation rules before creating companies\n\n## Why Use This Workflow?\n* Automates bulk enrichment from simply uploading CSV list to slack\n* Prevents duplicate company records in HubSpot\n* Adds human approval step for better control\n* Keeps CRM data clean and standardized\n* Saves hours of manual data entry and research\n* Scales easily for sales ops and RevOps teams\n\n### Limitations\n* Recommended batch size: **300\u2013500** companies per run\n* Requires correct domain formatting in input data\n* Slack approval step introduces manual dependency for duplicates\n\n## Need help or want to customize this?\n\nReach out directly: artur@coresignal.com \nFollow for more on linkedin: https://www.linkedin.com/in/artur-mulagalijev/\n",
+    "workflow": {
+      "id": "gwm8nNb7UBi9JOnn",
+      "meta": {
+        "instanceId": "65f84d916c130fcd09acf36875a792033f0370b728a3fa45ed12ab82b7fff1e4"
+      },
+      "name": "Updates workflow N2",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "874bf355-70ae-46d0-9b63-53cc9b74fed6",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            288,
+            608
+          ],
+          "parameters": {
+            "width": 480,
+            "height": 896,
+            "content": "## Enriching companies with Coresignal data and uploading them to HubSpot from Slack\n\n### How it works\n\n1. The workflow starts with Slack trigger and file handling.\n2. Extracted data is processed into tables, and the HubSpot search node looks for already existing companies to avoid duplication. \n3. Conditional logic determines company update/create workflows.\n4. User is prompted to approve enrichment or already existing companies with the Slack send message and wait for reply node. \n5. Data is enriched with information retrieved from Coresignal.\n6. Company records are matched with existing company IDs and are updated, and new companies are created in HubSpot. \n7. Summary is generated and posted in the Slack channel. \n\n### Setup steps\n\n- [ ] Generate HubSpot developer key.\n- [ ] Validate Slack API permissions.\n- [ ] Make sure Coresignal credentials are set up\n- [ ] Make sure the data table with the Domain column is created. \n- [ ] Customize production steps to match the custom data fields in HubSpot and match them with Coresignal's payload data. \n"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "d7a0b43a-c020-4029-b217-6cf067b0cfbe",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            816,
+            736
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 880,
+            "height": 272,
+            "content": "## File input and extraction\n\nHandles file input and extraction from Slack."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "49d8a21d-f8d4-4d6c-8d41-7084de69749e",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1744,
+            736
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 848,
+            "height": 272,
+            "content": "## Data table insertion and deduplication\n\nProcesses and inserts extracted data into a table."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "819ca0d4-ccf0-4008-b1d3-85fed0abe5a4",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            2640,
+            688
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1424,
+            "height": 768,
+            "content": "## Conditional company checks\n\nHandles conditional logic to retrieve or process company data and prompts user to approve enrichment of already existing companies. "
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "56da7135-ed50-413f-8611-c0fc398db01e",
+          "name": "Sticky Note4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            4096,
+            656
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 608,
+            "height": 768,
+            "content": "## External company data enrichment\n\nFetches additional company data from external sources like Coresignal. Matches the company IDs with domains and updates/creates companies in HubSpot. "
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "c85f3a59-442e-40db-8181-353e6b30de2d",
+          "name": "Sticky Note7",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            4784,
+            672
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 448,
+            "height": 592,
+            "content": "## Summarization and summary actions\n\nSummary of updated and created companies. "
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "c35dcd4f-b1b3-4165-bd0d-2033b00ff0d1",
+          "name": "When Slack File Uploaded",
+          "type": "n8n-nodes-base.slackTrigger",
+          "position": [
+            864,
+            848
+          ],
+          "webhookId": "5c447e41-ea78-4048-b773-9db0ed46ccd4",
+          "parameters": {
+            "options": {},
+            "trigger": [
+              "file_share"
+            ],
+            "channelId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "C0AQJT5B8PN"
+            }
+          },
+          "credentials": {
+            "slackApi": {
+              "id": "NRuYXdxbXZaGENSP",
+              "name": "Slack account"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "8ad028cc-396c-445d-a607-f2ff0a6882df",
+          "name": "Extract Data from File",
+          "type": "n8n-nodes-base.extractFromFile",
+          "position": [
+            1552,
+            848
+          ],
+          "parameters": {
+            "options": {}
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "fa896f70-60d8-406a-a9e8-bb2f706b79a5",
+          "name": "Download Slack File",
+          "type": "n8n-nodes-base.slack",
+          "position": [
+            1040,
+            848
+          ],
+          "webhookId": "47d9f1f3-d64c-4dca-8db8-a4c0533fd224",
+          "parameters": {
+            "fileId": "={{ $json.file_id }}",
+            "resource": "file",
+            "operation": "get"
+          },
+          "credentials": {
+            "slackApi": {
+              "id": "NRuYXdxbXZaGENSP",
+              "name": "Slack account"
+            }
+          },
+          "typeVersion": 2.4
+        },
+        {
+          "id": "8f034293-ab99-49c0-b292-3054b7e31992",
+          "name": "Fetch File Contents",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            1360,
+            848
+          ],
+          "parameters": {
+            "url": "={{ $('Download Slack File').item.json.url_private_download }}",
+            "options": {
+              "response": {
+                "response": {
+                  "responseFormat": "file"
+                }
+              }
+            },
+            "authentication": "predefinedCredentialType",
+            "nodeCredentialType": "slackApi"
+          },
+          "credentials": {
+            "slackApi": {
+              "id": "NRuYXdxbXZaGENSP",
+              "name": "Slack account"
+            }
+          },
+          "typeVersion": 4.4
+        },
+        {
+          "id": "82a70d38-2c9b-4d61-ad6b-0b057f801d0a",
+          "name": "Insert File Data into Table",
+          "type": "n8n-nodes-base.dataTable",
+          "position": [
+            1840,
+            848
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "Website": "={{ $json.Website }}"
+              },
+              "schema": [
+                {
+                  "id": "Website",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "Website",
+                  "defaultMatch": false
+                }
+              ],
+              "mappingMode": "defineBelow",
+              "matchingColumns": [
+                "Website"
+              ],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "options": {},
+            "dataTableId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "qpFU5IWqd6ETwQ4O",
+              "cachedResultUrl": "/projects/d8siYNB21z0O177I/datatables/qpFU5IWqd6ETwQ4O",
+              "cachedResultName": "HubSpot_Duplicates"
+            }
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "3fbf46a1-ad67-4cf2-8cd6-691d9e61bdd6",
+          "name": "Search Company by Domain",
+          "type": "n8n-nodes-base.hubspot",
+          "onError": "continueRegularOutput",
+          "position": [
+            2096,
+            848
+          ],
+          "parameters": {
+            "domain": "={{ $json.Website }}",
+            "options": {},
+            "resource": "company",
+            "operation": "searchByDomain",
+            "returnAll": true,
+            "authentication": "oAuth2"
+          },
+          "credentials": {
+            "hubspotOAuth2Api": {
+              "id": "hc2zrRUxfCvgj27q",
+              "name": "HubSpot account"
+            }
+          },
+          "typeVersion": 2.2,
+          "alwaysOutputData": true
+        },
+        {
+          "id": "dd6f8b6b-8b5d-4f52-9860-99ce52604b11",
+          "name": "Retrieve Current Table Rows",
+          "type": "n8n-nodes-base.dataTable",
+          "position": [
+            3696,
+            1264
+          ],
+          "parameters": {
+            "operation": "get",
+            "returnAll": true,
+            "dataTableId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "qpFU5IWqd6ETwQ4O",
+              "cachedResultUrl": "/projects/d8siYNB21z0O177I/datatables/qpFU5IWqd6ETwQ4O",
+              "cachedResultName": "HubSpot_Duplicates"
+            }
+          },
+          "executeOnce": true,
+          "typeVersion": 1.1
+        },
+        {
+          "id": "79676b4b-3675-4576-9db3-ebd506b6a64f",
+          "name": "Create New HubSpot Company",
+          "type": "n8n-nodes-base.hubspot",
+          "onError": "continueRegularOutput",
+          "position": [
+            4528,
+            1088
+          ],
+          "parameters": {
+            "name": "={{ $json.company_name }}",
+            "resource": "company",
+            "authentication": "oAuth2",
+            "additionalFields": {
+              "city": "={{ $json.hq_city }}",
+              "websiteUrl": "={{ $json.website_domain }}",
+              "description": "={{ $json.description }}",
+              "annualRevenue": "={{ $json.revenue_annual.source_5_annual_revenue.annual_revenue }}",
+              "countryRegion": "={{ $json.hq_location }}",
+              "numberOfEmployees": 0,
+              "linkedInCompanyPage": "={{ $json.linkedin_url }}"
+            }
+          },
+          "credentials": {
+            "hubspotOAuth2Api": {
+              "id": "hc2zrRUxfCvgj27q",
+              "name": "HubSpot account"
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "6d9a9c5a-c194-4b43-b055-2c30d82c561b",
+          "name": "Post Results to Slack",
+          "type": "n8n-nodes-base.slack",
+          "position": [
+            5424,
+            928
+          ],
+          "webhookId": "8bcd29e0-cc78-4367-a5b2-e267daedb304",
+          "parameters": {
+            "text": "={{ $json[\"count_portalId\"] ?? 0 }} Duplicates found and enriched. \n\n{{ $json.count_companyId }} Companies added.\n\n{{ $json.count_object_Object }} Companies were not found and therefore were not added. ",
+            "select": "channel",
+            "channelId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "C0AQJT5B8PN"
+            },
+            "otherOptions": {}
+          },
+          "credentials": {
+            "slackApi": {
+              "id": "NRuYXdxbXZaGENSP",
+              "name": "Slack account"
+            }
+          },
+          "typeVersion": 2.4
+        },
+        {
+          "id": "a5e7ee49-55ec-40e4-9338-2dab9baf6e39",
+          "name": "Summarize Company Creation",
+          "type": "n8n-nodes-base.summarize",
+          "position": [
+            4848,
+            1088
+          ],
+          "parameters": {
+            "options": {},
+            "fieldsToSummarize": {
+              "values": [
+                {
+                  "field": "companyId"
+                }
+              ]
+            }
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "38d5face-3e0a-4e2e-89c7-b40c12c24819",
+          "name": "Combine All Summaries",
+          "type": "n8n-nodes-base.merge",
+          "onError": "continueRegularOutput",
+          "position": [
+            5072,
+            912
+          ],
+          "parameters": {
+            "mode": "combine",
+            "options": {
+              "includeUnpaired": true
+            },
+            "combineBy": "combineByPosition",
+            "numberInputs": 3
+          },
+          "typeVersion": 3.2,
+          "alwaysOutputData": true
+        },
+        {
+          "id": "d661247b-fa6d-48ea-8e16-100b1050590f",
+          "name": "Check if Company Exists",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            4320,
+            944
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "eeb2a3cc-6b1c-46f1-b3f8-6a7e1bb6a242",
+                  "operator": {
+                    "type": "number",
+                    "operation": "notExists",
+                    "singleValue": true
+                  },
+                  "leftValue": "={{ $json.id }}",
+                  "rightValue": ""
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "87a250d9-9802-4b32-84e3-690f055fa030",
+          "name": "Summarize Enrichment Status",
+          "type": "n8n-nodes-base.summarize",
+          "position": [
+            4848,
+            928
+          ],
+          "parameters": {
+            "options": {},
+            "fieldsToSummarize": {
+              "values": [
+                {
+                  "field": "={{ $json }}",
+                  "includeEmpty": true
+                }
+              ]
+            }
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "2b23d73f-8caa-45f6-8fc7-efbcac6ebebb",
+          "name": "Notify Slack on File Download",
+          "type": "n8n-nodes-base.slack",
+          "position": [
+            1200,
+            848
+          ],
+          "webhookId": "a68d442a-9d58-402a-aee4-cc23ac683f7c",
+          "parameters": {
+            "text": "The worfklow has started. It can take a while if the file is large. ",
+            "select": "channel",
+            "channelId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "C0AQJT5B8PN"
+            },
+            "otherOptions": {
+              "ephemeral": {
+                "ephemeralValues": {
+                  "user": {
+                    "__rl": true,
+                    "mode": "id",
+                    "value": "={{ $('When Slack File Uploaded').item.json.user_id }}"
+                  }
+                }
+              }
+            }
+          },
+          "credentials": {
+            "slackApi": {
+              "id": "NRuYXdxbXZaGENSP",
+              "name": "Slack account"
+            }
+          },
+          "typeVersion": 2.4
+        },
+        {
+          "id": "5d606562-e47b-4576-9978-d98d6e5747f5",
+          "name": "Await Slack User Approval",
+          "type": "n8n-nodes-base.slack",
+          "position": [
+            2864,
+            784
+          ],
+          "webhookId": "3ec6eed8-6d64-4fea-8977-defc6883af63",
+          "parameters": {
+            "select": "channel",
+            "message": "=There are {{ $json.count_properties_domain_value }} duplicates found. Would you like to enrich these companies, or would you prefer to skip? \n",
+            "options": {},
+            "channelId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "C0AQJT5B8PN"
+            },
+            "operation": "sendAndWait",
+            "approvalOptions": {
+              "values": {
+                "approvalType": "double"
+              }
+            }
+          },
+          "credentials": {
+            "slackApi": {
+              "id": "NRuYXdxbXZaGENSP",
+              "name": "Slack account"
+            }
+          },
+          "executeOnce": true,
+          "typeVersion": 2.4
+        },
+        {
+          "id": "c3dc4b4a-8c13-402c-bdcc-08abeda9f926",
+          "name": "Check HubSpot Company ID",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            2304,
+            848
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "136f3134-1cc6-4c66-ae8d-16e217bbac3a",
+                  "operator": {
+                    "type": "number",
+                    "operation": "exists",
+                    "singleValue": true
+                  },
+                  "leftValue": "={{ $json.companyId }}",
+                  "rightValue": 0
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "2ce4668a-248e-4772-a54f-b1596b5f328e",
+          "name": "Verify Approval from Slack",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            3040,
+            784
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 3,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "235682a1-4753-4837-9a0b-c4b1fd90fb6c",
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "equals"
+                  },
+                  "leftValue": "={{ $json.data.approved }}",
+                  "rightValue": true
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.3
+        },
+        {
+          "id": "6291f728-1565-4e58-8241-e02d0d72079d",
+          "name": "Process Company Fields",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            4320,
+            768
+          ],
+          "parameters": {
+            "jsCode": "const cosiItems = $input.all();\nconst hubspotItems = $('Combine Approval Results').all();\n\nfunction normalizeDomain(domain) {\n  return String(domain || '')\n    .trim()\n    .toLowerCase()\n    .replace(/^https?:\\/\\//, '')\n    .replace(/^www\\./, '')\n    .replace(/\\/$/, '');\n}\n\n// Build HubSpot domain -> companyId map\nconst hubspotMap = new Map();\n\nfor (const item of hubspotItems) {\n  const domain = normalizeDomain(item.json?.properties?.domain?.value);\n  const companyId = item.json?.companyId;\n\n  if (domain && companyId) {\n    hubspotMap.set(domain, companyId);\n  }\n}\n\n// Add matched HubSpot companyId to each Cosi item\nreturn cosiItems.map(item => {\n  const cosiDomain = normalizeDomain(item.json?.website_domain);\n  const matchedCompanyId = hubspotMap.get(cosiDomain) ?? null;\n\n  return {\n    json: {\n      ...item.json,\n      hubspot_companyId: matchedCompanyId,\n    },\n  };\n});"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "7cfef268-622d-4645-b883-44e0d10b3ef0",
+          "name": "Update HubSpot Company Data",
+          "type": "n8n-nodes-base.hubspot",
+          "position": [
+            4544,
+            768
+          ],
+          "parameters": {
+            "resource": "company",
+            "companyId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "={{ $json.hubspot_companyId }}"
+            },
+            "operation": "update",
+            "updateFields": {
+              "city": "={{ $json.hq_city }}",
+              "websiteUrl": "={{ $json.website_domain }}",
+              "description": "={{ $json.description_enriched }}",
+              "yearFounded": "={{ $json.founded_year }}"
+            },
+            "authentication": "oAuth2"
+          },
+          "credentials": {
+            "hubspotOAuth2Api": {
+              "id": "hc2zrRUxfCvgj27q",
+              "name": "HubSpot account"
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "49aeda8a-4902-46c9-8f77-60d6a4ec88f3",
+          "name": "Summarize Update Results",
+          "type": "n8n-nodes-base.summarize",
+          "position": [
+            4848,
+            768
+          ],
+          "parameters": {
+            "options": {},
+            "fieldsToSummarize": {
+              "values": [
+                {
+                  "field": "portalId"
+                }
+              ]
+            }
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "d3c7b7f6-2533-49e3-bbec-30d69f68802d",
+          "name": "Summarize Existing Company",
+          "type": "n8n-nodes-base.summarize",
+          "position": [
+            2720,
+            784
+          ],
+          "parameters": {
+            "options": {},
+            "fieldsToSummarize": {
+              "values": [
+                {
+                  "field": "properties.domain.value"
+                }
+              ]
+            }
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "22eb49ba-6556-4212-a607-2f4deb66280c",
+          "name": "Combine Approval Results",
+          "type": "n8n-nodes-base.merge",
+          "position": [
+            3264,
+            896
+          ],
+          "parameters": {
+            "mode": "combine",
+            "options": {
+              "includeUnpaired": true
+            },
+            "combineBy": "combineByPosition"
+          },
+          "typeVersion": 3.2
+        },
+        {
+          "id": "ef478413-ad09-436f-90f5-8d6d0df91b6a",
+          "name": "Discard Unapproved Rows",
+          "type": "n8n-nodes-base.dataTable",
+          "onError": "continueRegularOutput",
+          "position": [
+            3312,
+            1072
+          ],
+          "parameters": {
+            "filters": {
+              "conditions": [
+                {
+                  "keyName": "Website",
+                  "keyValue": "={{ $json.properties.domain.value }}"
+                }
+              ]
+            },
+            "options": {},
+            "operation": "deleteRows",
+            "dataTableId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "qpFU5IWqd6ETwQ4O",
+              "cachedResultUrl": "/projects/d8siYNB21z0O177I/datatables/qpFU5IWqd6ETwQ4O",
+              "cachedResultName": "HubSpot_Duplicates"
+            }
+          },
+          "typeVersion": 1.1,
+          "alwaysOutputData": true
+        },
+        {
+          "id": "b1362ba6-feaf-4833-b8f7-1ef3a1ca3161",
+          "name": "Clear the table for next use",
+          "type": "n8n-nodes-base.dataTable",
+          "position": [
+            3936,
+            1072
+          ],
+          "parameters": {
+            "filters": {
+              "conditions": [
+                {
+                  "keyName": "Website",
+                  "keyValue": "={{ $json.Website }}"
+                }
+              ]
+            },
+            "options": {},
+            "operation": "deleteRows",
+            "dataTableId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "qpFU5IWqd6ETwQ4O",
+              "cachedResultUrl": "/projects/d8siYNB21z0O177I/datatables/qpFU5IWqd6ETwQ4O",
+              "cachedResultName": "HubSpot_Duplicates"
+            }
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "f241194c-3d04-4881-b225-309ff5d47c47",
+          "name": "Clear table for next use",
+          "type": "n8n-nodes-base.dataTable",
+          "onError": "continueRegularOutput",
+          "position": [
+            3520,
+            768
+          ],
+          "parameters": {
+            "filters": {
+              "conditions": [
+                {
+                  "keyName": "Website",
+                  "keyValue": "={{ $json.properties.domain.value }}"
+                }
+              ]
+            },
+            "options": {},
+            "operation": "deleteRows",
+            "dataTableId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "qpFU5IWqd6ETwQ4O",
+              "cachedResultUrl": "/projects/d8siYNB21z0O177I/datatables/qpFU5IWqd6ETwQ4O",
+              "cachedResultName": "HubSpot_Duplicates"
+            }
+          },
+          "typeVersion": 1.1,
+          "alwaysOutputData": true
+        },
+        {
+          "id": "f719255e-f14b-4e54-8747-4770f7baf63e",
+          "name": "Enrich Existing company",
+          "type": "n8n-nodes-coresignal-api.coresignal",
+          "onError": "continueRegularOutput",
+          "position": [
+            4128,
+            768
+          ],
+          "parameters": {
+            "resource": "company",
+            "operation": "enrich",
+            "websiteUrl": "={{ $json.Website }}"
+          },
+          "credentials": {
+            "coresignalApi": {
+              "id": "wUVjwRLrGyPtsNeT",
+              "name": "Coresignal account"
+            }
+          },
+          "retryOnFail": false,
+          "typeVersion": 1,
+          "alwaysOutputData": true
+        },
+        {
+          "id": "6ddf3f63-8711-4d2c-987c-22fb897c6f57",
+          "name": "Enrich new company",
+          "type": "n8n-nodes-coresignal-api.coresignal",
+          "onError": "continueRegularOutput",
+          "position": [
+            4128,
+            1264
+          ],
+          "parameters": {
+            "resource": "company",
+            "operation": "enrich",
+            "websiteUrl": "={{ $json.Website }}"
+          },
+          "credentials": {
+            "coresignalApi": {
+              "id": "wUVjwRLrGyPtsNeT",
+              "name": "Coresignal account"
+            }
+          },
+          "retryOnFail": false,
+          "typeVersion": 1,
+          "alwaysOutputData": true
+        }
+      ],
+      "active": true,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "75a2407b-e24e-44d5-b578-023e0b58a5ee",
+      "connections": {
+        "Enrich new company": {
+          "main": [
+            [
+              {
+                "node": "Check if Company Exists",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Download Slack File": {
+          "main": [
+            [
+              {
+                "node": "Notify Slack on File Download",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch File Contents": {
+          "main": [
+            [
+              {
+                "node": "Extract Data from File",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Combine All Summaries": {
+          "main": [
+            [
+              {
+                "node": "Post Results to Slack",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Extract Data from File": {
+          "main": [
+            [
+              {
+                "node": "Insert File Data into Table",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Process Company Fields": {
+          "main": [
+            [
+              {
+                "node": "Update HubSpot Company Data",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Check if Company Exists": {
+          "main": [
+            [
+              {
+                "node": "Summarize Enrichment Status",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Create New HubSpot Company",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Discard Unapproved Rows": {
+          "main": [
+            [
+              {
+                "node": "Retrieve Current Table Rows",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Enrich Existing company": {
+          "main": [
+            [
+              {
+                "node": "Process Company Fields",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Check HubSpot Company ID": {
+          "main": [
+            [
+              {
+                "node": "Summarize Existing Company",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Combine Approval Results",
+                "type": "main",
+                "index": 1
+              }
+            ],
+            [
+              {
+                "node": "Retrieve Current Table Rows",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Clear table for next use": {
+          "main": [
+            [
+              {
+                "node": "Enrich Existing company",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Retrieve Current Table Rows",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Combine Approval Results": {
+          "main": [
+            [
+              {
+                "node": "Clear table for next use",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Search Company by Domain": {
+          "main": [
+            [
+              {
+                "node": "Check HubSpot Company ID",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Summarize Update Results": {
+          "main": [
+            [
+              {
+                "node": "Combine All Summaries",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "When Slack File Uploaded": {
+          "main": [
+            [
+              {
+                "node": "Download Slack File",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Await Slack User Approval": {
+          "main": [
+            [
+              {
+                "node": "Verify Approval from Slack",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Create New HubSpot Company": {
+          "main": [
+            [
+              {
+                "node": "Summarize Company Creation",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Summarize Company Creation": {
+          "main": [
+            [
+              {
+                "node": "Combine All Summaries",
+                "type": "main",
+                "index": 2
+              }
+            ]
+          ]
+        },
+        "Summarize Existing Company": {
+          "main": [
+            [
+              {
+                "node": "Await Slack User Approval",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Verify Approval from Slack": {
+          "main": [
+            [
+              {
+                "node": "Combine Approval Results",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Discard Unapproved Rows",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Insert File Data into Table": {
+          "main": [
+            [
+              {
+                "node": "Search Company by Domain",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Retrieve Current Table Rows": {
+          "main": [
+            [
+              {
+                "node": "Enrich new company",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Clear the table for next use",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Summarize Enrichment Status": {
+          "main": [
+            [
+              {
+                "node": "Combine All Summaries",
+                "type": "main",
+                "index": 1
+              }
+            ]
+          ]
+        },
+        "Update HubSpot Company Data": {
+          "main": [
+            [
+              {
+                "node": "Summarize Update Results",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Notify Slack on File Download": {
+          "main": [
+            [
+              {
+                "node": "Fetch File Contents",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 33,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 3
+        },
+        "n8n-nodes-base.code": {
+          "count": 1
+        },
+        "n8n-nodes-base.merge": {
+          "count": 2
+        },
+        "n8n-nodes-base.slack": {
+          "count": 4
+        },
+        "n8n-nodes-base.hubspot": {
+          "count": 3
+        },
+        "n8n-nodes-base.dataTable": {
+          "count": 5
+        },
+        "n8n-nodes-base.summarize": {
+          "count": 4
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 6
+        },
+        "n8n-nodes-base.httpRequest": {
+          "count": 1
+        },
+        "n8n-nodes-base.slackTrigger": {
+          "count": 1
+        },
+        "n8n-nodes-base.extractFromFile": {
+          "count": 1
+        },
+        "n8n-nodes-coresignal-api.coresignal": {
+          "count": 2
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Artur Mulagalijev",
+      "username": "amulagalijev",
+      "bio": "Integrations specialist with deep expertise in sales data pipelines, B2B workflows, and API integrations. I design production-ready n8n templates that turn complex data operations into seamless, hands-off processes.",
+      "verified": false,
+      "links": [
+        "https://www.youtube.com/@Coresignal"
+      ],
+      "avatar": "https://gravatar.com/avatar/fe8f55c18149ef4f7b17f2c454e8f7bd0cd50a4b2a03bd047e4ca345c692a649?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 19,
+        "icon": "file:httprequest.svg",
+        "name": "n8n-nodes-base.httpRequest",
+        "codex": {
+          "data": {
+            "alias": [
+              "API",
+              "Request",
+              "URL",
+              "Build",
+              "cURL"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-designs-with-bannerbear-and-n8n/",
+                  "icon": "\ud83c\udfa8",
+                  "label": "Automate Designs with Bannerbear and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-use-the-http-request-node-the-swiss-army-knife-for-workflow-automation/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "How to use the HTTP Request Node - The Swiss Army Knife for Workflow Automation"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HTTP Request",
+          "color": "#0004F5"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MCAyMEM0MCA4Ljk1MzE0IDMxLjA0NjkgMCAyMCAwQzguOTUzMTQgMCAwIDguOTUzMTQgMCAyMEMwIDMxLjA0NjkgOC45NTMxNCA0MCAyMCA0MEMzMS4wNDY5IDQwIDQwIDMxLjA0NjkgNDAgMjBaTTIwIDM2Ljk0NThDMTguODg1MiAzNi45NDU4IDE3LjEzNzggMzUuOTY3IDE1LjQ5OTggMzIuNjk4NUMxNC43OTY0IDMxLjI5MTggMTQuMTk2MSAyOS41NDMxIDEzLjc1MjYgMjcuNjg0N0gyNi4xODk4QzI1LjgwNDUgMjkuNTQwMyAyNS4yMDQ0IDMxLjI5MDEgMjQuNTAwMiAzMi42OTg1QzIyLjg2MjIgMzUuOTY3IDIxLjExNDggMzYuOTQ1OCAyMCAzNi45NDU4Wk0xMi45MDY0IDIwQzEyLjkwNjQgMjEuNjA5NyAxMy4wMDg3IDIzLjE2NCAxMy4yMDAzIDI0LjYzMDVIMjYuNzk5N0MyNi45OTEzIDIzLjE2NCAyNy4wOTM2IDIxLjYwOTcgMjcuMDkzNiAyMEMyNy4wOTM2IDE4LjM5MDMgMjYuOTkxMyAxNi44MzYgMjYuNzk5NyAxNS4zNjk1SDEzLjIwMDNDMTMuMDA4NyAxNi44MzYgMTIuOTA2NCAxOC4zOTAzIDEyLjkwNjQgMjBaTTIwIDMuMDU0MTlDMjEuMTE0OSAzLjA1NDE5IDIyLjg2MjIgNC4wMzA3OCAyNC41MDAxIDcuMzAwMzlDMjUuMjA2NiA4LjcxNDA4IDI1LjgwNzIgMTAuNDA2NyAyNi4xOTIgMTIuMzE1M0gxMy43NTAxQzE0LjE5MzMgMTAuNDA0NyAxNC43OTQyIDguNzEyNTQgMTUuNDk5OCA3LjMwMDY0QzE3LjEzNzcgNC4wMzA4MyAxOC44ODUxIDMuMDU0MTkgMjAgMy4wNTQxOVpNMzAuMTQ3OCAyMEMzMC4xNDc4IDE4LjQwOTkgMzAuMDU0MyAxNi44NjE3IDI5LjgyMjcgMTUuMzY5NUgzNi4zMDQyQzM2LjcyNTIgMTYuODQyIDM2Ljk0NTggMTguMzk2NCAzNi45NDU4IDIwQzM2Ljk0NTggMjEuNjAzNiAzNi43MjUyIDIzLjE1OCAzNi4zMDQyIDI0LjYzMDVIMjkuODIyN0MzMC4wNTQzIDIzLjEzODMgMzAuMTQ3OCAyMS41OTAxIDMwLjE0NzggMjBaTTI2LjI3NjcgNC4yNTUxMkMyNy42MzY1IDYuMzYwMTkgMjguNzExIDkuMTMyIDI5LjM3NzQgMTIuMzE1M0gzNS4xMDQ2QzMzLjI1MTEgOC42NjggMzAuMTA3IDUuNzgzNDYgMjYuMjc2NyA0LjI1NTEyWk0xMC42MjI2IDEyLjMxNTNINC44OTI5M0M2Ljc1MTQ3IDguNjY3ODQgOS44OTM1MSA1Ljc4MzQxIDEzLjcyMzIgNC4yNTUxM0MxMi4zNjM1IDYuMzYwMjEgMTEuMjg5IDkuMTMyMDEgMTAuNjIyNiAxMi4zMTUzWk0zLjA1NDE5IDIwQzMuMDU0MTkgMjEuNjAzIDMuMjc3NDMgMjMuMTU3NSAzLjY5NDg0IDI0LjYzMDVIMTAuMTIxN0M5Ljk0NjE5IDIzLjE0MiA5Ljg1MjIyIDIxLjU5NDMgOS44NTIyMiAyMEM5Ljg1MjIyIDE4LjQwNTcgOS45NDYxOSAxNi44NTggMTAuMTIxNyAxNS4zNjk1SDMuNjk0ODRDMy4yNzc0MyAxNi44NDI1IDMuMDU0MTkgMTguMzk3IDMuMDU0MTkgMjBaTTI2LjI3NjYgMzUuNzQyN0MyNy42MzY1IDMzLjYzOTMgMjguNzExIDMwLjg2OCAyOS4zNzc0IDI3LjY4NDdIMzUuMTA0NkMzMy4yNTEgMzEuMzMyMiAzMC4xMDY4IDM0LjIxNzkgMjYuMjc2NiAzNS43NDI3Wk0xMy43MjM0IDM1Ljc0MjdDOS44OTM2OSAzNC4yMTc5IDYuNzUxNTUgMzEuMzMyNCA0Ljg5MjkzIDI3LjY4NDdIMTAuNjIyNkMxMS4yODkgMzAuODY4IDEyLjM2MzUgMzMuNjM5MyAxMy43MjM0IDM1Ljc0MjdaIiBmaWxsPSIjM0E0MkU5Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "HTTP Request",
+        "typeVersion": 4,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 24,
+        "icon": "file:merge.svg",
+        "name": "n8n-nodes-base.merge",
+        "codex": {
+          "data": {
+            "alias": [
+              "Join",
+              "Concatenate",
+              "Wait"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-sync-data-between-two-systems/",
+                  "icon": "\ud83c\udfec",
+                  "label": "How to synchronize data between two systems (one-way vs. two-way sync"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/migrating-community-metrics-to-orbit-using-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Migrating Community Metrics to Orbit using n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.merge/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Merge"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTc3XzUxOCkiPgo8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTAgNDhDMCAyMS40OTAzIDIxLjQ5MDMgMCA0OCAwSDExMkMxMzguNTEgMCAxNjAgMjEuNDkwMyAxNjAgNDhWNTZIMTk2LjI1MkMyNDAuNDM1IDU2IDI3Ni4yNTIgOTEuODE3MiAyNzYuMjUyIDEzNlYxOTJDMjc2LjI1MiAyMTQuMDkxIDI5NC4xNjEgMjMyIDMxNi4yNTIgMjMySDM1MlYyMjRDMzUyIDE5Ny40OSAzNzMuNDkgMTc2IDQwMCAxNzZINDY0QzQ5MC41MSAxNzYgNTEyIDE5Ny40OSA1MTIgMjI0VjI4OEM1MTIgMzE0LjUxIDQ5MC41MSAzMzYgNDY0IDMzNkg0MDBDMzczLjQ5IDMzNiAzNTIgMzE0LjUxIDM1MiAyODhWMjgwSDMxNi4yNTJDMjk0LjE2MSAyODAgMjc2LjI1MiAyOTcuOTA5IDI3Ni4yNTIgMzIwVjM3NkMyNzYuMjUyIDQyMC4xODMgMjQwLjQzNSA0NTYgMTk2LjI1MiA0NTZIMTYwVjQ2NEMxNjAgNDkwLjUxIDEzOC41MSA1MTIgMTEyIDUxMkg0OEMyMS40OTAzIDUxMiAwIDQ5MC41MSAwIDQ2NFY0MDBDMCAzNzMuNDkgMjEuNDkwMyAzNTIgNDggMzUySDExMkMxMzguNTEgMzUyIDE2MCAzNzMuNDkgMTYwIDQwMFY0MDhIMTk2LjI1MkMyMTMuOTI1IDQwOCAyMjguMjUyIDM5My42NzMgMjI4LjI1MiAzNzZWMzIwQzIyOC4yNTIgMjk0Ljc4NCAyMzguODU5IDI3Mi4wNDQgMjU1Ljg1MyAyNTZDMjM4Ljg1OSAyMzkuOTU2IDIyOC4yNTIgMjE3LjIxNiAyMjguMjUyIDE5MlYxMzZDMjI4LjI1MiAxMTguMzI3IDIxMy45MjUgMTA0IDE5Ni4yNTIgMTA0SDE2MFYxMTJDMTYwIDEzOC41MSAxMzguNTEgMTYwIDExMiAxNjBINDhDMjEuNDkwMyAxNjAgMCAxMzguNTEgMCAxMTJWNDhaTTEwNCA0OEMxMDguNDE4IDQ4IDExMiA1MS41ODE3IDExMiA1NlYxMDRDMTEyIDEwOC40MTggMTA4LjQxOCAxMTIgMTA0IDExMkg1NkM1MS41ODE3IDExMiA0OCAxMDguNDE4IDQ4IDEwNFY1NkM0OCA1MS41ODE3IDUxLjU4MTcgNDggNTYgNDhIMTA0Wk00NTYgMjI0QzQ2MC40MTggMjI0IDQ2NCAyMjcuNTgyIDQ2NCAyMzJWMjgwQzQ2NCAyODQuNDE4IDQ2MC40MTggMjg4IDQ1NiAyODhINDA4QzQwMy41ODIgMjg4IDQwMCAyODQuNDE4IDQwMCAyODBWMjMyQzQwMCAyMjcuNTgyIDQwMy41ODIgMjI0IDQwOCAyMjRINDU2Wk0xMTIgNDA4QzExMiA0MDMuNTgyIDEwOC40MTggNDAwIDEwNCA0MDBINTZDNTEuNTgxNyA0MDAgNDggNDAzLjU4MiA0OCA0MDhWNDU2QzQ4IDQ2MC40MTggNTEuNTgxNyA0NjQgNTYgNDY0SDEwNEMxMDguNDE4IDQ2NCAxMTIgNDYwLjQxOCAxMTIgNDU2VjQwOFoiIGZpbGw9IiM1NEI4QzkiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTc3XzUxOCI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Merge",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 40,
+        "icon": "file:slack.svg",
+        "name": "n8n-nodes-base.slack",
+        "codex": {
+          "data": {
+            "alias": [
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-automatically-give-kudos-to-contributors-with-github-slack-and-n8n/",
+                  "icon": "\ud83d\udc4f",
+                  "label": "How to automatically give kudos to contributors with GitHub, Slack, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.slack/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/slack/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "Slack"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgMTUwLjg1MiAxNTAuODUyIj48dXNlIHhsaW5rOmhyZWY9IiNhIiB4PSIuOTI2IiB5PSIuOTI2Ii8+PHN5bWJvbCBpZD0iYSIgb3ZlcmZsb3c9InZpc2libGUiPjxnIHN0cm9rZS13aWR0aD0iMS44NTIiPjxwYXRoIGZpbGw9IiNlMDFlNWEiIHN0cm9rZT0iI2UwMWU1YSIgZD0iTTQwLjc0MSA5My41NWMwLTguNzM1IDYuNjA3LTE1Ljc3MiAxNC44MTUtMTUuNzcyczE0LjgxNSA3LjAzNyAxNC44MTUgMTUuNzcydjM4LjgyNGMwIDguNzM3LTYuNjA3IDE1Ljc3NC0xNC44MTUgMTUuNzc0cy0xNC44MTUtNy4wMzctMTQuODE1LTE1Ljc3MnoiLz48cGF0aCBmaWxsPSIjZWNiMjJkIiBzdHJva2U9IiNlY2IyMmQiIGQ9Ik05My41NSAxMDcuNDA4Yy04LjczNSAwLTE1Ljc3Mi02LjYwNy0xNS43NzItMTQuODE1czcuMDM3LTE0LjgxNSAxNS43NzItMTQuODE1aDM4LjgyNmM4LjczNSAwIDE1Ljc3MiA2LjYwNyAxNS43NzIgMTQuODE1cy03LjAzNyAxNC44MTUtMTUuNzcyIDE0LjgxNXoiLz48cGF0aCBmaWxsPSIjMmZiNjdjIiBzdHJva2U9IiMyZmI2N2MiIGQ9Ik03Ny43NzggMTUuNzcyQzc3Ljc3OCA3LjAzNyA4NC4zODUgMCA5Mi41OTMgMHMxNC44MTUgNy4wMzcgMTQuODE1IDE1Ljc3MnYzOC44MjZjMCA4LjczNS02LjYwNyAxNS43NzItMTQuODE1IDE1Ljc3MnMtMTQuODE1LTcuMDM3LTE0LjgxNS0xNS43NzJ6Ii8+PHBhdGggZmlsbD0iIzM2YzVmMSIgc3Ryb2tlPSIjMzZjNWYxIiBkPSJNMTUuNzcyIDcwLjM3MUM3LjAzNyA3MC4zNzEgMCA2My43NjMgMCA1NS41NTZzNy4wMzctMTQuODE1IDE1Ljc3Mi0xNC44MTVoMzguODI2YzguNzM1IDAgMTUuNzcyIDYuNjA3IDE1Ljc3MiAxNC44MTVzLTcuMDM3IDE0LjgxNS0xNS43NzIgMTQuODE1eiIvPjxnIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiPjxwYXRoIGZpbGw9IiNlY2IyMmQiIHN0cm9rZT0iI2VjYjIyZCIgZD0iTTc3Ljc3OCAxMzMuMzMzYzAgOC4yMDggNi42MDcgMTQuODE1IDE0LjgxNSAxNC44MTVzMTQuODE1LTYuNjA3IDE0LjgxNS0xNC44MTUtNi42MDctMTQuODE1LTE0LjgxNS0xNC44MTVINzcuNzc4eiIvPjxwYXRoIGZpbGw9IiMyZmI2N2MiIHN0cm9rZT0iIzJmYjY3YyIgZD0iTTEzMy4zMzQgNzAuMzcxaC0xNC44MTVWNTUuNTU2YzAtOC4yMDcgNi42MDctMTQuODE1IDE0LjgxNS0xNC44MTVzMTQuODE1IDYuNjA3IDE0LjgxNSAxNC44MTUtNi42MDcgMTQuODE1LTE0LjgxNSAxNC44MTV6Ii8+PHBhdGggZmlsbD0iI2UwMWU1YSIgc3Ryb2tlPSIjZTAxZTVhIiBkPSJNMTQuODE1IDc3Ljc3OEgyOS42M3YxNC44MTVjMCA4LjIwNy02LjYwNyAxNC44MTUtMTQuODE1IDE0LjgxNVMwIDEwMC44IDAgOTIuNTkzczYuNjA3LTE0LjgxNSAxNC44MTUtMTQuODE1eiIvPjxwYXRoIGZpbGw9IiMzNmM1ZjEiIHN0cm9rZT0iIzM2YzVmMSIgZD0iTTcwLjM3MSAxNC44MTVWMjkuNjNINTUuNTU2Yy04LjIwNyAwLTE0LjgxNS02LjYwNy0xNC44MTUtMTQuODE1UzQ3LjM0OCAwIDU1LjU1NiAwczE0LjgxNSA2LjYwNyAxNC44MTUgMTQuODE1eiIvPjwvZz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Slack",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 76,
+        "icon": "file:hubspot.svg",
+        "name": "n8n-nodes-base.hubspot",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-sync-data-between-two-systems/",
+                  "icon": "\ud83c\udfec",
+                  "label": "How to synchronize data between two systems (one-way vs. two-way sync"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.hubspot/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/hubspot/"
+                }
+              ]
+            },
+            "categories": [
+              "Sales"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HubSpot"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgNjIuODgzIDY5Ljg4MyI+PHVzZSB4bGluazpocmVmPSIjYSIgeD0iMi40NDIiIHk9IjIuNDQyIi8+PHN5bWJvbCBpZD0iYSIgb3ZlcmZsb3c9InZpc2libGUiPjxwYXRoIGZpbGw9IiNmODc2MWYiIGZpbGwtcnVsZT0ibm9uemVybyIgc3Ryb2tlPSJub25lIiBkPSJNNTUuNTA0IDMwLjQwMWExNi4yNiAxNi4yNiAwIDAgMC01LjkwNC01Ljg2NGMtMS44NjUtMS4wODQtMy43OTQtMS43NzMtNS45NzItMi4wN3YtNy43OThhNS43MSA1LjcxIDAgMCAwIDMuNTI1LTUuMzU3IDUuODYgNS44NiAwIDAgMC01Ljg1OS01Ljg4OSA1LjkxIDUuOTEgMCAwIDAtNS45MDggNS44ODljMCAyLjM5MyAxLjI3IDQuNDM0IDMuNDUyIDUuMzU3djcuNzU0YTE3IDE3IDAgMCAwLTUuMTk1IDEuNjMxTDEyLjc2OSA4LjI0N2MuMTQ2LS41NTIuMjczLTEuMTIzLjI3My0xLjcyNEE2LjUyIDYuNTIgMCAwIDAgNi41MTkgMCA2LjUyIDYuNTIgMCAwIDAgMCA2LjUyNGE2LjUyMyA2LjUyMyAwIDAgMCA2LjUyNCA2LjUyNCA2LjQ3IDYuNDcgMCAwIDAgMy4zNS0uOTUybDEuMzY3IDEuMDM1IDE4LjcyNiAxMy41MDFjLS45OTEuOTA4LTEuOTE0IDEuOTQzLTIuNjUxIDMuMTA1LTEuNDk0IDIuMzY4LTIuNDA3IDQuOTcxLTIuNDA3IDcuODEzdi41ODZhMTYuNCAxNi40IDAgMCAwIDEuMDI1IDUuNjQ1QzI2LjUgNDUuMzI0IDI3LjMzIDQ2LjczIDI4LjM2MSA0OGwtNi4yMjEgNi4yMzVhNS4wMSA1LjAxIDAgMCAwLTUuMjk4IDEuMTYyYy0uOTQ3Ljk0Mi0xLjQ4IDIuMjI3LTEuNDc1IDMuNTY1cy41MjcgMi42MTIgMS40NzkgMy41NjQgMi4yMjcgMS40OCAzLjU2NSAxLjQ4YTUgNSAwIDAgMCAzLjU2NS0xLjQ4IDUuMDUgNS4wNSAwIDAgMCAxLjQ3NS0zLjU2NCA1IDUgMCAwIDAtLjIzNC0xLjUxNGw2LjQyNi02LjQyNmExNiAxNiAwIDAgMCAyLjg1NiAxLjU2MyAxNi43IDE2LjcgMCAwIDAgNi42ODUgMS40MDZoLjQzOWExNS43NiAxNS43NiAwIDAgMCA3LjYyNy0xLjkyOSAxNS43NyAxNS43NyAwIDAgMCA1Ljk3Ny01LjYzYzEuNDk5LTIuMzkzIDIuMzE5LTUuMDQ0IDIuMzE5LTcuOTU5di0uMTQ2YzAtMi44NjYtLjY2NC01LjUwOC0yLjA1MS03Ljkzem0tNy44NDcgMTMuNDg3Yy0xLjc0MyAxLjkzOC0zLjc1IDMuMTM1LTYuMDE2IDMuMTM1aC0uNDNjLTEuMjk0IDAtMi41NjQtLjM1Ni0zLjc5OS0xLjAxMWE4LjggOC44IDAgMCAxLTMuMzMtMy4wMzJjLS44OTgtMS4yNy0xLjM4Ny0yLjY1Ni0xLjM4Ny00LjEyNnYtLjQzOWMwLTEuNDQ1LjI3OC0yLjgxNy45NzctNC4xMTEuNzQ3LTEuNDY1IDEuNzU4LTIuNTE1IDMuMTAxLTMuMzg5YTcuNiA3LjYgMCAwIDEgNC4yOTctMS4yOTRoLjE0N2MxLjQxNiAwIDIuNzY5LjI3OCA0LjAzOC45MjhhOC41NiA4LjU2IDAgMCAxIDMuMTc0IDIuODg2IDkuMiA5LjIgMCAwIDEgMS40MjEgNC4wNTNsLjAzNC45MTNjMCAxLjk4Ny0uNzYyIDMuODI4LTIuMjggNS40OTh6Ii8+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "HubSpot",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 2,
+            "name": "Sales"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1235,
+        "icon": "file:extractFromFile.svg",
+        "name": "n8n-nodes-base.extractFromFile",
+        "codex": {
+          "data": {
+            "alias": [
+              "CSV",
+              "Spreadsheet",
+              "Excel",
+              "xls",
+              "xlsx",
+              "ods",
+              "tabular",
+              "decode",
+              "decoding",
+              "Move Binary Data",
+              "Binary",
+              "File",
+              "PDF",
+              "JSON",
+              "HTML",
+              "ICS",
+              "iCal",
+              "txt",
+              "Text",
+              "RTF",
+              "XML",
+              "64",
+              "Base64",
+              "Convert"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.extractfromfile/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Files",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Extract from File"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTAuOTM3NSAyQzAuNDE5NzMzIDIgMCAyLjQxOTczIDAgMi45Mzc1VjM3LjMyMjFDMCAzNy44Mzk5IDAuNDE5NzMzIDM4LjI1OTYgMC45Mzc1IDM4LjI1OTZIMjYuMjE1NEMyNi43MzMyIDM4LjI1OTYgMjcuMTUyOSAzNy44Mzk5IDI3LjE1MjkgMzcuMzIyMUwyNy4xNTI5IDMwLjY3MTlMMTYuNzk2OSAzMC42NzE5QzE0Ljg5ODQgMzAuNjcxOSAxMy4zNTk0IDI5LjEzMjkgMTMuMzU5NCAyNy4yMzQ0VjI1LjM1OTRDMTMuMzU5NCAyMy40NjA5IDE0Ljg5ODQgMjEuOTIxOSAxNi43OTY5IDIxLjkyMTlIMjcuMTUyOUwyNy4xNTI5IDE1Ljc4MjFIMTQuMzA4M0MxMy43OTA2IDE1Ljc4MjEgMTMuMzcwOCAxNS4zNjI0IDEzLjM3MDggMTQuODQ0NlYySDAuOTM3NVoiIGZpbGw9IiMzNTNGNkUiLz4KPHBhdGggZD0iTTE2LjAyNzEgMkMxNS45NDA4IDIgMTUuODcwOCAyLjA2OTk2IDE1Ljg3MDggMi4xNTYyNVYxMi44MTM0QzE1Ljg3MDggMTMuMDcyMyAxNi4wODA3IDEzLjI4MjEgMTYuMzM5NiAxMy4yODIxSDI2Ljk5NjdDMjcuMDgzIDEzLjI4MjEgMjcuMTUyOSAxMy4yMTIyIDI3LjE1MjkgMTMuMTI1OUwyNy4xNTI5IDEyLjYxNzFDMjcuMTUyOSAxMi4zNjg4IDI3LjA1NDUgMTIuMTMwNyAyNi44NzkxIDExLjk1NUwxNy4yMjI1IDIuMjc1MzhDMTcuMDQ2NiAyLjA5OTA4IDE2LjgwNzkgMiAxNi41NTg4IDJIMTYuMDI3MVoiIGZpbGw9IiMzNTNGNkUiLz4KPHBhdGggZD0iTTI5Ljc2NDIgMzQuNjUwM0MyOS4wMzQgMzMuOTE2IDI5LjAzNzQgMzIuNzI4OCAyOS43NzE2IDMxLjk5ODZMMzMuNjE5NyAyOC4xNzE5TDE2Ljc5NjkgMjguMTcxOUMxNi4yNzkxIDI4LjE3MTkgMTUuODU5NCAyNy43NTIxIDE1Ljg1OTQgMjcuMjM0NFYyNS4zNTk0QzE1Ljg1OTQgMjQuODQxNiAxNi4yNzkxIDI0LjQyMTkgMTYuNzk2OSAyNC40MjE5TDMzLjU0MTIgMjQuNDIxOUwyOS43NzE2IDIwLjY3MzNDMjkuMDM3NCAxOS45NDMxIDI5LjAzNCAxOC43NTU5IDI5Ljc2NDIgMTguMDIxNkMzMC40OTQ0IDE3LjI4NzQgMzEuNjgxNiAxNy4yODQgMzIuNDE1OSAxOC4wMTQyTDM5LjQ0NzEgMjUuMDA2NEMzOS44MDEgMjUuMzU4MyA0MCAyNS44MzY4IDQwIDI2LjMzNTlDNDAgMjYuODM1IDM5LjgwMSAyNy4zMTM1IDM5LjQ0NzEgMjcuNjY1NUwzMi40MTU5IDM0LjY1NzZDMzEuNjgxNiAzNS4zODc4IDMwLjQ5NDQgMzUuMzg0NSAyOS43NjQyIDM0LjY1MDNaIiBmaWxsPSIjMzUzRjZFIi8+Cjwvc3ZnPgo="
+        },
+        "displayName": "Extract from File",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1241,
+        "icon": "file:summarize.svg",
+        "name": "n8n-nodes-base.summarize",
+        "codex": {
+          "data": {
+            "alias": [
+              "Append",
+              "Array",
+              "Average",
+              "Concatenate",
+              "Count",
+              "Group",
+              "Item",
+              "List",
+              "Max",
+              "Min",
+              "Pivot",
+              "Sum",
+              "Summarise",
+              "Summarize",
+              "Transform",
+              "Unique"
+            ],
+            "details": "",
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.summarize/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Summarize"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJub25lIj48cGF0aCBmaWxsPSIjRjkyIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMzIgOTFjLTE1LjQ2NCAwLTI4IDEyLjUzNi0yOCAyOHYzMTdjMCAxNS40NjQgMTIuNTM2IDI4IDI4IDI4aDI0OGMxNS40NjQgMCAyOC0xMi41MzYgMjgtMjhWMTE5YzAtMTUuNDY0LTEyLjUzNi0yOC0yOC0yOGgtNmE2IDYgMCAwIDEtNi02VjQ5YTYgNiAwIDAgMSA2LTZoNmM0MS45NzQgMCA3NiAzNC4wMjYgNzYgNzZ2MzE3YzAgNDEuOTc0LTM0LjAyNiA3Ni03NiA3NkgxMzJjLTQxLjk3NCAwLTc2LTM0LjAyNi03Ni03NlYxMTljMC00MS45NzQgMzQuMDI2LTc2IDc2LTc2aDZhNiA2IDAgMCAxIDYgNnYzNmE2IDYgMCAwIDEtNiA2eiIgY2xpcC1ydWxlPSJldmVub2RkIi8+PHBhdGggZmlsbD0iI0Y5MiIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMjU2IDBjLTI3LjIzMiAwLTUwLjIyNyAxOC4xNDItNTcuNTU4IDQzSDE4MmE2IDYgMCAwIDAtNiA2djcwYTYgNiAwIDAgMCA2IDZoMTQ4YTYgNiAwIDAgMCA2LTZWNDlhNiA2IDAgMCAwLTYtNmgtMTYuNDQyQzMwNi4yMjcgMTguMTQyIDI4My4yMzIgMCAyNTYgMG0wIDQwYTE5LjkgMTkuOSAwIDAgMC0xMC41NDEgM0MyMzkuNzgxIDQ2LjUyOCAyMzYgNTIuODIzIDIzNiA2MGMwIDExLjA0NiA4Ljk1NCAyMCAyMCAyMHMyMC04Ljk1NCAyMC0yMGMwLTcuMTc3LTMuNzgxLTEzLjQ3Mi05LjQ1OS0xN0ExOS45IDE5LjkgMCAwIDAgMjU2IDQwbTEwMSAxNzljMCA2LjYyNy01LjM3MyAxMi0xMiAxMkgyMzNjLTYuNjI3IDAtMTItNS4zNzMtMTItMTJ2LTI0YzAtNi42MjcgNS4zNzMtMTIgMTItMTJoMTEyYzYuNjI3IDAgMTIgNS4zNzMgMTIgMTJ6IiBjbGlwLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBmaWxsPSIjRjkyIiBkPSJNMTk3IDIwN2MwIDEzLjI1NS0xMC43NDUgMjQtMjQgMjRzLTI0LTEwLjc0NS0yNC0yNCAxMC43NDUtMjQgMjQtMjQgMjQgMTAuNzQ1IDI0IDI0Ii8+PHBhdGggZmlsbD0iI0Y5MiIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzU3IDM5NWMwIDYuNjI3LTUuMzczIDEyLTEyIDEySDIzM2MtNi42MjcgMC0xMi01LjM3My0xMi0xMnYtMjRjMC02LjYyNyA1LjM3My0xMiAxMi0xMmgxMTJjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjxwYXRoIGZpbGw9IiNGOTIiIGQ9Ik0xOTcgMzgzYzAgMTMuMjU1LTEwLjc0NSAyNC0yNCAyNHMtMjQtMTAuNzQ1LTI0LTI0IDEwLjc0NS0yNCAyNC0yNCAyNCAxMC43NDUgMjQgMjQiLz48cGF0aCBmaWxsPSIjRjkyIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0zNTcgMzA3YzAgNi42MjctNS4zNzMgMTItMTIgMTJIMjMzYy02LjYyNyAwLTEyLTUuMzczLTEyLTEydi0yNGMwLTYuNjI3IDUuMzczLTEyIDEyLTEyaDExMmM2LjYyNyAwIDEyIDUuMzczIDEyIDEyeiIgY2xpcC1ydWxlPSJldmVub2RkIi8+PHBhdGggZmlsbD0iI0Y5MiIgZD0iTTE5NyAyOTVjMCAxMy4yNTUtMTAuNzQ1IDI0LTI0IDI0cy0yNC0xMC43NDUtMjQtMjQgMTAuNzQ1LTI0IDI0LTI0IDI0IDEwLjc0NSAyNCAyNCIvPjwvc3ZnPg=="
+        },
+        "displayName": "Summarize",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1264,
+        "icon": "file:slack.svg",
+        "name": "n8n-nodes-base.slackTrigger",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/trigger-nodes/n8n-nodes-base.slacktrigger/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/slack/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Slack Trigger"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgMTUwLjg1MiAxNTAuODUyIj48dXNlIHhsaW5rOmhyZWY9IiNhIiB4PSIuOTI2IiB5PSIuOTI2Ii8+PHN5bWJvbCBpZD0iYSIgb3ZlcmZsb3c9InZpc2libGUiPjxnIHN0cm9rZS13aWR0aD0iMS44NTIiPjxwYXRoIGZpbGw9IiNlMDFlNWEiIHN0cm9rZT0iI2UwMWU1YSIgZD0iTTQwLjc0MSA5My41NWMwLTguNzM1IDYuNjA3LTE1Ljc3MiAxNC44MTUtMTUuNzcyczE0LjgxNSA3LjAzNyAxNC44MTUgMTUuNzcydjM4LjgyNGMwIDguNzM3LTYuNjA3IDE1Ljc3NC0xNC44MTUgMTUuNzc0cy0xNC44MTUtNy4wMzctMTQuODE1LTE1Ljc3MnoiLz48cGF0aCBmaWxsPSIjZWNiMjJkIiBzdHJva2U9IiNlY2IyMmQiIGQ9Ik05My41NSAxMDcuNDA4Yy04LjczNSAwLTE1Ljc3Mi02LjYwNy0xNS43NzItMTQuODE1czcuMDM3LTE0LjgxNSAxNS43NzItMTQuODE1aDM4LjgyNmM4LjczNSAwIDE1Ljc3MiA2LjYwNyAxNS43NzIgMTQuODE1cy03LjAzNyAxNC44MTUtMTUuNzcyIDE0LjgxNXoiLz48cGF0aCBmaWxsPSIjMmZiNjdjIiBzdHJva2U9IiMyZmI2N2MiIGQ9Ik03Ny43NzggMTUuNzcyQzc3Ljc3OCA3LjAzNyA4NC4zODUgMCA5Mi41OTMgMHMxNC44MTUgNy4wMzcgMTQuODE1IDE1Ljc3MnYzOC44MjZjMCA4LjczNS02LjYwNyAxNS43NzItMTQuODE1IDE1Ljc3MnMtMTQuODE1LTcuMDM3LTE0LjgxNS0xNS43NzJ6Ii8+PHBhdGggZmlsbD0iIzM2YzVmMSIgc3Ryb2tlPSIjMzZjNWYxIiBkPSJNMTUuNzcyIDcwLjM3MUM3LjAzNyA3MC4zNzEgMCA2My43NjMgMCA1NS41NTZzNy4wMzctMTQuODE1IDE1Ljc3Mi0xNC44MTVoMzguODI2YzguNzM1IDAgMTUuNzcyIDYuNjA3IDE1Ljc3MiAxNC44MTVzLTcuMDM3IDE0LjgxNS0xNS43NzIgMTQuODE1eiIvPjxnIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiPjxwYXRoIGZpbGw9IiNlY2IyMmQiIHN0cm9rZT0iI2VjYjIyZCIgZD0iTTc3Ljc3OCAxMzMuMzMzYzAgOC4yMDggNi42MDcgMTQuODE1IDE0LjgxNSAxNC44MTVzMTQuODE1LTYuNjA3IDE0LjgxNS0xNC44MTUtNi42MDctMTQuODE1LTE0LjgxNS0xNC44MTVINzcuNzc4eiIvPjxwYXRoIGZpbGw9IiMyZmI2N2MiIHN0cm9rZT0iIzJmYjY3YyIgZD0iTTEzMy4zMzQgNzAuMzcxaC0xNC44MTVWNTUuNTU2YzAtOC4yMDcgNi42MDctMTQuODE1IDE0LjgxNS0xNC44MTVzMTQuODE1IDYuNjA3IDE0LjgxNSAxNC44MTUtNi42MDcgMTQuODE1LTE0LjgxNSAxNC44MTV6Ii8+PHBhdGggZmlsbD0iI2UwMWU1YSIgc3Ryb2tlPSIjZTAxZTVhIiBkPSJNMTQuODE1IDc3Ljc3OEgyOS42M3YxNC44MTVjMCA4LjIwNy02LjYwNyAxNC44MTUtMTQuODE1IDE0LjgxNVMwIDEwMC44IDAgOTIuNTkzczYuNjA3LTE0LjgxNSAxNC44MTUtMTQuODE1eiIvPjxwYXRoIGZpbGw9IiMzNmM1ZjEiIHN0cm9rZT0iIzM2YzVmMSIgZD0iTTcwLjM3MSAxNC44MTVWMjkuNjNINTUuNTU2Yy04LjIwNyAwLTE0LjgxNS02LjYwNy0xNC44MTUtMTQuODE1UzQ3LjM0OCAwIDU1LjU1NiAwczE0LjgxNSA2LjYwNyAxNC44MTUgMTQuODE1eiIvPjwvZz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Slack Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          }
+        ]
+      },
+      {
+        "id": 1315,
+        "icon": "fa:table",
+        "name": "n8n-nodes-base.dataTable",
+        "codex": {
+          "data": {
+            "alias": [
+              "data",
+              "table",
+              "knowledge",
+              "data table",
+              "table",
+              "sheet",
+              "database",
+              "data base",
+              "mysql",
+              "postgres",
+              "postgresql",
+              "airtable",
+              "supabase",
+              "noco",
+              "notion"
+            ],
+            "details": "Data table",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.datatable/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes",
+              "Development"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\",\"transform\"]",
+        "defaults": {
+          "name": "Data table"
+        },
+        "iconData": {
+          "icon": "table",
+          "type": "icon"
+        },
+        "displayName": "Data table",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 37,
+        "name": "Lead Generation"
+      },
+      {
+        "id": 49,
+        "name": "AI Summarization"
+      }
+    ],
+    "image": []
+  }
+}

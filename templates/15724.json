@@ -1,0 +1,925 @@
+{
+  "workflow": {
+    "id": 15724,
+    "name": "Back up workflow JSON files to Google Drive using the n8n API",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-14T20:52:29.838Z",
+    "description": "## Who\u2019s it for\n\nThis workflow is designed for n8n users who want an automated way to back up their workflows to Google Drive. It is useful for freelancers, developers, automation agencies, and teams managing multiple workflows who need regular backups for recovery, migration, or version tracking.\n\n## How it works / What it does\n\nThe workflow automatically exports all workflows from your n8n instance and stores them as JSON files in a dedicated Google Drive folder. It can be triggered manually or scheduled to run every four hours.\n\nFirst, the workflow creates a new backup folder in Google Drive with the current date and time in the folder name. It then retrieves all workflows from the connected n8n instance and processes them one by one using a loop. Each workflow is converted into a formatted JSON file and uploaded to the newly created backup folder.\n\nThe workflow also checks older backup folders and removes unnecessary folders to help keep storage organized and avoid duplicate backups.\n\n## How to set up\n1. Import the workflow into n8n.\n2. Connect your n8n API credentials.\n3. Connect your Google Drive account.\n4. Create or select a parent folder in Google Drive for storing backups.\n5. Update the Google Drive folder IDs in the relevant nodes.\n6. Activate the workflow or run it manually for testing.\n\n## Requirements\nAn active n8n instance\nGoogle Drive OAuth2 credentials\nn8n API credentials\nPermission to create and delete folders in Google Drive\n\n## How to customize the workflow\n\nChange the backup schedule in the Schedule Trigger node.\nModify the backup folder naming format if needed.\nStore backups in a different Google Drive location.\nAdjust the folder cleanup logic to keep more historical backups.\nAdd notifications through email or Slack after successful backups.",
+    "workflow": {
+      "id": "xbFG1VQgx7lFTfmv",
+      "meta": {
+        "instanceId": "852aa9385259821c8cfc397598c506168224c8bbdd2f63a7e6bd5605f902ee74",
+        "templateCredsSetupCompleted": true
+      },
+      "name": "Back up n8n workflows to Google Drive",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "6de42dee-88cb-45cb-918e-e499f0533221",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            992,
+            736
+          ],
+          "parameters": {
+            "color": 7,
+            "height": 624,
+            "content": "## Trigger workflow execution\n\nInitiates the workflow manually or on a schedule."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "949ec0b3-c1f7-465a-a9b8-7a9c0515aeec",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1312,
+            928
+          ],
+          "parameters": {
+            "color": 7,
+            "height": 304,
+            "content": "## Create new folder\n\nCreates a new folder in Google Drive to store files."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "e7bd60cb-365d-4692-8bdb-2628d88880d8",
+          "name": "Sticky Note3",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1568,
+            912
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 784,
+            "height": 464,
+            "content": "## Process items batch\n\nIterates over items, converts them to files, and uploads files to Google Drive."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "20922698-44b0-48fc-8196-4e2f253a4379",
+          "name": "Sticky Note4",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            2384,
+            912
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 672,
+            "height": 368,
+            "content": "## Filter and delete folders\n\nRetrieves folders, filters them, and deletes those matching criteria."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "d1127f75-5466-4f73-9770-215418ace0ac",
+          "name": "Batch Process Items",
+          "type": "n8n-nodes-base.splitInBatches",
+          "position": [
+            1824,
+            1056
+          ],
+          "parameters": {
+            "options": {}
+          },
+          "typeVersion": 3
+        },
+        {
+          "id": "f3987335-d00e-474f-b338-5f9ed612fc8c",
+          "name": "Convert Data to File",
+          "type": "n8n-nodes-base.convertToFile",
+          "position": [
+            2016,
+            1168
+          ],
+          "parameters": {
+            "options": {
+              "format": true,
+              "fileName": "={{ $json.name + \".json\" }}"
+            },
+            "operation": "toJson"
+          },
+          "typeVersion": 1.1
+        },
+        {
+          "id": "39aa1d45-f44d-4407-9bad-60dac270943f",
+          "name": "Scheduled Every 4 Hours",
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "position": [
+            1040,
+            1200
+          ],
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "hours",
+                  "hoursInterval": 4
+                }
+              ]
+            }
+          },
+          "typeVersion": 1.2
+        },
+        {
+          "id": "85436ae0-053d-4862-8138-9613fa1fdf1f",
+          "name": "Filter by Condition",
+          "type": "n8n-nodes-base.filter",
+          "position": [
+            2656,
+            1040
+          ],
+          "parameters": {
+            "options": {
+              "ignoreCase": true
+            },
+            "conditions": {
+              "options": {
+                "version": 2,
+                "leftValue": "",
+                "caseSensitive": false,
+                "typeValidation": "loose"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "538fc29d-2693-4c62-9848-bdcaf8566909",
+                  "operator": {
+                    "type": "string",
+                    "operation": "notEquals"
+                  },
+                  "leftValue": "={{ $json.id }}",
+                  "rightValue": "={{ $('Create Google Drive Folder').item.json.id }}"
+                }
+              ]
+            },
+            "looseTypeValidation": true
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "ac59ff8d-61bd-44db-9845-69e6b27f5462",
+          "name": "Delete Google Drive Folder",
+          "type": "n8n-nodes-base.googleDrive",
+          "position": [
+            2864,
+            1040
+          ],
+          "parameters": {
+            "options": {
+              "deletePermanently": true
+            },
+            "resource": "folder",
+            "operation": "deleteFolder",
+            "folderNoRootId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "={{ $json.id }}"
+            }
+          },
+          "credentials": {
+            "googleDriveOAuth2Api": {
+              "id": "9ly7WE2wFwDGLrfK",
+              "name": "Google Drive account"
+            }
+          },
+          "typeVersion": 3
+        },
+        {
+          "id": "06beb07d-9b40-4df5-ba0b-fa23c3079604",
+          "name": "List Google Drive Folders",
+          "type": "n8n-nodes-base.googleDrive",
+          "position": [
+            2464,
+            1040
+          ],
+          "parameters": {
+            "filter": {
+              "folderId": {
+                "__rl": true,
+                "mode": "list",
+                "value": "1lWeMpcjHdDwWWA1OI5N1obxh-TbFBXql",
+                "cachedResultUrl": "https://drive.google.com/drive/folders/1lWeMpcjHdDwWWA1OI5N1obxh-TbFBXql",
+                "cachedResultName": "Workflow Backups"
+              }
+            },
+            "options": {},
+            "resource": "fileFolder"
+          },
+          "credentials": {
+            "googleDriveOAuth2Api": {
+              "id": "9ly7WE2wFwDGLrfK",
+              "name": "Google Drive account"
+            }
+          },
+          "typeVersion": 3
+        },
+        {
+          "id": "ff4943ee-3cf2-4288-a1a2-41fff43f9c2d",
+          "name": "Upload File to Google Drive",
+          "type": "n8n-nodes-base.googleDrive",
+          "position": [
+            2192,
+            1168
+          ],
+          "parameters": {
+            "name": "={{ $('Batch Process Items').item.json.name + \".json\" }}",
+            "driveId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "My Drive"
+            },
+            "options": {},
+            "folderId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "={{ $('Create Google Drive Folder').item.json.id }}"
+            }
+          },
+          "credentials": {
+            "googleDriveOAuth2Api": {
+              "id": "9ly7WE2wFwDGLrfK",
+              "name": "Google Drive account"
+            }
+          },
+          "typeVersion": 3
+        },
+        {
+          "id": "d0bb24d6-bf10-4219-a07e-a7752521bca1",
+          "name": "Sticky Note5",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            400,
+            624
+          ],
+          "parameters": {
+            "width": 480,
+            "height": 768,
+            "content": "## Back up n8n workflows to Google Drive\n### How it works\n\n1. Workflow triggered manually or on schedule.\n2. Creates new folder in Google Drive.\n3. Iterates over items to process files.\n4. Converts items to files and uploads them.\n5. Retrieves folders and filters unnecessary ones.\n6. Deletes filtered folders.\n\n### Setup steps\n\n- [ ] Set up Google Drive credentials to allow create, retrieve, upload, and delete operations.\n- [ ] Ensure n8n credentials are properly configured for execution.\n\n### Customization\n\nChange the backup schedule in the Schedule Trigger node.\nModify the backup folder naming format if needed.\nStore backups in a different Google Drive location.\nAdjust the folder cleanup logic to keep more historical backups.\nAdd notifications through email or Slack after successful backups."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "c85c8662-34d8-4893-a822-f0592b2886fa",
+          "name": "Process in n8n1",
+          "type": "n8n-nodes-base.n8n",
+          "position": [
+            1616,
+            1056
+          ],
+          "parameters": {
+            "filters": {},
+            "requestOptions": {}
+          },
+          "credentials": {
+            "n8nApi": {
+              "id": "q93x7tW4fPJvExSL",
+              "name": "n8n account"
+            }
+          },
+          "retryOnFail": true,
+          "typeVersion": 1,
+          "alwaysOutputData": true
+        },
+        {
+          "id": "6986456b-a103-4c2b-9098-e390fd1fef34",
+          "name": "Manual Trigger Execution",
+          "type": "n8n-nodes-base.manualTrigger",
+          "position": [
+            1040,
+            944
+          ],
+          "parameters": {},
+          "typeVersion": 1
+        },
+        {
+          "id": "eeb40fbb-b2a6-4c67-b70e-6060004b0a35",
+          "name": "Create Google Drive Folder",
+          "type": "n8n-nodes-base.googleDrive",
+          "position": [
+            1376,
+            1056
+          ],
+          "parameters": {
+            "name": "=Workflow Backups {{ $now.format('cccc t dd-MM-yyyy') }}",
+            "driveId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "My Drive"
+            },
+            "options": {},
+            "folderId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "1lWeMpcjHdDwWWA1OI5N1obxh-TbFBXql",
+              "cachedResultUrl": "https://drive.google.com/drive/folders/1lWeMpcjHdDwWWA1OI5N1obxh-TbFBXql",
+              "cachedResultName": "Workflow Backups"
+            },
+            "resource": "folder"
+          },
+          "credentials": {
+            "googleDriveOAuth2Api": {
+              "id": "9ly7WE2wFwDGLrfK",
+              "name": "Google Drive account"
+            }
+          },
+          "typeVersion": 3
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "d3e4aa8f-7450-4673-99e0-f5ad0a364d8e",
+      "connections": {
+        "Process in n8n1": {
+          "main": [
+            [
+              {
+                "node": "Batch Process Items",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Batch Process Items": {
+          "main": [
+            [
+              {
+                "node": "List Google Drive Folders",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Convert Data to File",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Filter by Condition": {
+          "main": [
+            [
+              {
+                "node": "Delete Google Drive Folder",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Convert Data to File": {
+          "main": [
+            [
+              {
+                "node": "Upload File to Google Drive",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Scheduled Every 4 Hours": {
+          "main": [
+            [
+              {
+                "node": "Create Google Drive Folder",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Manual Trigger Execution": {
+          "main": [
+            [
+              {
+                "node": "Create Google Drive Folder",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "List Google Drive Folders": {
+          "main": [
+            [
+              {
+                "node": "Filter by Condition",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Create Google Drive Folder": {
+          "main": [
+            [
+              {
+                "node": "Process in n8n1",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Upload File to Google Drive": {
+          "main": [
+            [
+              {
+                "node": "Batch Process Items",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 15,
+      "nodeTypes": {
+        "n8n-nodes-base.n8n": {
+          "count": 1
+        },
+        "n8n-nodes-base.filter": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 5
+        },
+        "n8n-nodes-base.googleDrive": {
+          "count": 4
+        },
+        "n8n-nodes-base.convertToFile": {
+          "count": 1
+        },
+        "n8n-nodes-base.manualTrigger": {
+          "count": 1
+        },
+        "n8n-nodes-base.splitInBatches": {
+          "count": 1
+        },
+        "n8n-nodes-base.scheduleTrigger": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Safa Khan",
+      "username": "safa-khan",
+      "bio": "Automation specialist helping businesses eliminate manual work using n8n and AI-powered workflows.\nI design custom automations that connect tools like Google Calendar, Airtable, GPT, Supabase, and internal systems turning scattered processes into streamlined operations.\nFrom invoice processing to CRM automation and scheduling systems, I build scalable solutions that save time, reduce errors, and increase efficiency.\nHelping SMBs work smarter without needing a full tech team.",
+      "verified": true,
+      "links": [
+        ""
+      ],
+      "avatar": "https://gravatar.com/avatar/63d04dcf482b45c881b3f2de908b82196f2b8e25ac759831cbb05dd7393de05a?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 39,
+        "icon": "fa:sync",
+        "name": "n8n-nodes-base.splitInBatches",
+        "codex": {
+          "data": {
+            "alias": [
+              "Loop",
+              "Concatenate",
+              "Batch",
+              "Split",
+              "Split In Batches"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Loop Over Items",
+          "color": "#007755"
+        },
+        "iconData": {
+          "icon": "sync",
+          "type": "icon"
+        },
+        "displayName": "Loop Over Items (Split in Batches)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 58,
+        "icon": "file:googleDrive.svg",
+        "name": "n8n-nodes-base.googleDrive",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googledrive/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Google Drive"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgODEgNzMiPjx1c2UgeGxpbms6aHJlZj0iI2EiIHg9Ii41IiB5PSIuNSIvPjxzeW1ib2wgaWQ9ImEiIG92ZXJmbG93PSJ2aXNpYmxlIj48ZyBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSI+PHBhdGggZmlsbD0iIzAwNjZkYSIgZD0ibTYuMDQ4IDYxLjI2IDMuNTI4IDYuMDk0Yy43MzMgMS4yODMgMS43ODcgMi4yOTEgMy4wMjQgMy4wMjRsMTIuNi0yMS44MUgwYTguMyA4LjMgMCAwIDAgMS4xIDQuMTI0eiIvPjxwYXRoIGZpbGw9IiMwMGFjNDciIGQ9Ik00MCAyMi45MSAyNy40IDEuMWMtMS4yMzcuNzMzLTIuMjkxIDEuNzQxLTMuMDI0IDMuMDI0TDEuMSA0NC40NDVBOC4zIDguMyAwIDAgMCAwIDQ4LjU2OGgyNS4yeiIvPjxwYXRoIGZpbGw9IiNlYTQzMzUiIGQ9Ik02Ny40IDcwLjM3OGMxLjIzNy0uNzMzIDIuMjkxLTEuNzQxIDMuMDI0LTMuMDI0bDEuNDY2LTIuNTIgNy4wMS0xMi4xNDJhOC4zIDguMyAwIDAgMCAxLjEtNC4xMjRINTQuNzk4bDUuMzYzIDEwLjUzOHoiLz48cGF0aCBmaWxsPSIjMDA4MzJkIiBkPSJNNDAgMjIuOTEgNTIuNiAxLjFDNTEuMzYzLjM2NyA0OS45NDMgMCA0OC40NzcgMEgzMS41MjRjLTEuNDY2IDAtMi44ODcuNDEyLTQuMTI0IDEuMXoiLz48cGF0aCBmaWxsPSIjMjY4NGZjIiBkPSJNNTQuNzk5IDQ4LjU2OEgyNS4ybC0xMi42IDIxLjgxYzEuMjM3LjczMyAyLjY1NyAxLjEgNC4xMjQgMS4xaDQ2LjU1MmMxLjQ2NiAwIDIuODg3LS40MTIgNC4xMjQtMS4xeiIvPjxwYXRoIGZpbGw9IiNmZmJhMDAiIGQ9Ik02Ny4yNjIgMjQuMjg0IDU1LjYyNCA0LjEyNEM1NC44OTEgMi44NDEgNTMuODM3IDEuODMzIDUyLjYgMS4xTDQwIDIyLjkxbDE0LjggMjUuNjU5aDI1LjE1NWE4LjMgOC4zIDAgMCAwLTEuMS00LjEyNHoiLz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Google Drive",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 826,
+        "icon": "file:n8n.svg",
+        "name": "n8n-nodes-base.n8n",
+        "codex": {
+          "data": {
+            "alias": [
+              "Workflow",
+              "Execution"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.n8n/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/api/authentication/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Other Trigger Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "n8n"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyMzAgMTIwIj48cGF0aCBmaWxsPSIjRUE0QjcxIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0yMDQgNDhjLTExLjE4MyAwLTIwLjU4LTcuNjQ5LTIzLjI0NC0xOGgtMjcuNTA4YTEyIDEyIDAgMCAwLTExLjgzNiAxMC4wMjdsLS45ODcgNS45MTlBMjMuOTQgMjMuOTQgMCAwIDEgMTMyLjYyNiA2MGEyMy45NCAyMy45NCAwIDAgMSA3Ljc5OSAxNC4wNTRsLjk4NyA1LjkxOUExMiAxMiAwIDAgMCAxNTMuMjQ4IDkwaDMuNTA4QzE1OS40MiA3OS42NDkgMTY4LjgxNyA3MiAxODAgNzJjMTMuMjU1IDAgMjQgMTAuNzQ1IDI0IDI0cy0xMC43NDUgMjQtMjQgMjRjLTExLjE4MyAwLTIwLjU4LTcuNjQ5LTIzLjI0NC0xOGgtMy41MDhjLTExLjczMiAwLTIxLjc0NC04LjQ4Mi0yMy42NzMtMjAuMDU0bC0uOTg3LTUuOTE5QTEyIDEyIDAgMCAwIDExNi43NTIgNjZoLTkuNTA4QzEwNC41OCA3Ni4zNTEgOTUuMTgzIDg0IDg0IDg0cy0yMC41OC03LjY0OS0yMy4yNDQtMThINDcuMjQ0QzQ0LjU4IDc2LjM1MSAzNS4xODMgODQgMjQgODQgMTAuNzQ1IDg0IDAgNzMuMjU1IDAgNjBzMTAuNzQ1LTI0IDI0LTI0YzExLjE4MyAwIDIwLjU4IDcuNjQ5IDIzLjI0NCAxOGgxMy41MTJDNjMuNDIgNDMuNjQ5IDcyLjgxNyAzNiA4NCAzNnMyMC41OCA3LjY0OSAyMy4yNDQgMThoOS41MDhhMTIgMTIgMCAwIDAgMTEuODM2LTEwLjAyN2wuOTg3LTUuOTE5QzEzMS41MDQgMjYuNDgyIDE0MS41MTYgMTggMTUzLjI0OCAxOGgyNy41MDhDMTgzLjQyIDcuNjQ5IDE5Mi44MTcgMCAyMDQgMGMxMy4yNTUgMCAyNCAxMC43NDUgMjQgMjRzLTEwLjc0NSAyNC0yNCAyNG0wLTEyYzYuNjI3IDAgMTItNS4zNzMgMTItMTJzLTUuMzczLTEyLTEyLTEyLTEyIDUuMzczLTEyIDEyIDUuMzczIDEyIDEyIDEyTTI0IDcyYzYuNjI3IDAgMTItNS4zNzMgMTItMTJzLTUuMzczLTEyLTEyLTEyLTEyIDUuMzczLTEyIDEyIDUuMzczIDEyIDEyIDEybTcyLTEyYzAgNi42MjctNS4zNzMgMTItMTIgMTJzLTEyLTUuMzczLTEyLTEyIDUuMzczLTEyIDEyLTEyIDEyIDUuMzczIDEyIDEybTk2IDM2YzAgNi42MjctNS4zNzMgMTItMTIgMTJzLTEyLTUuMzczLTEyLTEyIDUuMzczLTEyIDEyLTEyIDEyIDUuMzczIDEyIDEyIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiLz48L3N2Zz4="
+        },
+        "displayName": "n8n",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 838,
+        "icon": "fa:mouse-pointer",
+        "name": "n8n-nodes-base.manualTrigger",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.manualworkflowtrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "When clicking \u2018Execute workflow\u2019",
+          "color": "#909298"
+        },
+        "iconData": {
+          "icon": "mouse-pointer",
+          "type": "icon"
+        },
+        "displayName": "Manual Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 839,
+        "icon": "fa:clock",
+        "name": "n8n-nodes-base.scheduleTrigger",
+        "codex": {
+          "data": {
+            "alias": [
+              "Time",
+              "Scheduler",
+              "Polling",
+              "Cron",
+              "Interval"
+            ],
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\",\"schedule\"]",
+        "defaults": {
+          "name": "Schedule Trigger",
+          "color": "#31C49F"
+        },
+        "iconData": {
+          "icon": "clock",
+          "type": "icon"
+        },
+        "displayName": "Schedule Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 844,
+        "icon": "fa:filter",
+        "name": "n8n-nodes-base.filter",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The Filter node can be used to filter items based on a condition. If the condition is met, the item will be passed on to the next node. If the condition is not met, the item will be omitted. Conditions can be combined together by AND(meet all conditions), or OR(meet at least one condition).",
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.filter/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Filter",
+          "color": "#229eff"
+        },
+        "iconData": {
+          "icon": "filter",
+          "type": "icon"
+        },
+        "displayName": "Filter",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1234,
+        "icon": "file:convertToFile.svg",
+        "name": "n8n-nodes-base.convertToFile",
+        "codex": {
+          "data": {
+            "alias": [
+              "CSV",
+              "Spreadsheet",
+              "Excel",
+              "xls",
+              "xlsx",
+              "ods",
+              "tabular",
+              "encode",
+              "encoding",
+              "Move Binary Data",
+              "Binary",
+              "File",
+              "JSON",
+              "HTML",
+              "ICS",
+              "iCal",
+              "RTF",
+              "64",
+              "Base64"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.converttofile/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Files",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Convert to File"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEzLjc2MTkgMkMxMy4yNDM3IDIgMTIuODIzNiAyLjQyMDA5IDEyLjgyMzYgMi45MzgzMVYxNS4yNTI2QzEzLjMxOTkgMTUuNDY0MyAxMy43ODUxIDE1Ljc3MiAxNC4xOTEgMTYuMTc1N0wyMS4yMjgzIDIzLjE3MzlDMjIuMDU0OCAyMy45OTU4IDIyLjUxOTUgMjUuMTEzMiAyMi41MTk1IDI2LjI3ODhDMjIuNTE5NSAyNy40NDQzIDIyLjA1NDggMjguNTYxOCAyMS4yMjgzIDI5LjM4MzdMMTQuMTkxIDM2LjM4MTlDMTMuNzg1IDM2Ljc4NTYgMTMuMzE5OSAzNy4wOTMyIDEyLjgyMzYgMzcuMzA1VjM3LjM1MjdDMTIuODIzNiAzNy44NzA5IDEzLjI0MzcgMzguMjkxIDEzLjc2MTkgMzguMjkxSDM5LjA2MTdDMzkuNTc5OSAzOC4yOTEgNDAgMzcuODcwOSA0MCAzNy4zNTI3TDQwIDE1Ljc5NEgyNy4xNDQzQzI2LjYyNjEgMTUuNzk0IDI2LjIwNiAxNS4zNzM5IDI2LjIwNiAxNC44NTU3VjJIMTMuNzYxOVoiIGZpbGw9IiMzQTQyRTkiLz4KPHBhdGggZD0iTTI4Ljg2NDUgMkMyOC43NzgxIDIgMjguNzA4MSAyLjA3MDAyIDI4LjcwODEgMi4xNTYzOVYxMi44MjI3QzI4LjcwODEgMTMuMDgxOCAyOC45MTgyIDEzLjI5MTkgMjkuMTc3MyAxMy4yOTE5SDM5Ljg0MzZDMzkuOTMgMTMuMjkxOSA0MCAxMy4yMjE5IDQwIDEzLjEzNTVMNDAgMTIuNjI2M0M0MCAxMi4zNzc4IDM5LjkwMTQgMTIuMTM5NSAzOS43MjYgMTEuOTYzNkwzMC4wNjEgMi4yNzU2MUMyOS44ODUgMi4wOTkxNiAyOS42NDYgMiAyOS4zOTY3IDJIMjguODY0NVoiIGZpbGw9IiMzQTQyRTkiLz4KPHBhdGggZD0iTTkuNzcyNjggMzQuNjAwM0M5LjA0MTg2IDMzLjg2NTQgOS4wNDUxNyAzMi42NzcyIDkuNzgwMDcgMzEuOTQ2NEwxMy42MzE1IDI4LjExNjNMMC45MzgzMTEgMjguMTE2M0MwLjQyMDA5NiAyOC4xMTYzIC0yLjI2NTE5ZS0wOCAyNy42OTYyIDAgMjcuMTc4TDguMjAyOTdlLTA4IDI1LjMwMTRDMS4wNDY4MmUtMDcgMjQuNzgzMiAwLjQyMDA5NSAyNC4zNjMxIDAuOTM4MzExIDI0LjM2MzFIMTMuNTUyOUw5Ljc4MDA3IDIwLjYxMTJDOS4wNDUxNyAxOS44ODA0IDkuMDQxODYgMTguNjkyMiA5Ljc3MjY4IDE3Ljk1NzNDMTAuNTAzNSAxNy4yMjI0IDExLjY5MTcgMTcuMjE5MSAxMi40MjY2IDE3Ljk0OTlMMTkuNDYzOSAyNC45NDgxQzE5LjgxODEgMjUuMzAwNCAyMC4wMTczIDI1Ljc3OTMgMjAuMDE3MyAyNi4yNzg4QzIwLjAxNzMgMjYuNzc4MyAxOS44MTgxIDI3LjI1NzIgMTkuNDYzOSAyNy42MDk1TDEyLjQyNjYgMzQuNjA3N0MxMS42OTE3IDM1LjMzODUgMTAuNTAzNSAzNS4zMzUyIDkuNzcyNjggMzQuNjAwM1oiIGZpbGw9IiMzQTQyRTkiLz4KPC9zdmc+Cg=="
+        },
+        "displayName": "Convert to File",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 16,
+        "name": "DevOps"
+      }
+    ],
+    "image": []
+  }
+}

@@ -1,0 +1,943 @@
+{
+  "workflow": {
+    "id": 15661,
+    "name": "Enrich LinkedIn profiles in Airtable using Apify",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-12T12:46:40.624Z",
+    "description": "## Who it's for\n\nThis workflow is for sales teams, recruiters, and growth operators who maintain a list of LinkedIn profile URLs in Airtable and want to automatically enrich each record with detailed professional data \u2014 without manual copy-pasting.\n\n## How it works\n\n1. The workflow is triggered manually and queries Airtable to fetch all records matching a defined filter (e.g. records with an empty \"First name\" field).\n2. It loops over each record one by one using a batch iterator.\n3. For each record, it sends the LinkedIn profile URL to the Apify LinkedIn scraper API via a POST request and waits for the result.\n4. The enriched data (name, headline, job title, company, location, skills, positions, education, certifications, follower count, and more) is written back to the corresponding Airtable record.\n5. The loop continues until all records have been processed.\n\n## How to set up\n\n- [ ] Connect your **Airtable** credentials in both the `Search Records` and `Update LinkedIn Data` nodes\n- [ ] Configure the correct Airtable base, table, and filter formula\n- [ ] Obtain an **Apify API key** and connect it in the `Fetch LinkedIn Profile via Apify` node\n- [ ] Ensure your Airtable table has a `LinkedIn URL` field populated with valid profile URLs\n- [ ] Review and adjust the field mappings in the `Update LinkedIn Data` node to match your schema\n\n## Requirements\n\n- Airtable account with API access\n- Apify account with access to the LinkedIn Profile Scraper actor\n\n## How to customize\n\n- Adjust the batch size in `Loop Over Records in Batches` to control request rate and avoid Apify rate limits\n- Add an error-handling branch after the HTTP Request node to flag failed lookups directly in Airtable\n- Replace the manual trigger with a scheduled trigger to run enrichment automatically on new records",
+    "workflow": {
+      "meta": {
+        "instanceId": "393ca9e36a1f81b0f643c72792946a5fe5e49eb4864181ba4032e5a408278263",
+        "templateCredsSetupCompleted": true
+      },
+      "nodes": [
+        {
+          "id": "02fc10cd-dd94-44d9-8ba0-638f9e9e206b",
+          "name": "Sticky Note13",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -16,
+            -352
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1024,
+            "height": 208,
+            "content": "## Need more advanced automation solutions? Contact us for custom enterprise workflows!\n\n# Growth-AI.fr\n\n## https://www.linkedin.com/in/allanvaccarizi/\n## https://www.linkedin.com/in/hugo-marinier-%F0%9F%A7%B2-6537b633/"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "80670753-ccf4-4712-9017-2ba437a02b86",
+          "name": "Sticky Note16",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -16,
+            -768
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 1024,
+            "height": 400,
+            "content": "![Logo Growth AI](https://cdn.prod.website-files.com/6825df5b20329ba581df4914/68d413c43f8729fa336568a6_Logo_horizontal.png)"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "7cb1775e-97ca-4aa2-8524-428a236ba45b",
+          "name": "Sticky Note",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -576,
+            -112
+          ],
+          "parameters": {
+            "width": 480,
+            "height": 592,
+            "content": "## Untitled workflow\n\n### How it works\n\n1. The workflow is triggered manually and fetches a list of records from an Airtable base.\n2. It loops over each record one by one using a batch iterator.\n3. For each record, it calls the Apify LinkedIn scraper API to retrieve profile information.\n4. The enriched LinkedIn data is written back to the corresponding Airtable record, then the loop continues until all records are processed.\n\n### Setup steps\n\n- - [ ] Connect your **Airtable** credential in both the 'Search records' and 'Update record' nodes, and configure the correct base, table, and field mappings.\n- - [ ] Obtain an **Apify API key** and configure it in the 'Get Linkedin profil info' HTTP Request node (the POST call to `api.apify.com`).\n- - [ ] Ensure the Airtable records contain a valid LinkedIn profile URL field that the Apify actor can consume.\n- - [ ] Review and adjust the fields being written back in 'Update record' to match your Airtable schema.\n\n### Customization\n\nYou can adjust the batch size in 'Loop Over Items' to control API call rate and avoid hitting Apify rate limits. You can also add error-handling branches after the HTTP Request node to flag failed lookups in Airtable."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "fcdb35ea-8728-4fa7-9136-f5ae35323f29",
+          "name": "Sticky Note1",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -16,
+            -112
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 400,
+            "height": 320,
+            "content": "## Trigger and fetch records\n\nManually starts the workflow and retrieves all relevant records from Airtable to be enriched."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "14accebc-ce27-47ec-8a2f-14604b1aad79",
+          "name": "Sticky Note2",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            416,
+            -112
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 624,
+            "height": 320,
+            "content": "## Enrich and update LinkedIn data\n\nIterates over each Airtable record in a loop, calls the Apify LinkedIn scraper API to fetch profile details, and writes the results back to Airtable before advancing to the next record."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "480ea8c5-f462-4d79-b77c-474acb488ece",
+          "name": "When Executed Manually",
+          "type": "n8n-nodes-base.manualTrigger",
+          "position": [
+            32,
+            48
+          ],
+          "parameters": {},
+          "typeVersion": 1
+        },
+        {
+          "id": "a5797b2e-e41e-4c4f-bdfd-4ebadf7194af",
+          "name": "Search Records in Airtable",
+          "type": "n8n-nodes-base.airtable",
+          "position": [
+            240,
+            48
+          ],
+          "parameters": {
+            "base": {
+              "__rl": true,
+              "mode": "list",
+              "value": "appnM9t2JxMCU2LQB",
+              "cachedResultUrl": "https://airtable.com/appnM9t2JxMCU2LQB",
+              "cachedResultName": "Test n8n"
+            },
+            "table": {
+              "__rl": true,
+              "mode": "list",
+              "value": "tblwpuUniCVfkhjVb",
+              "cachedResultUrl": "https://airtable.com/appnM9t2JxMCU2LQB/tblwpuUniCVfkhjVb",
+              "cachedResultName": "Table 1"
+            },
+            "options": {},
+            "operation": "search",
+            "filterByFormula": "{First name} = \"\""
+          },
+          "credentials": {
+            "airtableTokenApi": {
+              "id": "ycmUoxQc4VGAdwtB",
+              "name": "Growth AI"
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "d1e0c08a-f946-461b-8971-9d5691a6a7b5",
+          "name": "Loop Over Records in Batches",
+          "type": "n8n-nodes-base.splitInBatches",
+          "position": [
+            464,
+            48
+          ],
+          "parameters": {
+            "options": {}
+          },
+          "typeVersion": 3
+        },
+        {
+          "id": "c929f431-c27c-41a8-8a60-19a89b879121",
+          "name": "Fetch LinkedIn Profile via Apify",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            688,
+            48
+          ],
+          "parameters": {
+            "url": "https://api.apify.com/v2/acts/yZnhB5JewWf9xSmoM/run-sync-get-dataset-items",
+            "method": "POST",
+            "options": {},
+            "jsonBody": "={\n  \"urls\": [\n    {\n      \"url\": \"{{ $json.fields['LinkedIn URL'] }}\"\n    }\n  ],\n  \"findContacts\": false,\n  \"findContacts.contactCompassToken\": \"\"\n} ",
+            "sendBody": true,
+            "specifyBody": "json",
+            "authentication": "predefinedCredentialType",
+            "nodeCredentialType": "apifyApi"
+          },
+          "credentials": {
+            "apifyApi": {
+              "id": "K3EpPM9Jo0ZsceGA",
+              "name": "Apify account"
+            }
+          },
+          "typeVersion": 4.4,
+          "alwaysOutputData": true
+        },
+        {
+          "id": "ce05768f-fa09-4b02-8a18-8a17b70b899e",
+          "name": "Update LinkedIn Data in Airtable",
+          "type": "n8n-nodes-base.airtable",
+          "position": [
+            896,
+            48
+          ],
+          "parameters": {
+            "base": {
+              "__rl": true,
+              "mode": "list",
+              "value": "appnM9t2JxMCU2LQB",
+              "cachedResultUrl": "https://airtable.com/appnM9t2JxMCU2LQB",
+              "cachedResultName": "Test n8n"
+            },
+            "table": {
+              "__rl": true,
+              "mode": "list",
+              "value": "tblwpuUniCVfkhjVb",
+              "cachedResultUrl": "https://airtable.com/appnM9t2JxMCU2LQB/tblwpuUniCVfkhjVb",
+              "cachedResultName": "Table 1"
+            },
+            "columns": {
+              "value": {
+                "id": "={{ $('Loop Over Records in Batches').first().json.id }}",
+                "City": "={{ $json.geoLocationName }}",
+                "Skills": "={{ [...new Set($json.skills.map(s => s.name))].map(s => `\u2022 ${s}`).join('\\n') }}",
+                "Country": "={{ $json.geoCountryName }}",
+                "Summary": "={{ $json.summary }}",
+                "Headline": "={{ $json.headline }}",
+                "Job title": "={{ $json.jobTitle }}",
+                "Last name": "={{ $json.lastName }}",
+                "Positions": "={{ $json.positions.map(p => {\n  const name = p.company?.name ?? 'N/A';\n  const title = p.title ?? (p.positions?.[0]?.title ?? 'N/A');\n  const duration = p.totalDuration ?? 'N/A';\n  return `\u2022 ${title} \u2014 ${name} (${duration})`;\n}).join('\\n') }}",
+                "Educations": "={{ $json.educations.map(e => {\n  const school = e.schoolName ?? 'N/A';\n  const degree = e.degreeName || e.fieldOfStudy || 'N/A';\n  const start = e.timePeriod?.startDate?.year ?? '';\n  const end = e.timePeriod?.endDate?.year ?? 'present';\n  return `\u2022 ${degree} \u2014 ${school} (${start}\u2013${end})`;\n}).join('\\n') }}",
+                "First name": "={{ $json.firstName }}",
+                "Is verified": "={{ $json.isVerified }}",
+                "Company name": "={{ $json.companyName }}",
+                "Certifications": "={{ $json.certifications.map(c => `\u2022 ${c.name} (${c.issuer})`).join('\\n') }}",
+                "Follower count": "={{ $json.followerCount }}",
+                "Company Linkedin URL": "={{ $json.companyLinkedinUrl }}"
+              },
+              "schema": [
+                {
+                  "id": "id",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": true,
+                  "required": false,
+                  "displayName": "id",
+                  "defaultMatch": true
+                },
+                {
+                  "id": "LinkedIn URL",
+                  "type": "string",
+                  "display": true,
+                  "removed": true,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "LinkedIn URL",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "First name",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "First name",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Last name",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "Last name",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Headline",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "Headline",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Country",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "Country",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "City",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "City",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Job title",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "Job title",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Company name",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "Company name",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Company Linkedin URL",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "Company Linkedin URL",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Summary",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "Summary",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Positions",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "Positions",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Educations",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "Educations",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Certifications",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "Certifications",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Follower count",
+                  "type": "number",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "Follower count",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Is verified",
+                  "type": "boolean",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "Is verified",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Skills",
+                  "type": "string",
+                  "display": true,
+                  "removed": false,
+                  "readOnly": false,
+                  "required": false,
+                  "displayName": "Skills",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                }
+              ],
+              "mappingMode": "defineBelow",
+              "matchingColumns": [
+                "id"
+              ],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "options": {},
+            "operation": "update"
+          },
+          "credentials": {
+            "airtableTokenApi": {
+              "id": "ycmUoxQc4VGAdwtB",
+              "name": "Growth AI"
+            }
+          },
+          "typeVersion": 2.2
+        }
+      ],
+      "pinData": {},
+      "connections": {
+        "Search Records in Airtable": {
+          "main": [
+            [
+              {
+                "node": "Loop Over Records in Batches",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Loop Over Records in Batches": {
+          "main": [
+            [],
+            [
+              {
+                "node": "Fetch LinkedIn Profile via Apify",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch LinkedIn Profile via Apify": {
+          "main": [
+            [
+              {
+                "node": "Update LinkedIn Data in Airtable",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Update LinkedIn Data in Airtable": {
+          "main": [
+            [
+              {
+                "node": "Loop Over Records in Batches",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 10,
+      "nodeTypes": {
+        "n8n-nodes-base.airtable": {
+          "count": 2
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 5
+        },
+        "n8n-nodes-base.httpRequest": {
+          "count": 1
+        },
+        "n8n-nodes-base.manualTrigger": {
+          "count": 1
+        },
+        "n8n-nodes-base.splitInBatches": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Allan Vaccarizi",
+      "username": "growthai",
+      "bio": "n8n automation expert eliminating repetitive tasks for businesses. Specializing in native API integrations (HubSpot, Pipedrive, Notion, Gmail, Slack) with custom workflows tailored to your tech stack. GDPR-compliant European hosting with AI agents. From lead qualification to content generation - I architect battle-tested automations that run 24/7. Your manual routines disappear without pain.\n",
+      "verified": true,
+      "links": [
+        "https://growth-ai.fr/"
+      ],
+      "avatar": "https://gravatar.com/avatar/e93e43e1e71be1aee89eb849a5396be04c95604624b155a29298b9209e2534c3?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 2,
+        "icon": "file:airtable.svg",
+        "name": "n8n-nodes-base.airtable",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-goals-level-up-your-vocabulary-with-vonage-and-n8n/",
+                  "icon": "\ud83c\udfaf",
+                  "label": "2021 Goals: Level Up Your Vocabulary With Vonage and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-sms-the-low-code-way-with-airtable-twilio-programmable-sms-and-n8n/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Sending SMS the Low-Code Way with Airtable, Twilio Programmable SMS, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automating-conference-organization-processes-with-n8n/",
+                  "icon": "\ud83d\ude4b\u200d\u2640\ufe0f",
+                  "label": "Automating Conference Organization Processes with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.airtable/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/airtable/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Airtable"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMTcwIj48cGF0aCBmaWxsPSIjZmNiNDAwIiBkPSJNODkgNC44IDE2LjIgMzQuOWMtNC4xIDEuNy00IDcuNC4xIDkuMWw3My4yIDI5YzYuNCAyLjYgMTMuNiAyLjYgMjAgMGw3My4yLTI5YzQuMS0xLjYgNC4xLTcuNC4xLTkuMWwtNzMtMzAuMUMxMDMuMiAyIDk1LjcgMiA4OSA0LjgiLz48cGF0aCBmaWxsPSIjMThiZmZmIiBkPSJNMTA1LjkgODguOXY3Mi41YzAgMy40IDMuNSA1LjggNi43IDQuNWw4MS42LTMxLjdjMS45LS43IDMuMS0yLjUgMy4xLTQuNVY1Ny4yYzAtMy40LTMuNS01LjgtNi43LTQuNUwxMDkgODQuM2MtMS45LjgtMy4xIDIuNi0zLjEgNC42Ii8+PHBhdGggZmlsbD0iI2Y4MmI2MCIgZD0ibTg2LjkgOTIuNi0yNC4yIDExLjctMi41IDEuMkw5LjEgMTMwYy0zLjIgMS42LTcuNC0uOC03LjQtNC40VjU3LjVjMC0xLjMuNy0yLjQgMS42LTMuM3EuNi0uNiAxLjItLjljMS4yLS43IDMtLjkgNC40LS4zbDc3LjUgMzAuN2M0IDEuNSA0LjMgNy4xLjUgOC45Ii8+PHBhdGggZmlsbD0iI2JhMWU0NSIgZD0ibTg2LjkgOTIuNi0yNC4yIDExLjctNTkuNC01MHEuNi0uNiAxLjItLjljMS4yLS43IDMtLjkgNC40LS4zbDc3LjUgMzAuN2M0IDEuNCA0LjMgNyAuNSA4LjgiLz48L3N2Zz4="
+        },
+        "displayName": "Airtable",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          }
+        ]
+      },
+      {
+        "id": 19,
+        "icon": "file:httprequest.svg",
+        "name": "n8n-nodes-base.httpRequest",
+        "codex": {
+          "data": {
+            "alias": [
+              "API",
+              "Request",
+              "URL",
+              "Build",
+              "cURL"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-designs-with-bannerbear-and-n8n/",
+                  "icon": "\ud83c\udfa8",
+                  "label": "Automate Designs with Bannerbear and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-use-the-http-request-node-the-swiss-army-knife-for-workflow-automation/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "How to use the HTTP Request Node - The Swiss Army Knife for Workflow Automation"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HTTP Request",
+          "color": "#0004F5"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MCAyMEM0MCA4Ljk1MzE0IDMxLjA0NjkgMCAyMCAwQzguOTUzMTQgMCAwIDguOTUzMTQgMCAyMEMwIDMxLjA0NjkgOC45NTMxNCA0MCAyMCA0MEMzMS4wNDY5IDQwIDQwIDMxLjA0NjkgNDAgMjBaTTIwIDM2Ljk0NThDMTguODg1MiAzNi45NDU4IDE3LjEzNzggMzUuOTY3IDE1LjQ5OTggMzIuNjk4NUMxNC43OTY0IDMxLjI5MTggMTQuMTk2MSAyOS41NDMxIDEzLjc1MjYgMjcuNjg0N0gyNi4xODk4QzI1LjgwNDUgMjkuNTQwMyAyNS4yMDQ0IDMxLjI5MDEgMjQuNTAwMiAzMi42OTg1QzIyLjg2MjIgMzUuOTY3IDIxLjExNDggMzYuOTQ1OCAyMCAzNi45NDU4Wk0xMi45MDY0IDIwQzEyLjkwNjQgMjEuNjA5NyAxMy4wMDg3IDIzLjE2NCAxMy4yMDAzIDI0LjYzMDVIMjYuNzk5N0MyNi45OTEzIDIzLjE2NCAyNy4wOTM2IDIxLjYwOTcgMjcuMDkzNiAyMEMyNy4wOTM2IDE4LjM5MDMgMjYuOTkxMyAxNi44MzYgMjYuNzk5NyAxNS4zNjk1SDEzLjIwMDNDMTMuMDA4NyAxNi44MzYgMTIuOTA2NCAxOC4zOTAzIDEyLjkwNjQgMjBaTTIwIDMuMDU0MTlDMjEuMTE0OSAzLjA1NDE5IDIyLjg2MjIgNC4wMzA3OCAyNC41MDAxIDcuMzAwMzlDMjUuMjA2NiA4LjcxNDA4IDI1LjgwNzIgMTAuNDA2NyAyNi4xOTIgMTIuMzE1M0gxMy43NTAxQzE0LjE5MzMgMTAuNDA0NyAxNC43OTQyIDguNzEyNTQgMTUuNDk5OCA3LjMwMDY0QzE3LjEzNzcgNC4wMzA4MyAxOC44ODUxIDMuMDU0MTkgMjAgMy4wNTQxOVpNMzAuMTQ3OCAyMEMzMC4xNDc4IDE4LjQwOTkgMzAuMDU0MyAxNi44NjE3IDI5LjgyMjcgMTUuMzY5NUgzNi4zMDQyQzM2LjcyNTIgMTYuODQyIDM2Ljk0NTggMTguMzk2NCAzNi45NDU4IDIwQzM2Ljk0NTggMjEuNjAzNiAzNi43MjUyIDIzLjE1OCAzNi4zMDQyIDI0LjYzMDVIMjkuODIyN0MzMC4wNTQzIDIzLjEzODMgMzAuMTQ3OCAyMS41OTAxIDMwLjE0NzggMjBaTTI2LjI3NjcgNC4yNTUxMkMyNy42MzY1IDYuMzYwMTkgMjguNzExIDkuMTMyIDI5LjM3NzQgMTIuMzE1M0gzNS4xMDQ2QzMzLjI1MTEgOC42NjggMzAuMTA3IDUuNzgzNDYgMjYuMjc2NyA0LjI1NTEyWk0xMC42MjI2IDEyLjMxNTNINC44OTI5M0M2Ljc1MTQ3IDguNjY3ODQgOS44OTM1MSA1Ljc4MzQxIDEzLjcyMzIgNC4yNTUxM0MxMi4zNjM1IDYuMzYwMjEgMTEuMjg5IDkuMTMyMDEgMTAuNjIyNiAxMi4zMTUzWk0zLjA1NDE5IDIwQzMuMDU0MTkgMjEuNjAzIDMuMjc3NDMgMjMuMTU3NSAzLjY5NDg0IDI0LjYzMDVIMTAuMTIxN0M5Ljk0NjE5IDIzLjE0MiA5Ljg1MjIyIDIxLjU5NDMgOS44NTIyMiAyMEM5Ljg1MjIyIDE4LjQwNTcgOS45NDYxOSAxNi44NTggMTAuMTIxNyAxNS4zNjk1SDMuNjk0ODRDMy4yNzc0MyAxNi44NDI1IDMuMDU0MTkgMTguMzk3IDMuMDU0MTkgMjBaTTI2LjI3NjYgMzUuNzQyN0MyNy42MzY1IDMzLjYzOTMgMjguNzExIDMwLjg2OCAyOS4zNzc0IDI3LjY4NDdIMzUuMTA0NkMzMy4yNTEgMzEuMzMyMiAzMC4xMDY4IDM0LjIxNzkgMjYuMjc2NiAzNS43NDI3Wk0xMy43MjM0IDM1Ljc0MjdDOS44OTM2OSAzNC4yMTc5IDYuNzUxNTUgMzEuMzMyNCA0Ljg5MjkzIDI3LjY4NDdIMTAuNjIyNkMxMS4yODkgMzAuODY4IDEyLjM2MzUgMzMuNjM5MyAxMy43MjM0IDM1Ljc0MjdaIiBmaWxsPSIjM0E0MkU5Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "HTTP Request",
+        "typeVersion": 4,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 39,
+        "icon": "fa:sync",
+        "name": "n8n-nodes-base.splitInBatches",
+        "codex": {
+          "data": {
+            "alias": [
+              "Loop",
+              "Concatenate",
+              "Batch",
+              "Split",
+              "Split In Batches"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.splitinbatches/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"organization\"]",
+        "defaults": {
+          "name": "Loop Over Items",
+          "color": "#007755"
+        },
+        "iconData": {
+          "icon": "sync",
+          "type": "icon"
+        },
+        "displayName": "Loop Over Items (Split in Batches)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 838,
+        "icon": "fa:mouse-pointer",
+        "name": "n8n-nodes-base.manualTrigger",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.manualworkflowtrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "When clicking \u2018Execute workflow\u2019",
+          "color": "#909298"
+        },
+        "iconData": {
+          "icon": "mouse-pointer",
+          "type": "icon"
+        },
+        "displayName": "Manual Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 37,
+        "name": "Lead Generation"
+      }
+    ],
+    "image": []
+  }
+}

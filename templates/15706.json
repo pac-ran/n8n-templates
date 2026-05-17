@@ -1,0 +1,1611 @@
+{
+  "workflow": {
+    "id": 15706,
+    "name": "Forecast inventory and auto-generate reorders with Google Sheets, GPT-4o mini and Slack",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-14T07:15:58.852Z",
+    "description": "How it works\n\nFetches sales history and current inventory from Google Sheets in parallel, then calculates days of stock remaining, average daily sales velocity, and projected stockout dates for every product![PICC.png](fileId:6265)\nAn AI agent (GPT-4o mini) analyzes the snapshot and generates a structured forecast report covering critical alerts, reorder priorities, demand trends, and supply chain risk flags\nRoutes critical stock alerts to Slack instantly, generates purchase orders for all flagged items, and logs the full forecast summary back to Google Sheets\n\nSet up steps\n\nConnect Google Sheets OAuth2, add your spreadsheet ID in Set Forecast Configuration, and ensure your sheet has Sales_History, Current_Inventory, and Forcast_Analysis tabs (~5 min)\nAdd your OpenAI API key and connect your Slack workspace, then point the alert node to your preferred channel (~5 min)",
+    "workflow": {
+      "meta": {
+        "instanceId": "0c60f5dddb636f74d6b3d0a74529c0815daba3345f1b7f6c3f40c522b339af29",
+        "templateCredsSetupCompleted": true
+      },
+      "nodes": [
+        {
+          "id": "3d0920f4-1405-48d3-b439-4154d6d27926",
+          "name": "When clicking 'Execute workflow'",
+          "type": "n8n-nodes-base.manualTrigger",
+          "position": [
+            -384,
+            432
+          ],
+          "parameters": {},
+          "typeVersion": 1
+        },
+        {
+          "id": "2a500a15-dd6e-4840-9136-3b96109f25f6",
+          "name": "Combine Forecast and AI Output",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            880,
+            416
+          ],
+          "parameters": {
+            "jsCode": "const forecast = $('Build Forecast Dataset').first().json;\nconst aiOutput = $('Demand Forecast Agent').first().json.output || '';\n\nreturn [{\n  json: {\n    report_date: forecast.report_date,\n    total_products: forecast.total_products,\n    critical_count: forecast.critical_count,\n    low_stock_count: forecast.low_stock_count,\n    reorder_count: forecast.reorder_count,\n    ok_count: forecast.ok_count,\n    critical_items: forecast.critical_items,\n    low_stock_items: forecast.low_stock_items,\n    reorder_items: forecast.reorder_items,\n    all_products: forecast.all_products,\n    summary_text: forecast.summary_text,\n    ai_output: aiOutput,\n    has_critical: forecast.critical_count > 0\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "1af1c39b-3d42-454c-820d-96b410504c33",
+          "name": "Set Forecast Configuration",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            -160,
+            432
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "1",
+                  "name": "lookback_days",
+                  "type": "number",
+                  "value": 90
+                },
+                {
+                  "id": "2",
+                  "name": "forecast_days",
+                  "type": "number",
+                  "value": 30
+                },
+                {
+                  "id": "3",
+                  "name": "low_stock_threshold_days",
+                  "type": "number",
+                  "value": 14
+                },
+                {
+                  "id": "4",
+                  "name": "critical_stock_threshold_days",
+                  "type": "number",
+                  "value": 7
+                },
+                {
+                  "id": "5",
+                  "name": "report_date",
+                  "type": "string",
+                  "value": "={{ $now.format(\"yyyy-MM-dd\") }}"
+                },
+                {
+                  "id": "6",
+                  "name": "spreadsheet_id",
+                  "type": "string",
+                  "value": "1we-2q1E6iVC3Jum9_zycLN3WVndlt6TcHk-zee8GtTU"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "6b77e18f-6683-4f05-98f7-30d3c04d3f86",
+          "name": "Fetch Sales History",
+          "type": "n8n-nodes-base.googleSheets",
+          "position": [
+            64,
+            336
+          ],
+          "parameters": {
+            "options": {},
+            "sheetName": {
+              "__rl": true,
+              "mode": "name",
+              "value": "Sales_History"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "={{ $('Set Forecast Configuration').first().json.spreadsheet_id }}"
+            }
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "T2BQ671QMo5UpTGl",
+              "name": "Google Sheets OAuth2 API"
+            }
+          },
+          "typeVersion": 4.5
+        },
+        {
+          "id": "9564dfcd-613f-4ac2-84df-4a318c56defd",
+          "name": "Fetch Current Inventory",
+          "type": "n8n-nodes-base.googleSheets",
+          "position": [
+            64,
+            528
+          ],
+          "parameters": {
+            "options": {},
+            "sheetName": {
+              "__rl": true,
+              "mode": "name",
+              "value": "Current_Inventory"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "={{ $('Set Forecast Configuration').first().json.spreadsheet_id }}"
+            }
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "T2BQ671QMo5UpTGl",
+              "name": "Google Sheets OAuth2 API"
+            }
+          },
+          "typeVersion": 4.5
+        },
+        {
+          "id": "eb825449-d2a4-4916-beae-4ed884f7df3d",
+          "name": "Merge",
+          "type": "n8n-nodes-base.merge",
+          "position": [
+            272,
+            416
+          ],
+          "parameters": {},
+          "typeVersion": 3.2
+        },
+        {
+          "id": "aae6a52b-3104-411c-85f3-8d904b989368",
+          "name": "Build Forecast Dataset",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            416,
+            416
+          ],
+          "parameters": {
+            "jsCode": "const salesItems = $('Fetch Sales History').all();\nconst inventoryItems = $('Fetch Current Inventory').all();\nconst config = $('Set Forecast Configuration').first().json;\n\nconst salesByProduct = {};\nfor (const item of salesItems) {\n  const s = item.json;\n  const pid = s.product_id || s.SKU || s.sku;\n  if (!pid) continue;\n  if (!salesByProduct[pid]) salesByProduct[pid] = { sales_data: [], total_units: 0 };\n  const units = parseFloat(s.units_sold || s.quantity || s.qty || 0);\n  salesByProduct[pid].sales_data.push({ date: s.date, units });\n  salesByProduct[pid].total_units += units;\n}\n\nconst inventoryProducts = [];\nfor (const item of inventoryItems) {\n  const inv = item.json;\n  const pid = inv.product_id || inv.SKU || inv.sku;\n  if (!pid) continue;\n\n  const salesData = salesByProduct[pid] || { sales_data: [], total_units: 0 };\n  const avgDailySales = salesData.total_units / (config.lookback_days || 90);\n  const currentStock = parseFloat(inv.current_stock || inv.quantity || 0);\n  const leadTime = parseFloat(inv.lead_time_days || 7);\n  const reorderPoint = parseFloat(inv.reorder_point || (avgDailySales * leadTime * 1.5));\n  const daysOfStock = avgDailySales > 0 ? Math.floor(currentStock / avgDailySales) : 999;\n  const projectedStockout = avgDailySales > 0 ? new Date(Date.now() + daysOfStock * 86400000).toISOString().split('T')[0] : 'N/A';\n  const reorderQty = Math.ceil(avgDailySales * (config.forecast_days || 30) * 1.2);\n\n  let status = 'OK';\n  if (daysOfStock <= config.critical_stock_threshold_days) status = 'CRITICAL';\n  else if (daysOfStock <= config.low_stock_threshold_days) status = 'LOW';\n  else if (currentStock <= reorderPoint) status = 'REORDER';\n\n  inventoryProducts.push({\n    product_id: pid,\n    product_name: inv.product_name || inv.name || pid,\n    current_stock: currentStock,\n    avg_daily_sales: Math.round(avgDailySales * 100) / 100,\n    days_of_stock: daysOfStock,\n    projected_stockout_date: projectedStockout,\n    reorder_quantity: reorderQty,\n    reorder_point: Math.round(reorderPoint),\n    lead_time_days: leadTime,\n    unit_cost: parseFloat(inv.unit_cost || 0),\n    supplier: inv.supplier || 'Unknown',\n    status,\n    sales_30d: Math.round(avgDailySales * 30),\n    sales_90d: salesData.total_units\n  });\n}\n\ninventoryProducts.sort((a, b) => a.days_of_stock - b.days_of_stock);\n\nconst critical = inventoryProducts.filter(p => p.status === 'CRITICAL');\nconst lowStock = inventoryProducts.filter(p => p.status === 'LOW');\nconst reorderNeeded = inventoryProducts.filter(p => p.status === 'REORDER');\n\nreturn [{\n  json: {\n    report_date: config.report_date,\n    total_products: inventoryProducts.length,\n    critical_count: critical.length,\n    low_stock_count: lowStock.length,\n    reorder_count: reorderNeeded.length,\n    ok_count: inventoryProducts.filter(p => p.status === 'OK').length,\n    critical_items: critical,\n    low_stock_items: lowStock,\n    reorder_items: reorderNeeded,\n    all_products: inventoryProducts,\n    summary_text: inventoryProducts.slice(0, 20).map(p =>\n      p.product_id + ' | ' + p.product_name + ' | Stock: ' + p.current_stock +\n      ' | Days: ' + p.days_of_stock + ' | AvgDaily: ' + p.avg_daily_sales +\n      ' | Stockout: ' + p.projected_stockout_date + ' | ' + p.status\n    ).join('\\n')\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "b288a667-baeb-4214-a410-8d2036211fdc",
+          "name": "Demand Forecast Agent",
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "position": [
+            592,
+            416
+          ],
+          "parameters": {
+            "text": "=You are an expert supply chain analyst. Analyze this inventory snapshot and produce a demand forecast briefing.\n\nREPORT DATE: {{ $json.report_date }}\nTOTAL PRODUCTS: {{ $json.total_products }}\nCRITICAL (< 7 days): {{ $json.critical_count }}\nLOW STOCK (< 14 days): {{ $json.low_stock_count }}\nNEEDS REORDER: {{ $json.reorder_count }}\n\nINVENTORY DATA:\n{{ $json.summary_text }}\n\nCRITICAL ITEMS:\n{{ JSON.stringify($json.critical_items || []) }}\n\nProduce a report in markdown:\n\n# Daily Inventory & Demand Forecast\n## {{ $json.report_date }}\n\n### CRITICAL ALERTS (Immediate Action)\n[Each critical item: product, days remaining, recommended order qty]\n\n### Reorder Recommendations (Next 7 Days)\n[Prioritized list with quantities]\n\n### Demand Trend Analysis\n[Unusual patterns, seasonality signals, anomalies]\n\n### 30-Day Forecast\n[Overall inventory health projection]\n\n### Cost Impact\n[Estimated cost of recommended reorders]\n\n### Supply Chain Risk Flags\n[Concentration risks, single-supplier dependencies]\n\nBe specific with numbers, prioritize by business impact.",
+            "options": {
+              "systemMessage": "You are an expert supply chain analyst. Provide data-driven inventory recommendations that minimize stockouts while optimizing working capital."
+            },
+            "promptType": "define"
+          },
+          "typeVersion": 3.1
+        },
+        {
+          "id": "11e92896-dcec-4a88-a79b-ba47f1caddca",
+          "name": "OpenAI Chat Model",
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+          "position": [
+            592,
+            656
+          ],
+          "parameters": {
+            "model": {
+              "__rl": true,
+              "mode": "list",
+              "value": "gpt-4o-mini"
+            },
+            "options": {},
+            "builtInTools": {}
+          },
+          "credentials": {},
+          "typeVersion": 1.3
+        },
+        {
+          "id": "3d06a0e4-7fda-42f1-8f7b-634f4a1ba175",
+          "name": "Critical Stock Exists?",
+          "type": "n8n-nodes-base.if",
+          "position": [
+            1104,
+            448
+          ],
+          "parameters": {
+            "options": {},
+            "conditions": {
+              "options": {
+                "version": 2,
+                "leftValue": "",
+                "caseSensitive": true,
+                "typeValidation": "strict"
+              },
+              "combinator": "and",
+              "conditions": [
+                {
+                  "id": "1",
+                  "operator": {
+                    "type": "boolean",
+                    "operation": "true",
+                    "singleValue": true
+                  },
+                  "leftValue": "={{ $json.has_critical }}",
+                  "rightValue": true
+                }
+              ]
+            }
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "612ad727-1322-40a9-8c38-e27a1c4f2e94",
+          "name": "Send a message",
+          "type": "n8n-nodes-base.slack",
+          "position": [
+            1328,
+            320
+          ],
+          "webhookId": "edaa598d-0ffd-43a3-bc4d-906ba8ff9ea4",
+          "parameters": {
+            "text": "=*CRITICAL INVENTORY ALERT*  Date: {{ $json.report_date }} Critical Items (less than 7 days stock): {{ $json.critical_count }} Low Stock Items: {{ $json.low_stock_count }} Needs Reorder: {{ $json.reorder_count }}  *Critical Products:* {{ ($json.critical_items || []).map(p => '\u2022 ' + p.product_name + ' (' + p.product_id + ') - ' + p.days_of_stock + ' days left - Reorder ' + p.reorder_quantity + ' units from ' + p.supplier).join('\\n') }}  *AI Forecast Summary:* {{ ($json.ai_output || '').substring(0, 500) }}",
+            "select": "channel",
+            "channelId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "C0ASJMR4MMJ",
+              "cachedResultName": "sales-team"
+            },
+            "otherOptions": {},
+            "authentication": "oAuth2"
+          },
+          "credentials": {
+            "slackOAuth2Api": {
+              "id": "kvwKmRQSYs8VFGCH",
+              "name": "Slack OAuth2 API"
+            }
+          },
+          "typeVersion": 2.4
+        },
+        {
+          "id": "454af903-aa55-4470-89d2-41990fc783c6",
+          "name": "Write Forecast to Sheet",
+          "type": "n8n-nodes-base.googleSheets",
+          "position": [
+            1552,
+            416
+          ],
+          "parameters": {
+            "columns": {
+              "value": {
+                "AI Analysis": "={{ $json.summary_text }}",
+                "Report Date": "={{ $json.report_date }}",
+                "Reorder Count": "={{ $json.reorder_count }}",
+                "Critical Count": "={{ $json.critical_count }}",
+                "Total Products": "={{ $json.total_products }}",
+                "Low Stock Count": "={{ $json.low_stock_count }}"
+              },
+              "schema": [
+                {
+                  "id": "Report Date",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "Report Date",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Total Products",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "Total Products",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Critical Count",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "Critical Count",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Low Stock Count",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "Low Stock Count",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "Reorder Count",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "Reorder Count",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "AI Analysis",
+                  "type": "string",
+                  "display": true,
+                  "required": false,
+                  "displayName": "AI Analysis",
+                  "defaultMatch": false,
+                  "canBeUsedToMatch": true
+                }
+              ],
+              "mappingMode": "defineBelow",
+              "matchingColumns": [],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "options": {},
+            "operation": "append",
+            "sheetName": {
+              "__rl": true,
+              "mode": "list",
+              "value": 919236352,
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1we-2q1E6iVC3Jum9_zycLN3WVndlt6TcHk-zee8GtTU/edit#gid=919236352",
+              "cachedResultName": "Forcast_Analysis"
+            },
+            "documentId": {
+              "__rl": true,
+              "mode": "id",
+              "value": "={{ $('Set Forecast Configuration').first().json.spreadsheet_id }}"
+            }
+          },
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "T2BQ671QMo5UpTGl",
+              "name": "Google Sheets OAuth2 API"
+            }
+          },
+          "typeVersion": 4.5
+        },
+        {
+          "id": "45dfc131-e4c7-4b96-884d-fbc8e310cb54",
+          "name": "Generate Purchase Orders",
+          "type": "n8n-nodes-base.code",
+          "position": [
+            1552,
+            592
+          ],
+          "parameters": {
+            "jsCode": "const forecastData = $('Build Forecast Dataset').first().json;\nconst itemsToReorder = [\n  ...(forecastData.critical_items || []),\n  ...(forecastData.low_stock_items || []),\n  ...(forecastData.reorder_items || [])\n];\n\nconst seen = new Set();\nconst uniqueOrders = itemsToReorder.filter(item => {\n  if (seen.has(item.product_id)) return false;\n  seen.add(item.product_id);\n  return true;\n});\n\nconst purchaseOrders = uniqueOrders.map(item => ({\n  po_number: 'PO-' + item.product_id + '-' + new Date().toISOString().split('T')[0].replace(/-/g,''),\n  product_id: item.product_id,\n  product_name: item.product_name,\n  supplier: item.supplier,\n  order_quantity: item.reorder_quantity,\n  unit_cost: item.unit_cost,\n  total_cost: Math.round(item.reorder_quantity * item.unit_cost * 100) / 100,\n  priority: item.status,\n  days_of_stock: item.days_of_stock,\n  projected_stockout: item.projected_stockout_date,\n  created_date: forecastData.report_date,\n  status: 'PENDING_APPROVAL'\n}));\n\nconst totalCost = purchaseOrders.reduce((sum, po) => sum + po.total_cost, 0);\nreturn [{\n  json: {\n    purchase_orders: purchaseOrders,\n    po_count: purchaseOrders.length,\n    total_reorder_cost: Math.round(totalCost * 100) / 100,\n    report_date: forecastData.report_date\n  }\n}];"
+          },
+          "typeVersion": 2
+        },
+        {
+          "id": "604a503d-5c60-48ea-bf23-d279758dbed6",
+          "name": "Log Forecast Completion",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            1760,
+            496
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "1",
+                  "name": "status",
+                  "type": "string",
+                  "value": "completed"
+                },
+                {
+                  "id": "2",
+                  "name": "report_date",
+                  "type": "string",
+                  "value": "={{ $('Build Forecast Dataset').first().json.report_date }}"
+                },
+                {
+                  "id": "3",
+                  "name": "products_analyzed",
+                  "type": "number",
+                  "value": "={{ $('Build Forecast Dataset').first().json.total_products }}"
+                },
+                {
+                  "id": "4",
+                  "name": "critical_alerts",
+                  "type": "number",
+                  "value": "={{ $('Build Forecast Dataset').first().json.critical_count }}"
+                },
+                {
+                  "id": "7",
+                  "name": "completed_at",
+                  "type": "string",
+                  "value": "={{ $now.toISO() }}"
+                },
+                {
+                  "id": "bd3c635e-1fc1-4ecc-97d3-61056e8a8c6d",
+                  "name": "pos_generated",
+                  "type": "string",
+                  "value": "=={{ $json.po_count !== undefined ? $json.po_count : 'N/A' }}"
+                },
+                {
+                  "id": "9d78838a-e618-4e5c-9969-1c269e1f6ab4",
+                  "name": "total_reorder_value",
+                  "type": "string",
+                  "value": "=={{ $json.total_reorder_cost !== undefined ? $json.total_reorder_cost : 'N/A' }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "99920140-c6a2-4a4a-9afb-0a17db66dcfa",
+          "name": "Main Overview",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -1040,
+            48
+          ],
+          "parameters": {
+            "color": 7,
+            "width": 560,
+            "height": 1260,
+            "content": "## \ud83d\udce6 Inventory Forecasting & Auto Reorder Pipeline\n\nAutomatically analyzes sales history and current stock levels to forecast demand, flag critical shortages, generate purchase orders, and alert the team \u2014 all in one daily run.\n\n**Perfect for:** Operations managers, supply chain teams, and inventory analysts who need to eliminate manual reorder decisions and prevent stockouts.\n\n---\n\n## How it works\n\n1. **When clicking 'Execute workflow'** \u2014 Manually triggers the full inventory pipeline run.\n2. **Set Forecast Configuration** \u2014 Defines lookback period (90 days), forecast horizon (30 days), stock threshold limits, and the source Google Sheets spreadsheet ID.\n3. **Fetch Sales History** \u2014 Reads the Sales_History sheet to retrieve historical units sold per product.\n4. **Fetch Current Inventory** \u2014 Reads the Current_Inventory sheet to retrieve live stock levels, lead times, and supplier details.\n5. **Merge** \u2014 Combines the parallel sales and inventory data streams into a single dataset.\n6. **Build Forecast Dataset** \u2014 Calculates average daily sales, days of stock remaining, projected stockout dates, reorder points, and assigns each product a status (CRITICAL, LOW, REORDER, or OK).\n7. **Demand Forecast Agent** \u2014 Sends the inventory snapshot to an AI agent (GPT-4o mini) to generate a structured demand forecast report with risk flags and cost impact analysis.\n8. **OpenAI Chat Model** \u2014 Provides the GPT-4o mini language model to power the Demand Forecast Agent.\n9. **Combine Forecast and AI Output** \u2014 Merges the structured forecast dataset with the AI-generated narrative report into a single output object.\n10. **Critical Stock Exists?** \u2014 Checks if any products have fewer than 7 days of stock remaining and branches the flow accordingly.\n11. **Send a message** \u2014 *(Critical path only)* Posts a critical inventory alert to the Slack #sales-team channel listing affected products, days remaining, and reorder quantities.\n12. **Generate Purchase Orders** \u2014 Creates structured purchase order records for all CRITICAL, LOW, and REORDER items with PO numbers, quantities, costs, and supplier details.\n13. **Write Forecast to Sheet** \u2014 Appends the daily forecast summary row to the Forecast_Analysis Google Sheet.\n14. **Log Forecast Completion** \u2014 Records the final run metadata including products analyzed, critical alert count, POs generated, and total reorder value.\n\n---\n\n## Setup (~10 minutes)\n\n1. **Google Sheets OAuth2** \u2014 Connect your Google account in the *Fetch Sales History*, *Fetch Current Inventory*, and *Write Forecast to Sheet* nodes.\n2. **Spreadsheet ID** \u2014 Update the `spreadsheet_id` value in *Set Forecast Configuration* to match your Google Sheet.\n3. **Sheet tab names** \u2014 Ensure your spreadsheet has tabs named `Sales_History`, `Current_Inventory`, and `Forcast_Analysis` with matching column headers.\n4. **OpenAI API** \u2014 Add your OpenAI API key in the *OpenAI Chat Model* node.\n5. **Slack OAuth2** \u2014 Connect your Slack workspace in the *Send a message* node.\n6. **Slack channel** \u2014 Update the channel ID in *Send a message* to your preferred alert channel.\n> Stock thresholds (critical: 7 days, low: 14 days) and the 90-day lookback window can be adjusted in **Set Forecast Configuration** without touching any other node."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "42795950-423c-44bf-a4a3-7c34013e0294",
+          "name": "Section 1: Trigger & Data Intake",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            -432,
+            192
+          ],
+          "parameters": {
+            "color": 5,
+            "width": 716,
+            "height": 556,
+            "content": "## 1\ufe0f\u20e3 Trigger & Data Intake\n\nThe **When clicking 'Execute workflow'** node starts the pipeline on demand. **Set Forecast Configuration** defines all key parameters including the lookback window, forecast horizon, stock alert thresholds, and the Google Sheets source ID. **Fetch Sales History** and **Fetch Current Inventory** then pull data from their respective sheet tabs in parallel before **Merge** combines both streams into a unified dataset ready for analysis."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "2509e58c-e635-4a65-a88f-faff05a67475",
+          "name": "Section 2: AI Forecasting",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            304,
+            208
+          ],
+          "parameters": {
+            "color": 3,
+            "width": 776,
+            "height": 544,
+            "content": "## 2\ufe0f\u20e3 AI Demand Forecasting\n\n**Build Forecast Dataset** processes the merged data to calculate days of stock remaining, average daily sales velocity, projected stockout dates, and reorder quantities for every product \u2014 assigning each a CRITICAL, LOW, REORDER, or OK status. The **Demand Forecast Agent**, powered by the **OpenAI Chat Model** (GPT-4o mini), then receives the full snapshot and generates a structured markdown report covering critical alerts, reorder priorities, trend analysis, 30-day projections, and supply chain risk flags. **Combine Forecast and AI Output** merges the structured dataset with the AI narrative into a single payload for downstream routing."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "86baa62c-ae2a-4dc1-bc38-6f0491b8f189",
+          "name": "Section 3: Alerts & Purchase Orders",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1104,
+            64
+          ],
+          "parameters": {
+            "color": 6,
+            "width": 408,
+            "height": 680,
+            "content": "## 3\ufe0f\u20e3 Alerts & Purchase Orders\n\n**Critical Stock Exists?** evaluates whether any product has entered the critical threshold (under 7 days of stock) and branches the flow. When critical items are detected, **Send a message** fires an immediate formatted alert to the Slack #sales-team channel listing each affected product with days remaining and recommended order quantities. In parallel, **Generate Purchase Orders** builds structured PO records for all items flagged as CRITICAL, LOW, or REORDER, assigning each a unique PO number, supplier, order quantity, and estimated total cost."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "37949701-a3f4-41bd-9cf3-697951dd3df8",
+          "name": "Section 4: Output & Logging",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1536,
+            160
+          ],
+          "parameters": {
+            "color": 4,
+            "width": 520,
+            "height": 584,
+            "content": "## 4\ufe0f\u20e3 Output & Logging\n\n**Write Forecast to Sheet** appends a daily summary row to the Forecast_Analysis tab in Google Sheets, capturing report date, product counts by status, and the full AI analysis text for historical tracking. **Log Forecast Completion** finalizes the run by assembling a completion record that includes the number of products analyzed, critical alert count, purchase orders generated, and total estimated reorder value."
+          },
+          "typeVersion": 1
+        }
+      ],
+      "pinData": {},
+      "connections": {
+        "Merge": {
+          "main": [
+            [
+              {
+                "node": "Build Forecast Dataset",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Send a message": {
+          "main": [
+            [
+              {
+                "node": "Write Forecast to Sheet",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenAI Chat Model": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "Demand Forecast Agent",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch Sales History": {
+          "main": [
+            [
+              {
+                "node": "Merge",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Demand Forecast Agent": {
+          "main": [
+            [
+              {
+                "node": "Combine Forecast and AI Output",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Build Forecast Dataset": {
+          "main": [
+            [
+              {
+                "node": "Demand Forecast Agent",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Generate Purchase Orders",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Critical Stock Exists?": {
+          "main": [
+            [
+              {
+                "node": "Send a message",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Write Forecast to Sheet",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Fetch Current Inventory": {
+          "main": [
+            [
+              {
+                "node": "Merge",
+                "type": "main",
+                "index": 1
+              }
+            ]
+          ]
+        },
+        "Write Forecast to Sheet": {
+          "main": [
+            [
+              {
+                "node": "Log Forecast Completion",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Generate Purchase Orders": {
+          "main": [
+            [
+              {
+                "node": "Log Forecast Completion",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Set Forecast Configuration": {
+          "main": [
+            [
+              {
+                "node": "Fetch Sales History",
+                "type": "main",
+                "index": 0
+              },
+              {
+                "node": "Fetch Current Inventory",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Combine Forecast and AI Output": {
+          "main": [
+            [
+              {
+                "node": "Critical Stock Exists?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "When clicking 'Execute workflow'": {
+          "main": [
+            [
+              {
+                "node": "Set Forecast Configuration",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 19,
+      "nodeTypes": {
+        "n8n-nodes-base.if": {
+          "count": 1
+        },
+        "n8n-nodes-base.set": {
+          "count": 2
+        },
+        "n8n-nodes-base.code": {
+          "count": 3
+        },
+        "n8n-nodes-base.merge": {
+          "count": 1
+        },
+        "n8n-nodes-base.slack": {
+          "count": 1
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 5
+        },
+        "n8n-nodes-base.googleSheets": {
+          "count": 3
+        },
+        "n8n-nodes-base.manualTrigger": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.agent": {
+          "count": 1
+        },
+        "@n8n/n8n-nodes-langchain.lmChatOpenAi": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Redowan Ahmed Farhan",
+      "username": "redowanfarhan",
+      "bio": "Automation focused builder creating practical, scalable workflows with n8n. I design real world automations that reduce manual work, improve efficiency, and connect tools seamlessly. Here to contribute by sharing reusable workflows, exploring use cases, and learning from the community while building reliable, impactful systems.\n",
+      "verified": true,
+      "links": [
+        ""
+      ],
+      "avatar": "https://gravatar.com/avatar/6f87cd2199c26ec1a0b3b72c8352a0ddeaeafafef24d3301963cc2c126d5e084?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 18,
+        "icon": "file:googleSheets.svg",
+        "name": "n8n-nodes-base.googleSheets",
+        "codex": {
+          "data": {
+            "alias": [
+              "CSV",
+              "Sheet",
+              "Spreadsheet",
+              "GS"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/love-at-first-sight-ricardos-n8n-journey/",
+                  "icon": "\u2764\ufe0f",
+                  "label": "Love at first sight: Ricardo\u2019s n8n journey"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-triggers-for-n8n-workflows-using-polling/",
+                  "icon": "\u23f2",
+                  "label": "Creating triggers for n8n workflows using polling"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/migrating-community-metrics-to-orbit-using-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Migrating Community Metrics to Orbit using n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-honest-burgers-use-automation-to-save-100k-per-year/",
+                  "icon": "\ud83c\udf54",
+                  "label": "How Honest Burgers Use Automation to Save $100k per year"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "\ud83d\udcbb",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googlesheets/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage",
+              "Productivity"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\",\"output\"]",
+        "defaults": {
+          "name": "Google Sheets"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNS42OSAxIDUyIDE3LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0OC4yOTMgNjBIMTIuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDkgNTYuMzEyVjQuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTIuNzA3IDF6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM1LjY5IDEgNTIgMTcuMjI1SDM5LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzkuMjExIDE3LjIyNSA1MiAyMi40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTIwLjEyIDMxLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMS42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzEuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjxwYXRoIGZpbGw9IiMyOEI0NDYiIGQ9Ik0zNC42OSAwIDUxIDE2LjIyNXYzOS4wODdhMy42NyAzLjY3IDAgMCAxLTEuMDg0IDIuNjFBMy43IDMuNyAwIDAgMSA0Ny4yOTMgNTlIMTEuNzA3YTMuNyAzLjcgMCAwIDEtMi42MjMtMS4wNzhBMy42NyAzLjY3IDAgMCAxIDggNTUuMzEyVjMuNjg4YTMuNjcgMy42NyAwIDAgMSAxLjA4NC0yLjYxQTMuNyAzLjcgMCAwIDEgMTEuNzA3IDB6Ii8+PHBhdGggZmlsbD0iIzZBQ0U3QyIgZD0iTTM0LjY5IDAgNTEgMTYuMjI1SDM4LjM5N2MtMi4wNTQgMC0zLjcwNy0xLjgyOS0zLjcwNy0zLjg3MnoiLz48cGF0aCBmaWxsPSIjMjE5QjM4IiBkPSJNMzguMjExIDE2LjIyNSA1MSAyMS40OHYtNS4yNTV6Ii8+PHBhdGggZmlsbD0iI0ZGRiIgZD0iTTE5LjEyIDMwLjk3NWMwLS44MTcuNjYyLTEuNDc1IDEuNDgzLTEuNDc1aDE3Ljc5NGMuODIxIDAgMS40ODIuNjU4IDEuNDgyIDEuNDc1djE1LjQ4N2MwIC44MTgtLjY2MSAxLjQ3NS0xLjQ4MiAxLjQ3NUgyMC42MDNhMS40NzYgMS40NzYgMCAwIDEtMS40ODItMS40NzRWMzAuOTc0em0yLjIyNSAxLjQ3NWg2LjY3MnYyLjIxMmgtNi42NzJ6bTAgNS4xNjJoNi42NzJ2Mi4yMTNoLTYuNjcyem0wIDUuMTYzaDYuNjcydjIuMjEyaC02LjY3MnptOS42MzgtMTAuMzI1aDYuNjcydjIuMjEyaC02LjY3MnptMCA1LjE2Mmg2LjY3MnYyLjIxM2gtNi42NzJ6bTAgNS4xNjNoNi42NzJ2Mi4yMTJoLTYuNjcyeiIvPjwvZz48L3N2Zz4="
+        },
+        "displayName": "Google Sheets",
+        "typeVersion": 5,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          },
+          {
+            "id": 4,
+            "name": "Productivity"
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.if",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Boolean",
+              "Branch"
+            ],
+            "details": "The IF node can be used to implement binary conditional logic in your workflow. You can set up one-to-many conditions to evaluate each item of data being inputted into the node. That data will either evaluate to TRUE or FALSE and route out of the node accordingly.\n\nThis node has multiple types of conditions: Bool, String, Number, and Date & Time.",
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/create-a-toxic-language-detector-for-telegram/",
+                  "icon": "\ud83e\udd2c",
+                  "label": "Create a toxic language detector for Telegram in 4 step"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.if/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "If",
+          "color": "#408000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "If",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 24,
+        "icon": "file:merge.svg",
+        "name": "n8n-nodes-base.merge",
+        "codex": {
+          "data": {
+            "alias": [
+              "Join",
+              "Concatenate",
+              "Wait"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/how-to-sync-data-between-two-systems/",
+                  "icon": "\ud83c\udfec",
+                  "label": "How to synchronize data between two systems (one-way vs. two-way sync"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/migrating-community-metrics-to-orbit-using-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Migrating Community Metrics to Orbit using n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/sending-automated-congratulations-with-google-sheets-twilio-and-n8n/",
+                  "icon": "\ud83d\ude4c",
+                  "label": "Sending Automated Congratulations with Google Sheets, Twilio, and n8n "
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.merge/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Merge"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTc3XzUxOCkiPgo8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTAgNDhDMCAyMS40OTAzIDIxLjQ5MDMgMCA0OCAwSDExMkMxMzguNTEgMCAxNjAgMjEuNDkwMyAxNjAgNDhWNTZIMTk2LjI1MkMyNDAuNDM1IDU2IDI3Ni4yNTIgOTEuODE3MiAyNzYuMjUyIDEzNlYxOTJDMjc2LjI1MiAyMTQuMDkxIDI5NC4xNjEgMjMyIDMxNi4yNTIgMjMySDM1MlYyMjRDMzUyIDE5Ny40OSAzNzMuNDkgMTc2IDQwMCAxNzZINDY0QzQ5MC41MSAxNzYgNTEyIDE5Ny40OSA1MTIgMjI0VjI4OEM1MTIgMzE0LjUxIDQ5MC41MSAzMzYgNDY0IDMzNkg0MDBDMzczLjQ5IDMzNiAzNTIgMzE0LjUxIDM1MiAyODhWMjgwSDMxNi4yNTJDMjk0LjE2MSAyODAgMjc2LjI1MiAyOTcuOTA5IDI3Ni4yNTIgMzIwVjM3NkMyNzYuMjUyIDQyMC4xODMgMjQwLjQzNSA0NTYgMTk2LjI1MiA0NTZIMTYwVjQ2NEMxNjAgNDkwLjUxIDEzOC41MSA1MTIgMTEyIDUxMkg0OEMyMS40OTAzIDUxMiAwIDQ5MC41MSAwIDQ2NFY0MDBDMCAzNzMuNDkgMjEuNDkwMyAzNTIgNDggMzUySDExMkMxMzguNTEgMzUyIDE2MCAzNzMuNDkgMTYwIDQwMFY0MDhIMTk2LjI1MkMyMTMuOTI1IDQwOCAyMjguMjUyIDM5My42NzMgMjI4LjI1MiAzNzZWMzIwQzIyOC4yNTIgMjk0Ljc4NCAyMzguODU5IDI3Mi4wNDQgMjU1Ljg1MyAyNTZDMjM4Ljg1OSAyMzkuOTU2IDIyOC4yNTIgMjE3LjIxNiAyMjguMjUyIDE5MlYxMzZDMjI4LjI1MiAxMTguMzI3IDIxMy45MjUgMTA0IDE5Ni4yNTIgMTA0SDE2MFYxMTJDMTYwIDEzOC41MSAxMzguNTEgMTYwIDExMiAxNjBINDhDMjEuNDkwMyAxNjAgMCAxMzguNTEgMCAxMTJWNDhaTTEwNCA0OEMxMDguNDE4IDQ4IDExMiA1MS41ODE3IDExMiA1NlYxMDRDMTEyIDEwOC40MTggMTA4LjQxOCAxMTIgMTA0IDExMkg1NkM1MS41ODE3IDExMiA0OCAxMDguNDE4IDQ4IDEwNFY1NkM0OCA1MS41ODE3IDUxLjU4MTcgNDggNTYgNDhIMTA0Wk00NTYgMjI0QzQ2MC40MTggMjI0IDQ2NCAyMjcuNTgyIDQ2NCAyMzJWMjgwQzQ2NCAyODQuNDE4IDQ2MC40MTggMjg4IDQ1NiAyODhINDA4QzQwMy41ODIgMjg4IDQwMCAyODQuNDE4IDQwMCAyODBWMjMyQzQwMCAyMjcuNTgyIDQwMy41ODIgMjI0IDQwOCAyMjRINDU2Wk0xMTIgNDA4QzExMiA0MDMuNTgyIDEwOC40MTggNDAwIDEwNCA0MDBINTZDNTEuNTgxNyA0MDAgNDggNDAzLjU4MiA0OCA0MDhWNDU2QzQ4IDQ2MC40MTggNTEuNTgxNyA0NjQgNTYgNDY0SDEwNEMxMDguNDE4IDQ2NCAxMTIgNDYwLjQxOCAxMTIgNDU2VjQwOFoiIGZpbGw9IiM1NEI4QzkiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTc3XzUxOCI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Merge",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 40,
+        "icon": "file:slack.svg",
+        "name": "n8n-nodes-base.slack",
+        "codex": {
+          "data": {
+            "alias": [
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-automatically-give-kudos-to-contributors-with-github-slack-and-n8n/",
+                  "icon": "\ud83d\udc4f",
+                  "label": "How to automatically give kudos to contributors with GitHub, Slack, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.slack/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/slack/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "Slack"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgMTUwLjg1MiAxNTAuODUyIj48dXNlIHhsaW5rOmhyZWY9IiNhIiB4PSIuOTI2IiB5PSIuOTI2Ii8+PHN5bWJvbCBpZD0iYSIgb3ZlcmZsb3c9InZpc2libGUiPjxnIHN0cm9rZS13aWR0aD0iMS44NTIiPjxwYXRoIGZpbGw9IiNlMDFlNWEiIHN0cm9rZT0iI2UwMWU1YSIgZD0iTTQwLjc0MSA5My41NWMwLTguNzM1IDYuNjA3LTE1Ljc3MiAxNC44MTUtMTUuNzcyczE0LjgxNSA3LjAzNyAxNC44MTUgMTUuNzcydjM4LjgyNGMwIDguNzM3LTYuNjA3IDE1Ljc3NC0xNC44MTUgMTUuNzc0cy0xNC44MTUtNy4wMzctMTQuODE1LTE1Ljc3MnoiLz48cGF0aCBmaWxsPSIjZWNiMjJkIiBzdHJva2U9IiNlY2IyMmQiIGQ9Ik05My41NSAxMDcuNDA4Yy04LjczNSAwLTE1Ljc3Mi02LjYwNy0xNS43NzItMTQuODE1czcuMDM3LTE0LjgxNSAxNS43NzItMTQuODE1aDM4LjgyNmM4LjczNSAwIDE1Ljc3MiA2LjYwNyAxNS43NzIgMTQuODE1cy03LjAzNyAxNC44MTUtMTUuNzcyIDE0LjgxNXoiLz48cGF0aCBmaWxsPSIjMmZiNjdjIiBzdHJva2U9IiMyZmI2N2MiIGQ9Ik03Ny43NzggMTUuNzcyQzc3Ljc3OCA3LjAzNyA4NC4zODUgMCA5Mi41OTMgMHMxNC44MTUgNy4wMzcgMTQuODE1IDE1Ljc3MnYzOC44MjZjMCA4LjczNS02LjYwNyAxNS43NzItMTQuODE1IDE1Ljc3MnMtMTQuODE1LTcuMDM3LTE0LjgxNS0xNS43NzJ6Ii8+PHBhdGggZmlsbD0iIzM2YzVmMSIgc3Ryb2tlPSIjMzZjNWYxIiBkPSJNMTUuNzcyIDcwLjM3MUM3LjAzNyA3MC4zNzEgMCA2My43NjMgMCA1NS41NTZzNy4wMzctMTQuODE1IDE1Ljc3Mi0xNC44MTVoMzguODI2YzguNzM1IDAgMTUuNzcyIDYuNjA3IDE1Ljc3MiAxNC44MTVzLTcuMDM3IDE0LjgxNS0xNS43NzIgMTQuODE1eiIvPjxnIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiPjxwYXRoIGZpbGw9IiNlY2IyMmQiIHN0cm9rZT0iI2VjYjIyZCIgZD0iTTc3Ljc3OCAxMzMuMzMzYzAgOC4yMDggNi42MDcgMTQuODE1IDE0LjgxNSAxNC44MTVzMTQuODE1LTYuNjA3IDE0LjgxNS0xNC44MTUtNi42MDctMTQuODE1LTE0LjgxNS0xNC44MTVINzcuNzc4eiIvPjxwYXRoIGZpbGw9IiMyZmI2N2MiIHN0cm9rZT0iIzJmYjY3YyIgZD0iTTEzMy4zMzQgNzAuMzcxaC0xNC44MTVWNTUuNTU2YzAtOC4yMDcgNi42MDctMTQuODE1IDE0LjgxNS0xNC44MTVzMTQuODE1IDYuNjA3IDE0LjgxNSAxNC44MTUtNi42MDcgMTQuODE1LTE0LjgxNSAxNC44MTV6Ii8+PHBhdGggZmlsbD0iI2UwMWU1YSIgc3Ryb2tlPSIjZTAxZTVhIiBkPSJNMTQuODE1IDc3Ljc3OEgyOS42M3YxNC44MTVjMCA4LjIwNy02LjYwNyAxNC44MTUtMTQuODE1IDE0LjgxNVMwIDEwMC44IDAgOTIuNTkzczYuNjA3LTE0LjgxNSAxNC44MTUtMTQuODE1eiIvPjxwYXRoIGZpbGw9IiMzNmM1ZjEiIHN0cm9rZT0iIzM2YzVmMSIgZD0iTTcwLjM3MSAxNC44MTVWMjkuNjNINTUuNTU2Yy04LjIwNyAwLTE0LjgxNS02LjYwNy0xNC44MTUtMTQuODE1UzQ3LjM0OCAwIDU1LjU1NiAwczE0LjgxNSA2LjYwNyAxNC44MTUgMTQuODE1eiIvPjwvZz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Slack",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 834,
+        "icon": "file:code.svg",
+        "name": "n8n-nodes-base.code",
+        "codex": {
+          "data": {
+            "alias": [
+              "cpde",
+              "Javascript",
+              "JS",
+              "Python",
+              "Script",
+              "Custom Code",
+              "Function"
+            ],
+            "details": "The Code node allows you to execute JavaScript in your workflow.",
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.code/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers",
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Code"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8xMTcxXzQ0MSkiPgo8cGF0aCBkPSJNMTcwLjI4MyA0OEgxOTYuNUMyMDMuMTI3IDQ4IDIwOC41IDQyLjYyNzQgMjA4LjUgMzZWMTJDMjA4LjUgNS4zNzI1OCAyMDMuMTI3IDAgMTk2LjUgMEgxNzAuMjgzQzEyNi4xIDAgOTAuMjgzIDM1LjgxNzIgOTAuMjgzIDgwVjE3NkM5MC4yODMgMjA2LjkyOCA2NS4yMTA5IDIzMiAzNC4yODMgMjMySDIzQzE2LjM3MjYgMjMyIDExIDIzNy4zNzIgMTEgMjQ0VjI2OEMxMSAyNzQuNjI3IDE2LjM3MjQgMjgwIDIyLjk5OTYgMjgwTDM0LjI4MyAyODBDNjUuMjEwOSAyODAgOTAuMjgzIDMwNS4wNzIgOTAuMjgzIDMzNlY0NDBDOTAuMjgzIDQ3OS43NjQgMTIyLjUxOCA1MTIgMTYyLjI4MyA1MTJIMTk2LjVDMjAzLjEyNyA1MTIgMjA4LjUgNTA2LjYyNyAyMDguNSA1MDBWNDc2QzIwOC41IDQ2OS4zNzMgMjAzLjEyNyA0NjQgMTk2LjUgNDY0SDE2Mi4yODNDMTQ5LjAyOCA0NjQgMTM4LjI4MyA0NTMuMjU1IDEzOC4yODMgNDQwVjMzNkMxMzguMjgzIDMwOS4wMjIgMTI4LjAxMSAyODQuNDQzIDExMS4xNjQgMjY1Ljk2MUMxMDYuMTA5IDI2MC40MTYgMTA2LjEwOSAyNTEuNTg0IDExMS4xNjQgMjQ2LjAzOUMxMjguMDExIDIyNy41NTcgMTM4LjI4MyAyMDIuOTc4IDEzOC4yODMgMTc2VjgwQzEzOC4yODMgNjIuMzI2OSAxNTIuNjEgNDggMTcwLjI4MyA0OFoiIGZpbGw9IiNGRjk5MjIiLz4KPHBhdGggZD0iTTMwNSAzNkMzMDUgNDIuNjI3NCAzMTAuMzczIDQ4IDMxNyA0OEgzNDIuOTc5QzM2MC42NTIgNDggMzc0Ljk3OCA2Mi4zMjY5IDM3NC45NzggODBWMTc2QzM3NC45NzggMjAyLjk3OCAzODUuMjUxIDIyNy41NTcgNDAyLjA5OCAyNDYuMDM5QzQwNy4xNTMgMjUxLjU4NCA0MDcuMTUzIDI2MC40MTYgNDAyLjA5OCAyNjUuOTYxQzM4NS4yNTEgMjg0LjQ0MyAzNzQuOTc4IDMwOS4wMjIgMzc0Ljk3OCAzMzZWNDMyQzM3NC45NzggNDQ5LjY3MyAzNjAuNjUyIDQ2NCAzNDIuOTc5IDQ2NEgzMTdDMzEwLjM3MyA0NjQgMzA1IDQ2OS4zNzMgMzA1IDQ3NlY1MDBDMzA1IDUwNi42MjcgMzEwLjM3MyA1MTIgMzE3IDUxMkgzNDIuOTc5QzM4Ny4xNjEgNTEyIDQyMi45NzggNDc2LjE4MyA0MjIuOTc4IDQzMlYzMzZDNDIyLjk3OCAzMDUuMDcyIDQ0OC4wNTEgMjgwIDQ3OC45NzkgMjgwSDQ5MEM0OTYuNjI3IDI4MCA1MDIgMjc0LjYyOCA1MDIgMjY4VjI0NEM1MDIgMjM3LjM3MyA0OTYuNjI4IDIzMiA0OTAgMjMyTDQ3OC45NzkgMjMyQzQ0OC4wNTEgMjMyIDQyMi45NzggMjA2LjkyOCA0MjIuOTc4IDE3NlY4MEM0MjIuOTc4IDM1LjgxNzIgMzg3LjE2MSAwIDM0Mi45NzkgMEgzMTdDMzEwLjM3MyAwIDMwNSA1LjM3MjU4IDMwNSAxMlYzNloiIGZpbGw9IiNGRjk5MjIiLz4KPC9nPgo8ZGVmcz4KPGNsaXBQYXRoIGlkPSJjbGlwMF8xMTcxXzQ0MSI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
+        },
+        "displayName": "Code",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 838,
+        "icon": "fa:mouse-pointer",
+        "name": "n8n-nodes-base.manualTrigger",
+        "codex": {
+          "data": {
+            "resources": {
+              "generic": [],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.manualworkflowtrigger/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "When clicking \u2018Execute workflow\u2019",
+          "color": "#909298"
+        },
+        "iconData": {
+          "icon": "mouse-pointer",
+          "type": "icon"
+        },
+        "displayName": "Manual Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1119,
+        "icon": "fa:robot",
+        "name": "@n8n/n8n-nodes-langchain.agent",
+        "codex": {
+          "data": {
+            "alias": [
+              "LangChain",
+              "Chat",
+              "Conversational",
+              "Plan and Execute",
+              "ReAct",
+              "Tools"
+            ],
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Agents",
+                "Root Nodes"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "AI Agent",
+          "color": "#404040"
+        },
+        "iconData": {
+          "icon": "robot",
+          "type": "icon"
+        },
+        "displayName": "AI Agent",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      },
+      {
+        "id": 1153,
+        "icon": "file:openAiLight.svg",
+        "name": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.lmchatopenai/"
+                }
+              ]
+            },
+            "categories": [
+              "AI",
+              "Langchain"
+            ],
+            "subcategories": {
+              "AI": [
+                "Language Models",
+                "Root Nodes"
+              ],
+              "Language Models": [
+                "Chat Models (Recommended)"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "OpenAI Chat Model"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTM2Ljg2NzEgMTYuMzcxOEMzNy43NzQ2IDEzLjY0OCAzNy40NjIxIDEwLjY2NDIgMzYuMDEwOCA4LjE4NjYxQzMzLjgyODIgNC4zODY1MyAyOS40NDA3IDIuNDMxNDkgMjUuMTU1NiAzLjM1MTUxQzIzLjI0OTMgMS4yMDM5NiAyMC41MTA1IC0wLjAxNzMxNDggMTcuNjM5MiAwLjAwMDE4NTUzM0MxMy4yNTkxIC0wLjAwOTgxNDY4IDkuMzcyNzMgMi44MTAyNSA4LjAyNTIgNi45Nzc4M0M1LjIxMTM5IDcuNTU0MSAyLjc4MjU4IDkuMzE1MzggMS4zNjEzIDExLjgxMTdDLTAuODM3NDkzIDE1LjYwMTggLTAuMzM2MjMyIDIwLjM3OTQgMi42MDEzMyAyMy42Mjk0QzEuNjkzODEgMjYuMzUzMiAyLjAwNjMyIDI5LjMzNzEgMy40NTc2IDMxLjgxNDZDNS42NDAxNSAzNS42MTQ3IDEwLjAyNzcgMzcuNTY5NyAxNC4zMTI4IDM2LjY0OTdDMTYuMjE3OSAzOC43OTczIDE4Ljk1NzkgNDAuMDE4NSAyMS44MjkyIDM5Ljk5OThDMjYuMjExOCA0MC4wMTEgMzAuMDk5NCAzNy4xODg1IDMxLjQ0NjkgMzMuMDE3MUMzNC4yNjA4IDMyLjQ0MDkgMzYuNjg5NiAzMC42Nzk2IDM4LjExMDggMjguMTgzM0M0MC4zMDcxIDI0LjM5MzIgMzkuODA0NiAxOS42MTk0IDM2Ljg2ODMgMTYuMzY5M0wzNi44NjcxIDE2LjM3MThaTTIxLjgzMTcgMzcuMzg2QzIwLjA3OCAzNy4zODg1IDE4LjM3OTIgMzYuNzc0NyAxNy4wMzI5IDM1LjY1MDlDMTcuMDk0MSAzNS42MTg0IDE3LjIwMDQgMzUuNTU5NyAxNy4yNjkxIDM1LjUxNzJMMjUuMjM0MyAzMC45MTcxQzI1LjY0MTggMzAuNjg1OCAyNS44OTE4IDMwLjI1MjEgMjUuODg5MyAyOS43ODMzVjE4LjU1NDNMMjkuMjU1NyAyMC40OTgxQzI5LjI5MTkgMjAuNTE1NiAyOS4zMTU3IDIwLjU1MDYgMjkuMzIwNyAyMC41OTA2VjI5Ljg4OTZDMjkuMzE1NyAzNC4wMjQ3IDI1Ljk2NjggMzcuMzc3MiAyMS44MzE3IDM3LjM4NlpNNS43MjY0IDMwLjUwNzFDNC44NDc2MyAyOC45ODk2IDQuNTMxMzcgMjcuMjEwOCA0LjgzMjYzIDI1LjQ4NDVDNC44OTEzOCAyNS41MTk1IDQuOTk1MTMgMjUuNTgzMiA1LjA2ODg4IDI1LjYyNTdMMTMuMDM0MSAzMC4yMjU4QzEzLjQzNzggMzAuNDYyMSAxMy45Mzc4IDMwLjQ2MjEgMTQuMzQyOCAzMC4yMjU4TDI0LjA2NjggMjQuNjEwN1YyOC40OTgzQzI0LjA2OTMgMjguNTM4MyAyNC4wNTA1IDI4LjU3NyAyNC4wMTkzIDI4LjYwMkwxNS45Njc5IDMzLjI1MDlDMTIuMzgxNSAzNS4zMTU5IDcuODAxNDQgMzQuMDg4NCA1LjcyNzY1IDMwLjUwNzFINS43MjY0Wk0zLjYzMDEgMTMuMTIwNUM0LjUwNTEyIDExLjYwMDQgNS44ODY0IDEwLjQzNzkgNy41MzE0NCA5LjgzNDE1QzcuNTMxNDQgOS45MDI5IDcuNTI3NjkgMTAuMDI0MiA3LjUyNzY5IDEwLjEwOTJWMTkuMzEwNkM3LjUyNTE5IDE5Ljc3ODEgNy43NzUxOSAyMC4yMTE5IDguMTgxNDUgMjAuNDQzMUwxNy45MDU0IDI2LjA1N0wxNC41MzkxIDI4LjAwMDhDMTQuNTA1MyAyOC4wMjMzIDE0LjQ2MjggMjguMDI3IDE0LjQyNTMgMjguMDEwOEw2LjM3MjY2IDIzLjM1ODJDMi43OTM4MyAyMS4yODU2IDEuNTY2MzEgMTYuNzA2OCAzLjYyODg1IDEzLjEyMTdMMy42MzAxIDEzLjEyMDVaTTMxLjI4ODIgMTkuNTU2OUwyMS41NjQyIDEzLjk0MTdMMjQuOTMwNiAxMS45OTkyQzI0Ljk2NDMgMTEuOTc2NyAyNS4wMDY4IDExLjk3MjkgMjUuMDQ0MyAxMS45ODkyTDMzLjA5NyAxNi42MzhDMzYuNjgyMSAxOC43MDkzIDM3LjkxMDggMjMuMjk1NyAzNS44Mzk1IDI2Ljg4MDhDMzQuOTYzMyAyOC4zOTgzIDMzLjU4MzIgMjkuNTYwOCAzMS45Mzk1IDMwLjE2NThWMjAuNjg5NEMzMS45NDMyIDIwLjIyMTkgMzEuNjk0NSAxOS43ODk0IDMxLjI4OTQgMTkuNTU2OUgzMS4yODgyWk0zNC42MzgzIDE0LjUxNDJDMzQuNTc5NSAxNC40NzggMzQuNDc1OCAxNC40MTU1IDM0LjQwMiAxNC4zNzNMMjYuNDM2OCA5Ljc3Mjg5QzI2LjAzMzEgOS41MzY2NCAyNS41MzMxIDkuNTM2NjQgMjUuMTI4MSA5Ljc3Mjg5TDE1LjQwNDEgMTUuMzg4VjExLjUwMDRDMTUuNDAxNiAxMS40NjA0IDE1LjQyMDQgMTEuNDIxNyAxNS40NTE2IDExLjM5NjdMMjMuNTAzIDYuNzUxNThDMjcuMDg5NCA0LjY4Mjc5IDMxLjY3NDUgNS45MTQwNiAzMy43NDIgOS41MDE2NEMzNC42MTU4IDExLjAxNjcgMzQuOTMyIDEyLjc5MDUgMzQuNjM1OCAxNC41MTQySDM0LjYzODNaTTEzLjU3NDEgMjEuNDQzMUwxMC4yMDY1IDE5LjQ5OTRDMTAuMTcwMiAxOS40ODE5IDEwLjE0NjUgMTkuNDQ2OCAxMC4xNDE1IDE5LjQwNjhWMTAuMTA3OUMxMC4xNDQgNS45Njc4MSAxMy41MDI4IDIuNjEyNzQgMTcuNjQyOSAyLjYxNTI0QzE5LjM5NDIgMi42MTUyNCAyMS4wODkyIDMuMjMwMjUgMjIuNDM1NSA0LjM1MDI4QzIyLjM3NDMgNC4zODI3OCAyMi4yNjkzIDQuNDQxNTMgMjIuMTk5MiA0LjQ4NDAzTDE0LjIzNDEgOS4wODQxM0MxMy44MjY2IDkuMzE1MzggMTMuNTc2NiA5Ljc0Nzg5IDEzLjU3OTEgMTAuMjE2N0wxMy41NzQxIDIxLjQ0MDZWMjEuNDQzMVpNMTUuNDAyOSAxNy41MDA2TDE5LjczNDIgMTQuOTk5M0wyNC4wNjU1IDE3LjQ5OTNWMjIuNTAwN0wxOS43MzQyIDI1LjAwMDdMMTUuNDAyOSAyMi41MDA3VjE3LjUwMDZaIiBmaWxsPSIjN0Q3RDg3Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "OpenAI Chat Model",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 25,
+            "name": "AI"
+          },
+          {
+            "id": 26,
+            "name": "Langchain"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 39,
+        "name": "CRM"
+      },
+      {
+        "id": 49,
+        "name": "AI Summarization"
+      }
+    ],
+    "image": [
+      {
+        "id": 6265,
+        "url": "https://n8niostorageaccount.blob.core.windows.net/n8nio-strapi-blobs-prod/assets/PICC_7a5ab6ea88.png"
+      }
+    ]
+  }
+}

@@ -1,0 +1,1641 @@
+{
+  "workflow": {
+    "id": 15677,
+    "name": "Qualify and book Facebook leads with ElevenLabs voice calls, Cal, Supabase, Slack and Gmail",
+    "views": 0,
+    "recentViews": 0,
+    "totalViews": 0,
+    "createdAt": "2026-05-12T22:17:42.150Z",
+    "description": "## How it Works\nAs soon as a new lead fills out your form through facebook ads, the data gets sent to n8n immediately and saved to Supabase. Then an outbound call gets triggered instantly to qualify the lead and book a meeting if applicable. As soon as this step is completed, a slack and email notification is sent to the team\n\n## Set up steps\n1. download and import workflow into n8n\n2. Add credentials for Facebook, Eleven Labs, Cal, Supabase, Slack and Gmail\n3. Run workflow node by node and edit accordingly\n\n## Requirements\n1. Facebook Account: Includes facebook ads account, business page, Facebook leads form\n2. Eleven Labs Account\n3. Cal Account\n4. Supabase Account\n5. Slack Account\n6. Gmail Account\n\n## Who this is for\n\nThis is for any business running facebook ads and wants to qualify leads and book appointment with qualified leads using voice agents.",
+    "workflow": {
+      "id": "qbCAZbU6AXojolG4",
+      "meta": {
+        "instanceId": "1f1dbfff2c6e25e1398f4a179f7aa5b3c814c449eaf84a0d01ff3f9badad83b1"
+      },
+      "name": "Facebook Lead Qualification with AI",
+      "tags": [],
+      "nodes": [
+        {
+          "id": "4a4c481a-e26d-4f29-9206-d5ce09f56762",
+          "name": "Setup Guide",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            800,
+            448
+          ],
+          "parameters": {
+            "width": 704,
+            "height": 880,
+            "content": "## Qualify and Book leads Instantly with Eleven Labs and Cal\n\n### How it works\nAs soon as a new lead fills out your form through facebook ads, the data gets sent to n8n immediately and saved to Supabase. Then an outbound call gets triggered instantly to qualify the lead and book a meeting if applicable. As soon as this step is completed, a slack and email notification is sent to the team\n\n\n### Requirements\n1. Facebook Account: Includes facebook ads account, business page, Facebook leads form\n2. Eleven labs Account\n3. Cal Account\n4. Supabase Account\n5. Slack Account\n6. Gmail Account\n\n\n### Set up steps\n1. Download and import workflow into n8n\n2. Add credentials for Facebook, Eleven Labs, Cal, Supabase, Slack and Gmail\n3. Run workflow node by node and edit accordingly including facebook form, supabase, eleven labs, slack and Gmail\n\n\n### Who this is for\nThis is for any business running facebook ads and wants to qualify leads and book appointment with qualified leads using voice agents."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "5ffe8eb9-712d-46e6-aa0d-54f244177888",
+          "name": "Workflow A Header",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1744,
+            416
+          ],
+          "parameters": {
+            "color": 4,
+            "width": 1316,
+            "height": 264,
+            "content": "## Workflow A: Lead Intake & Outbound Call Trigger\n\nFires real-time when a new Facebook lead arrives. Saves the lead, then initiates an AI voice call within seconds."
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "154a032a-70f4-40e2-b3f8-e3d0aebc8f34",
+          "name": "Facebook Lead Ads",
+          "type": "n8n-nodes-base.facebookLeadAdsTrigger",
+          "position": [
+            1824,
+            496
+          ],
+          "webhookId": "4756b0ff-46a1-46dc-911b-59811f6f795d",
+          "parameters": {
+            "form": {
+              "__rl": true,
+              "mode": "list",
+              "value": "__YOUR_FB_FORM_ID__",
+              "cachedResultName": "__YOUR_FB_FORM_NAME__"
+            },
+            "page": {
+              "__rl": true,
+              "mode": "list",
+              "value": "__YOUR_FB_PAGE_ID__",
+              "cachedResultUrl": "__YOUR_FB_PAGE_URL__",
+              "cachedResultName": "__YOUR_FB_PAGE_NAME__"
+            },
+            "options": {}
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "b7555e27-9e5f-405e-a284-4fb5bebed775",
+          "name": "Format Lead Data",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            2048,
+            496
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "1",
+                  "name": "fb_lead_id",
+                  "type": "string",
+                  "value": "={{ $json.id }}"
+                },
+                {
+                  "id": "2",
+                  "name": "full_name",
+                  "type": "string",
+                  "value": "={{ $json.data.full_name }}"
+                },
+                {
+                  "id": "3",
+                  "name": "email",
+                  "type": "string",
+                  "value": "={{ $json.data.email }}"
+                },
+                {
+                  "id": "4",
+                  "name": "phone",
+                  "type": "string",
+                  "value": "={{ $json.data.phone_number }}"
+                },
+                {
+                  "id": "5",
+                  "name": "company_name",
+                  "type": "string",
+                  "value": "={{ $json.data.company_name }}"
+                },
+                {
+                  "id": "6",
+                  "name": "status",
+                  "type": "string",
+                  "value": "new"
+                },
+                {
+                  "id": "7",
+                  "name": "fb_form_id",
+                  "type": "string",
+                  "value": "={{ $json.form_id }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "4822165e-a351-4f54-b051-69e409a20cb6",
+          "name": "Insert Lead",
+          "type": "n8n-nodes-base.supabase",
+          "position": [
+            2256,
+            496
+          ],
+          "parameters": {
+            "tableId": "leads",
+            "dataToSend": "autoMapInputData"
+          },
+          "credentials": {
+            "supabaseApi": {
+              "id": "nzgETzBSB2REwEd3",
+              "name": "Supabase account"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "904cab84-6343-4c1a-bcd5-32c61a50da0f",
+          "name": "Trigger ElevenLabs Call",
+          "type": "n8n-nodes-base.httpRequest",
+          "position": [
+            2464,
+            496
+          ],
+          "parameters": {
+            "url": "https://api.elevenlabs.io/v1/convai/twilio/outbound-call",
+            "method": "POST",
+            "options": {},
+            "jsonBody": "={\n  \"agent_id\": \"__YOUR_ELEVENLABS_AGENT_ID__\",\n  \"agent_phone_number_id\": \"__YOUR_ELEVENLABS_PHONE_NUMBER_ID__\",\n  \"to_number\": \"{{ $('Facebook Lead Ads').item.json.data.phone_number }}\",\n  \"conversation_initiation_client_data\": {\n    \"dynamic_variables\": {\n      \"full_name\": \"{{ $('Facebook Lead Ads').item.json.data.full_name }}\",\n      \"company_name\": \"{{ $('Facebook Lead Ads').item.json.data.company_name }}\",\n      \"email\": \"{{ $('Facebook Lead Ads').item.json.data.email }}\"\n    }\n  }\n}",
+            "sendBody": true,
+            "sendHeaders": true,
+            "specifyBody": "json",
+            "authentication": "genericCredentialType",
+            "genericAuthType": "httpHeaderAuth",
+            "headerParameters": {
+              "parameters": [
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          },
+          "typeVersion": 4.4
+        },
+        {
+          "id": "cd80ecb3-8975-4bb8-97f2-75d8692ae970",
+          "name": "Save Call ID",
+          "type": "n8n-nodes-base.supabase",
+          "position": [
+            2672,
+            496
+          ],
+          "parameters": {
+            "filters": {
+              "conditions": [
+                {
+                  "keyName": "=fb_lead_id",
+                  "keyValue": "={{ $('Facebook Lead Ads').item.json.id }}",
+                  "condition": "eq"
+                }
+              ]
+            },
+            "tableId": "leads",
+            "fieldsUi": {
+              "fieldValues": [
+                {
+                  "fieldId": "call_id",
+                  "fieldValue": "={{ $json.conversation_id }}"
+                },
+                {
+                  "fieldId": "call_status",
+                  "fieldValue": "in_progress"
+                },
+                {
+                  "fieldId": "status",
+                  "fieldValue": "calling"
+                },
+                {
+                  "fieldId": "call_started_at",
+                  "fieldValue": "={{ new Date().toISOString() }}"
+                }
+              ]
+            },
+            "operation": "update"
+          },
+          "credentials": {
+            "supabaseApi": {
+              "id": "nzgETzBSB2REwEd3",
+              "name": "Supabase account"
+            }
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "4d20cca7-b2f6-4a48-a545-fb62f2959f8f",
+          "name": "Workflow B Header",
+          "type": "n8n-nodes-base.stickyNote",
+          "position": [
+            1744,
+            752
+          ],
+          "parameters": {
+            "color": 3,
+            "width": 1884,
+            "height": 700,
+            "content": "## Workflow B: Post-Call Analysis & Team Notification\n\n1. Listens for post-call webhook from ElevenLabs\n2. Extracts call analysis (qualification, booking, transcript, summary)\n3. Updates the lead row with full call data\n4. Branches based on appointment booking outcome\n5. Sends rich Slack message + Email notification with summary and transcript"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "b59240f6-076e-4871-b7c4-b4b2da69dc3d",
+          "name": "ElevenLabs Webhook",
+          "type": "n8n-nodes-base.webhook",
+          "position": [
+            1824,
+            1024
+          ],
+          "webhookId": "7de51b12-584c-413b-828b-69865329fd58",
+          "parameters": {
+            "path": "elevenlabs-call-complete",
+            "options": {
+              "rawBody": true,
+              "responseCode": {
+                "values": {}
+              }
+            },
+            "httpMethod": "POST"
+          },
+          "typeVersion": 2.1
+        },
+        {
+          "id": "aef74189-b1e8-4987-8a37-4591cecd203c",
+          "name": "Extract Call Data",
+          "type": "n8n-nodes-base.set",
+          "position": [
+            2032,
+            1024
+          ],
+          "parameters": {
+            "options": {},
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "f1",
+                  "name": "conversation_id",
+                  "type": "string",
+                  "value": "={{ $json.body.data.conversation_id }}"
+                },
+                {
+                  "id": "f2",
+                  "name": "call_sid",
+                  "type": "string",
+                  "value": "={{ $json.body.data.metadata.phone_call.call_sid }}"
+                },
+                {
+                  "id": "f3",
+                  "name": "phone_called",
+                  "type": "string",
+                  "value": "={{ $json.body.data.metadata.phone_call.external_number }}"
+                },
+                {
+                  "id": "f4",
+                  "name": "call_duration_secs",
+                  "type": "number",
+                  "value": "={{ $json.body.data.metadata.call_duration_secs }}"
+                },
+                {
+                  "id": "f5",
+                  "name": "call_terminate_reason",
+                  "type": "string",
+                  "value": "={{ $json.body.data.metadata.termination_reason }}"
+                },
+                {
+                  "id": "f6",
+                  "name": "call_successful",
+                  "type": "string",
+                  "value": "={{ $json.body.data.analysis.call_successful }}"
+                },
+                {
+                  "id": "f7",
+                  "name": "call_summary_title",
+                  "type": "string",
+                  "value": "={{ $json.body.data.analysis.call_summary_title }}"
+                },
+                {
+                  "id": "f8",
+                  "name": "call_summary",
+                  "type": "string",
+                  "value": "={{ $json.body.data.analysis.transcript_summary }}"
+                },
+                {
+                  "id": "f9",
+                  "name": "qualification_status",
+                  "type": "string",
+                  "value": "={{ $json.body.data.analysis.data_collection_results.qualification_status.value }}"
+                },
+                {
+                  "id": "f10",
+                  "name": "appointment_booked",
+                  "type": "string",
+                  "value": "={{ $json.body.data.analysis.evaluation_criteria_results.appointment_booked.result }}"
+                },
+                {
+                  "id": "f11",
+                  "name": "lead_qualified_result",
+                  "type": "string",
+                  "value": "={{ $json.body.data.analysis.evaluation_criteria_results.lead_qualified.result }}"
+                },
+                {
+                  "id": "f12",
+                  "name": "lead_name",
+                  "type": "string",
+                  "value": "={{ $json.body.data.conversation_initiation_client_data.dynamic_variables.full_name }}"
+                },
+                {
+                  "id": "f13",
+                  "name": "lead_email",
+                  "type": "string",
+                  "value": "={{ $json.body.data.conversation_initiation_client_data.dynamic_variables.email }}"
+                },
+                {
+                  "id": "f14",
+                  "name": "lead_company",
+                  "type": "string",
+                  "value": "={{ $json.body.data.conversation_initiation_client_data.dynamic_variables.company_name }}"
+                },
+                {
+                  "id": "f15",
+                  "name": "call_started_at",
+                  "type": "string",
+                  "value": "={{ new Date($json.body.data.metadata.start_time_unix_secs * 1000).toISOString() }}"
+                },
+                {
+                  "id": "f16",
+                  "name": "call_ended_at",
+                  "type": "string",
+                  "value": "={{ new Date(($json.body.data.metadata.start_time_unix_secs + $json.body.data.metadata.call_duration_secs) * 1000).toISOString() }}"
+                },
+                {
+                  "id": "f17",
+                  "name": "transcript_text",
+                  "type": "string",
+                  "value": "={{ $json.body.data.transcript.map(t => t.role.toUpperCase() + ': ' + t.message).join('\\n\\n') }}"
+                }
+              ]
+            }
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "35b51efd-daf4-4179-90f0-4879fc7e498b",
+          "name": "Update Lead Row",
+          "type": "n8n-nodes-base.supabase",
+          "position": [
+            2240,
+            1024
+          ],
+          "parameters": {
+            "filters": {
+              "conditions": [
+                {
+                  "keyName": "call_id",
+                  "keyValue": "={{ $json.conversation_id }}",
+                  "condition": "eq"
+                }
+              ]
+            },
+            "tableId": "leads",
+            "fieldsUi": {
+              "fieldValues": [
+                {
+                  "fieldId": "call_status",
+                  "fieldValue": "completed"
+                },
+                {
+                  "fieldId": "status",
+                  "fieldValue": "={{ $json.appointment_booked === 'success' ? 'booked' : ($json.qualification_status === 'qualified' ? 'qualified' : 'reviewed') }}"
+                },
+                {
+                  "fieldId": "call_started_at",
+                  "fieldValue": "={{ $json.call_started_at }}"
+                },
+                {
+                  "fieldId": "call_ended_at",
+                  "fieldValue": "={{ $json.call_ended_at }}"
+                },
+                {
+                  "fieldId": "call_duration_seconds",
+                  "fieldValue": "={{ $json.call_duration_secs }}"
+                },
+                {
+                  "fieldId": "transcript",
+                  "fieldValue": "={{ $json.transcript_text }}"
+                },
+                {
+                  "fieldId": "call_summary",
+                  "fieldValue": "={{ $json.call_summary }}"
+                },
+                {
+                  "fieldId": "sales_qualified",
+                  "fieldValue": "={{ $json.qualification_status }}"
+                },
+                {
+                  "fieldId": "appointment_booked",
+                  "fieldValue": "={{ $json.appointment_booked }}"
+                },
+                {
+                  "fieldId": "call_terminate_reason",
+                  "fieldValue": "={{ $json.call_terminate_reason }}"
+                },
+                {
+                  "fieldId": "call_successful",
+                  "fieldValue": "={{ $json.call_successful }}"
+                }
+              ]
+            },
+            "operation": "update"
+          },
+          "typeVersion": 1
+        },
+        {
+          "id": "4dfc9cca-07fc-4762-b791-526158481826",
+          "name": "Appointment Booked?",
+          "type": "n8n-nodes-base.switch",
+          "position": [
+            2448,
+            1024
+          ],
+          "parameters": {
+            "rules": {
+              "values": [
+                {
+                  "outputKey": "Appointment Booked",
+                  "conditions": {
+                    "options": {
+                      "version": 3,
+                      "leftValue": "",
+                      "caseSensitive": true,
+                      "typeValidation": "strict"
+                    },
+                    "combinator": "and",
+                    "conditions": [
+                      {
+                        "id": "cond-booked",
+                        "operator": {
+                          "type": "string",
+                          "operation": "equals"
+                        },
+                        "leftValue": "={{ $('Extract Call Data').item.json.appointment_booked }}",
+                        "rightValue": "success"
+                      }
+                    ]
+                  },
+                  "renameOutput": true
+                },
+                {
+                  "outputKey": "No Appointment Booked",
+                  "conditions": {
+                    "options": {
+                      "version": 3,
+                      "leftValue": "",
+                      "caseSensitive": true,
+                      "typeValidation": "strict"
+                    },
+                    "combinator": "and",
+                    "conditions": [
+                      {
+                        "id": "cond-not-booked",
+                        "operator": {
+                          "type": "string",
+                          "operation": "notEquals"
+                        },
+                        "leftValue": "={{ $('Extract Call Data').item.json.appointment_booked }}",
+                        "rightValue": "success"
+                      }
+                    ]
+                  },
+                  "renameOutput": true
+                }
+              ]
+            },
+            "options": {}
+          },
+          "typeVersion": 3.4
+        },
+        {
+          "id": "c8cb31f0-a197-43f0-ac0c-5b0b95bc53be",
+          "name": "Slack: Booked",
+          "type": "n8n-nodes-base.slack",
+          "position": [
+            2672,
+            912
+          ],
+          "webhookId": "7ecd102c-b297-4ee1-9de2-6f427d300b8a",
+          "parameters": {
+            "select": "channel",
+            "channelId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "__YOUR_SLACK_CHANNEL_ID__",
+              "cachedResultName": "__YOUR_SLACK_CHANNEL_NAME__"
+            },
+            "otherOptions": {}
+          },
+          "typeVersion": 2.4
+        },
+        {
+          "id": "0365830d-cebf-435b-8c4d-5a47c008b6e7",
+          "name": "Slack: Not Booked",
+          "type": "n8n-nodes-base.slack",
+          "position": [
+            2672,
+            1136
+          ],
+          "webhookId": "71a7886b-81ee-480f-8774-33e791395254",
+          "parameters": {
+            "select": "channel",
+            "channelId": {
+              "__rl": true,
+              "mode": "list",
+              "value": "__YOUR_SLACK_CHANNEL_ID__",
+              "cachedResultName": "__YOUR_SLACK_CHANNEL_NAME__"
+            },
+            "otherOptions": {}
+          },
+          "typeVersion": 2.4
+        },
+        {
+          "id": "bd5eadda-2a61-41aa-a10b-8c3140ab1007",
+          "name": "Email: Booked",
+          "type": "n8n-nodes-base.gmail",
+          "position": [
+            2880,
+            912
+          ],
+          "webhookId": "58d3ade8-e162-47d8-8953-e90dae90e2d0",
+          "parameters": {
+            "sendTo": "__YOUR_NOTIFICATION_EMAIL__",
+            "message": "=<h2>\ud83c\udf89 Discovery Call Booked</h2>\n<table style=\"border-collapse: collapse; width: 100%;\">\n  <tr><td style=\"padding: 4px 12px 4px 0;\"><strong>Lead:</strong></td><td>{{ $('Extract Call Data').item.json.lead_name }}</td></tr>\n  <tr><td style=\"padding: 4px 12px 4px 0;\"><strong>Company:</strong></td><td>{{ $('Extract Call Data').item.json.lead_company }}</td></tr>\n  <tr><td style=\"padding: 4px 12px 4px 0;\"><strong>Email:</strong></td><td>{{ $('Extract Call Data').item.json.lead_email }}</td></tr>\n  <tr><td style=\"padding: 4px 12px 4px 0;\"><strong>Phone:</strong></td><td>{{ $('Extract Call Data').item.json.phone_called }}</td></tr>\n  <tr><td style=\"padding: 4px 12px 4px 0;\"><strong>Qualification:</strong></td><td>{{ $('Extract Call Data').item.json.qualification_status }}</td></tr>\n  <tr><td style=\"padding: 4px 12px 4px 0;\"><strong>Call Duration:</strong></td><td>{{ $('Extract Call Data').item.json.call_duration_secs }} seconds</td></tr>\n  <tr><td style=\"padding: 4px 12px 4px 0;\"><strong>Call Outcome:</strong></td><td>{{ $('Extract Call Data').item.json.call_successful }}</td></tr>\n</table>\n<h3>Call Summary</h3>\n<p>{{ $('Extract Call Data').item.json.call_summary }}</p>\n<h3>Full Transcript</h3>\n<pre style=\"background: #f5f5f5; padding: 12px; border-radius: 4px; white-space: pre-wrap;\">{{ $('Extract Call Data').item.json.transcript_text }}</pre>\n<hr>\n<p style=\"color: #888; font-size: 12px;\">Conversation ID: {{ $('Extract Call Data').item.json.conversation_id }}</p>",
+            "options": {
+              "appendAttribution": false
+            },
+            "subject": "=\ud83c\udf89 {{ $('Extract Call Data').item.json.lead_name }} ({{ $('Extract Call Data').item.json.lead_company }}) \u2014 Discovery Call Booked"
+          },
+          "typeVersion": 2.2
+        },
+        {
+          "id": "7cf76862-7bb5-4a07-bdd5-b1048fe2154a",
+          "name": "Email: Not Booked",
+          "type": "n8n-nodes-base.gmail",
+          "position": [
+            2880,
+            1136
+          ],
+          "webhookId": "2d4bbb4c-cd14-4f8e-9afc-cc9ee010ef04",
+          "parameters": {
+            "sendTo": "__YOUR_NOTIFICATION_EMAIL__",
+            "message": "=<h2>{{ $('Extract Call Data').item.json.qualification_status === 'qualified' ? '\ud83d\udd25 Hot Lead \u2014 Follow Up Today' : '\ud83d\udccb Call Completed' }}</h2>\n<table style=\"border-collapse: collapse; width: 100%;\">\n  <tr><td style=\"padding: 4px 12px 4px 0;\"><strong>Lead:</strong></td><td>{{ $('Extract Call Data').item.json.lead_name }}</td></tr>\n  <tr><td style=\"padding: 4px 12px 4px 0;\"><strong>Company:</strong></td><td>{{ $('Extract Call Data').item.json.lead_company }}</td></tr>\n  <tr><td style=\"padding: 4px 12px 4px 0;\"><strong>Email:</strong></td><td>{{ $('Extract Call Data').item.json.lead_email }}</td></tr>\n  <tr><td style=\"padding: 4px 12px 4px 0;\"><strong>Phone:</strong></td><td>{{ $('Extract Call Data').item.json.phone_called }}</td></tr>\n  <tr><td style=\"padding: 4px 12px 4px 0;\"><strong>Qualification:</strong></td><td>{{ $('Extract Call Data').item.json.qualification_status }}</td></tr>\n  <tr><td style=\"padding: 4px 12px 4px 0;\"><strong>Appointment Booked:</strong></td><td>No</td></tr>\n  <tr><td style=\"padding: 4px 12px 4px 0;\"><strong>Call Duration:</strong></td><td>{{ $('Extract Call Data').item.json.call_duration_secs }} seconds</td></tr>\n  <tr><td style=\"padding: 4px 12px 4px 0;\"><strong>Call Outcome:</strong></td><td>{{ $('Extract Call Data').item.json.call_successful }}</td></tr>\n  <tr><td style=\"padding: 4px 12px 4px 0;\"><strong>Termination Reason:</strong></td><td>{{ $('Extract Call Data').item.json.call_terminate_reason }}</td></tr>\n</table>\n<h3>Call Summary</h3>\n<p>{{ $('Extract Call Data').item.json.call_summary }}</p>\n<h3>Full Transcript</h3>\n<pre style=\"background: #f5f5f5; padding: 12px; border-radius: 4px; white-space: pre-wrap;\">{{ $('Extract Call Data').item.json.transcript_text }}</pre>\n<hr>\n<p style=\"color: #888; font-size: 12px;\">Conversation ID: {{ $('Extract Call Data').item.json.conversation_id }}</p>",
+            "options": {
+              "appendAttribution": false
+            },
+            "subject": "={{ $('Extract Call Data').item.json.qualification_status === 'qualified' ? '\ud83d\udd25 Hot Lead \u2014 ' : 'Call Completed \u2014 ' }}{{ $('Extract Call Data').item.json.lead_name }} ({{ $('Extract Call Data').item.json.lead_company }})"
+          },
+          "typeVersion": 2.2
+        }
+      ],
+      "active": false,
+      "pinData": {},
+      "settings": {
+        "binaryMode": "separate",
+        "executionOrder": "v1"
+      },
+      "versionId": "034d2a01-b128-4e41-99df-6caae7eca272",
+      "connections": {
+        "Insert Lead": {
+          "main": [
+            [
+              {
+                "node": "Trigger ElevenLabs Call",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Slack: Booked": {
+          "main": [
+            [
+              {
+                "node": "Email: Booked",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Update Lead Row": {
+          "main": [
+            [
+              {
+                "node": "Appointment Booked?",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Format Lead Data": {
+          "main": [
+            [
+              {
+                "node": "Insert Lead",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Extract Call Data": {
+          "main": [
+            [
+              {
+                "node": "Update Lead Row",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Facebook Lead Ads": {
+          "main": [
+            [
+              {
+                "node": "Format Lead Data",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Slack: Not Booked": {
+          "main": [
+            [
+              {
+                "node": "Email: Not Booked",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "ElevenLabs Webhook": {
+          "main": [
+            [
+              {
+                "node": "Extract Call Data",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Appointment Booked?": {
+          "main": [
+            [
+              {
+                "node": "Slack: Booked",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Slack: Not Booked",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Trigger ElevenLabs Call": {
+          "main": [
+            [
+              {
+                "node": "Save Call ID",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "lastUpdatedBy": 1,
+    "workflowInfo": {
+      "nodeCount": 16,
+      "nodeTypes": {
+        "n8n-nodes-base.set": {
+          "count": 2
+        },
+        "n8n-nodes-base.gmail": {
+          "count": 2
+        },
+        "n8n-nodes-base.slack": {
+          "count": 2
+        },
+        "n8n-nodes-base.switch": {
+          "count": 1
+        },
+        "n8n-nodes-base.webhook": {
+          "count": 1
+        },
+        "n8n-nodes-base.supabase": {
+          "count": 3
+        },
+        "n8n-nodes-base.stickyNote": {
+          "count": 3
+        },
+        "n8n-nodes-base.httpRequest": {
+          "count": 1
+        },
+        "n8n-nodes-base.facebookLeadAdsTrigger": {
+          "count": 1
+        }
+      }
+    },
+    "status": "published",
+    "readyToDemo": null,
+    "user": {
+      "name": "Johnpaul Nwagwu",
+      "username": "johnpaulnwagwu",
+      "bio": "Hi. I love solving business problems using automations that drive operational efficiency. If you would ever like to chat reach me at johnpaul@praxisolva.com",
+      "verified": false,
+      "links": [
+        ""
+      ],
+      "avatar": "https://gravatar.com/avatar/2fe334174853d8419e272c2634b28cd49917448cfb1d86d80b2a1439cfe547fa?r=pg&d=retro&size=200"
+    },
+    "nodes": [
+      {
+        "id": 19,
+        "icon": "file:httprequest.svg",
+        "name": "n8n-nodes-base.httpRequest",
+        "codex": {
+          "data": {
+            "alias": [
+              "API",
+              "Request",
+              "URL",
+              "Build",
+              "cURL"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/world-poetry-day-workflow/",
+                  "icon": "\ud83d\udcdc",
+                  "label": "Celebrating World Poetry Day with a daily poem in Telegram"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-designs-with-bannerbear-and-n8n/",
+                  "icon": "\ud83c\udfa8",
+                  "label": "Automate Designs with Bannerbear and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-use-the-http-request-node-the-swiss-army-knife-for-workflow-automation/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "How to use the HTTP Request Node - The Swiss Army Knife for Workflow Automation"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-scheduled-text-affirmations-with-n8n/",
+                  "icon": "\ud83e\udd1f",
+                  "label": "Creating scheduled text affirmations with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httprequest/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "HTTP Request",
+          "color": "#0004F5"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00MCAyMEM0MCA4Ljk1MzE0IDMxLjA0NjkgMCAyMCAwQzguOTUzMTQgMCAwIDguOTUzMTQgMCAyMEMwIDMxLjA0NjkgOC45NTMxNCA0MCAyMCA0MEMzMS4wNDY5IDQwIDQwIDMxLjA0NjkgNDAgMjBaTTIwIDM2Ljk0NThDMTguODg1MiAzNi45NDU4IDE3LjEzNzggMzUuOTY3IDE1LjQ5OTggMzIuNjk4NUMxNC43OTY0IDMxLjI5MTggMTQuMTk2MSAyOS41NDMxIDEzLjc1MjYgMjcuNjg0N0gyNi4xODk4QzI1LjgwNDUgMjkuNTQwMyAyNS4yMDQ0IDMxLjI5MDEgMjQuNTAwMiAzMi42OTg1QzIyLjg2MjIgMzUuOTY3IDIxLjExNDggMzYuOTQ1OCAyMCAzNi45NDU4Wk0xMi45MDY0IDIwQzEyLjkwNjQgMjEuNjA5NyAxMy4wMDg3IDIzLjE2NCAxMy4yMDAzIDI0LjYzMDVIMjYuNzk5N0MyNi45OTEzIDIzLjE2NCAyNy4wOTM2IDIxLjYwOTcgMjcuMDkzNiAyMEMyNy4wOTM2IDE4LjM5MDMgMjYuOTkxMyAxNi44MzYgMjYuNzk5NyAxNS4zNjk1SDEzLjIwMDNDMTMuMDA4NyAxNi44MzYgMTIuOTA2NCAxOC4zOTAzIDEyLjkwNjQgMjBaTTIwIDMuMDU0MTlDMjEuMTE0OSAzLjA1NDE5IDIyLjg2MjIgNC4wMzA3OCAyNC41MDAxIDcuMzAwMzlDMjUuMjA2NiA4LjcxNDA4IDI1LjgwNzIgMTAuNDA2NyAyNi4xOTIgMTIuMzE1M0gxMy43NTAxQzE0LjE5MzMgMTAuNDA0NyAxNC43OTQyIDguNzEyNTQgMTUuNDk5OCA3LjMwMDY0QzE3LjEzNzcgNC4wMzA4MyAxOC44ODUxIDMuMDU0MTkgMjAgMy4wNTQxOVpNMzAuMTQ3OCAyMEMzMC4xNDc4IDE4LjQwOTkgMzAuMDU0MyAxNi44NjE3IDI5LjgyMjcgMTUuMzY5NUgzNi4zMDQyQzM2LjcyNTIgMTYuODQyIDM2Ljk0NTggMTguMzk2NCAzNi45NDU4IDIwQzM2Ljk0NTggMjEuNjAzNiAzNi43MjUyIDIzLjE1OCAzNi4zMDQyIDI0LjYzMDVIMjkuODIyN0MzMC4wNTQzIDIzLjEzODMgMzAuMTQ3OCAyMS41OTAxIDMwLjE0NzggMjBaTTI2LjI3NjcgNC4yNTUxMkMyNy42MzY1IDYuMzYwMTkgMjguNzExIDkuMTMyIDI5LjM3NzQgMTIuMzE1M0gzNS4xMDQ2QzMzLjI1MTEgOC42NjggMzAuMTA3IDUuNzgzNDYgMjYuMjc2NyA0LjI1NTEyWk0xMC42MjI2IDEyLjMxNTNINC44OTI5M0M2Ljc1MTQ3IDguNjY3ODQgOS44OTM1MSA1Ljc4MzQxIDEzLjcyMzIgNC4yNTUxM0MxMi4zNjM1IDYuMzYwMjEgMTEuMjg5IDkuMTMyMDEgMTAuNjIyNiAxMi4zMTUzWk0zLjA1NDE5IDIwQzMuMDU0MTkgMjEuNjAzIDMuMjc3NDMgMjMuMTU3NSAzLjY5NDg0IDI0LjYzMDVIMTAuMTIxN0M5Ljk0NjE5IDIzLjE0MiA5Ljg1MjIyIDIxLjU5NDMgOS44NTIyMiAyMEM5Ljg1MjIyIDE4LjQwNTcgOS45NDYxOSAxNi44NTggMTAuMTIxNyAxNS4zNjk1SDMuNjk0ODRDMy4yNzc0MyAxNi44NDI1IDMuMDU0MTkgMTguMzk3IDMuMDU0MTkgMjBaTTI2LjI3NjYgMzUuNzQyN0MyNy42MzY1IDMzLjYzOTMgMjguNzExIDMwLjg2OCAyOS4zNzc0IDI3LjY4NDdIMzUuMTA0NkMzMy4yNTEgMzEuMzMyMiAzMC4xMDY4IDM0LjIxNzkgMjYuMjc2NiAzNS43NDI3Wk0xMy43MjM0IDM1Ljc0MjdDOS44OTM2OSAzNC4yMTc5IDYuNzUxNTUgMzEuMzMyNCA0Ljg5MjkzIDI3LjY4NDdIMTAuNjIyNkMxMS4yODkgMzAuODY4IDEyLjM2MzUgMzMuNjM5MyAxMy43MjM0IDM1Ljc0MjdaIiBmaWxsPSIjM0E0MkU5Ii8+Cjwvc3ZnPgo="
+        },
+        "displayName": "HTTP Request",
+        "typeVersion": 4,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "icon": "fa:pen",
+        "name": "n8n-nodes-base.set",
+        "codex": {
+          "data": {
+            "alias": [
+              "Set",
+              "JS",
+              "JSON",
+              "Filter",
+              "Transform",
+              "Map"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-to-automate-your-factorys-incident-reporting-a-step-by-step-guide/",
+                  "icon": "\ud83c\udfed",
+                  "label": "Learn to Automate Your Factory's Incident Reporting: A Step by Step Guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-pulling-and-visualizing-data-with-n8n/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "Automatically pulling and visualizing data with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/database-monitoring-and-alerting-with-n8n/",
+                  "icon": "\ud83d\udce1",
+                  "label": "Database Monitoring and Alerting with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automatically-adding-expense-receipts-to-google-sheets-with-telegram-mindee-twilio-and-n8n/",
+                  "icon": "\ud83e\uddfe",
+                  "label": "Automatically Adding Expense Receipts to Google Sheets with Telegram, Mindee, Twilio, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-uproc-scraped-a-multi-page-website-with-a-low-code-workflow/",
+                  "icon": " \ud83d\udd78\ufe0f",
+                  "label": "How uProc scraped a multi-page website with a low-code workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/building-an-expense-tracking-app-in-10-minutes/",
+                  "icon": "\ud83d\udcf1",
+                  "label": "Building an expense tracking app in 10 minutes"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-membership-development-manager-automates-his-work-and-investments/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "How a Membership Development Manager automates his work and investments"
+                },
+                {
+                  "url": "https://n8n.io/blog/a-low-code-bitcoin-ticker-built-with-questdb-and-n8n-io/",
+                  "icon": "\ud83d\udcc8",
+                  "label": "A low-code bitcoin ticker built with QuestDB and n8n.io"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-set-up-a-ci-cd-pipeline-with-no-code/",
+                  "icon": "\ud83c\udfa1",
+                  "label": "How to set up a no-code CI/CD pipeline with GitHub and TravisCI"
+                },
+                {
+                  "url": "https://n8n.io/blog/benefits-of-automation-and-n8n-an-interview-with-hubspots-hugh-durkin/",
+                  "icon": "\ud83c\udf96",
+                  "label": "Benefits of automation and n8n: An interview with HubSpot's Hugh Durkin"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                },
+                {
+                  "url": "https://n8n.io/blog/aws-workflow-automation/",
+                  "label": "7 no-code workflow automations for Amazon Web Services"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.set/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Data Transformation"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Edit Fields"
+        },
+        "iconData": {
+          "icon": "pen",
+          "type": "icon"
+        },
+        "displayName": "Edit Fields (Set)",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 40,
+        "icon": "file:slack.svg",
+        "name": "n8n-nodes-base.slack",
+        "codex": {
+          "data": {
+            "alias": [
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-your-data-processing-pipeline-in-9-steps-with-n8n/",
+                  "icon": "\u2699\ufe0f",
+                  "label": "Automate your data processing pipeline in 9 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-automatically-give-kudos-to-contributors-with-github-slack-and-n8n/",
+                  "icon": "\ud83d\udc4f",
+                  "label": "How to automatically give kudos to contributors with GitHub, Slack, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/automations-for-activists/",
+                  "icon": "\u2728",
+                  "label": "How Common Knowledge use workflow automation for activism"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.slack/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/slack/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"output\"]",
+        "defaults": {
+          "name": "Slack"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSIjZmZmIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB2aWV3Qm94PSIwIDAgMTUwLjg1MiAxNTAuODUyIj48dXNlIHhsaW5rOmhyZWY9IiNhIiB4PSIuOTI2IiB5PSIuOTI2Ii8+PHN5bWJvbCBpZD0iYSIgb3ZlcmZsb3c9InZpc2libGUiPjxnIHN0cm9rZS13aWR0aD0iMS44NTIiPjxwYXRoIGZpbGw9IiNlMDFlNWEiIHN0cm9rZT0iI2UwMWU1YSIgZD0iTTQwLjc0MSA5My41NWMwLTguNzM1IDYuNjA3LTE1Ljc3MiAxNC44MTUtMTUuNzcyczE0LjgxNSA3LjAzNyAxNC44MTUgMTUuNzcydjM4LjgyNGMwIDguNzM3LTYuNjA3IDE1Ljc3NC0xNC44MTUgMTUuNzc0cy0xNC44MTUtNy4wMzctMTQuODE1LTE1Ljc3MnoiLz48cGF0aCBmaWxsPSIjZWNiMjJkIiBzdHJva2U9IiNlY2IyMmQiIGQ9Ik05My41NSAxMDcuNDA4Yy04LjczNSAwLTE1Ljc3Mi02LjYwNy0xNS43NzItMTQuODE1czcuMDM3LTE0LjgxNSAxNS43NzItMTQuODE1aDM4LjgyNmM4LjczNSAwIDE1Ljc3MiA2LjYwNyAxNS43NzIgMTQuODE1cy03LjAzNyAxNC44MTUtMTUuNzcyIDE0LjgxNXoiLz48cGF0aCBmaWxsPSIjMmZiNjdjIiBzdHJva2U9IiMyZmI2N2MiIGQ9Ik03Ny43NzggMTUuNzcyQzc3Ljc3OCA3LjAzNyA4NC4zODUgMCA5Mi41OTMgMHMxNC44MTUgNy4wMzcgMTQuODE1IDE1Ljc3MnYzOC44MjZjMCA4LjczNS02LjYwNyAxNS43NzItMTQuODE1IDE1Ljc3MnMtMTQuODE1LTcuMDM3LTE0LjgxNS0xNS43NzJ6Ii8+PHBhdGggZmlsbD0iIzM2YzVmMSIgc3Ryb2tlPSIjMzZjNWYxIiBkPSJNMTUuNzcyIDcwLjM3MUM3LjAzNyA3MC4zNzEgMCA2My43NjMgMCA1NS41NTZzNy4wMzctMTQuODE1IDE1Ljc3Mi0xNC44MTVoMzguODI2YzguNzM1IDAgMTUuNzcyIDYuNjA3IDE1Ljc3MiAxNC44MTVzLTcuMDM3IDE0LjgxNS0xNS43NzIgMTQuODE1eiIvPjxnIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiPjxwYXRoIGZpbGw9IiNlY2IyMmQiIHN0cm9rZT0iI2VjYjIyZCIgZD0iTTc3Ljc3OCAxMzMuMzMzYzAgOC4yMDggNi42MDcgMTQuODE1IDE0LjgxNSAxNC44MTVzMTQuODE1LTYuNjA3IDE0LjgxNS0xNC44MTUtNi42MDctMTQuODE1LTE0LjgxNS0xNC44MTVINzcuNzc4eiIvPjxwYXRoIGZpbGw9IiMyZmI2N2MiIHN0cm9rZT0iIzJmYjY3YyIgZD0iTTEzMy4zMzQgNzAuMzcxaC0xNC44MTVWNTUuNTU2YzAtOC4yMDcgNi42MDctMTQuODE1IDE0LjgxNS0xNC44MTVzMTQuODE1IDYuNjA3IDE0LjgxNSAxNC44MTUtNi42MDcgMTQuODE1LTE0LjgxNSAxNC44MTV6Ii8+PHBhdGggZmlsbD0iI2UwMWU1YSIgc3Ryb2tlPSIjZTAxZTVhIiBkPSJNMTQuODE1IDc3Ljc3OEgyOS42M3YxNC44MTVjMCA4LjIwNy02LjYwNyAxNC44MTUtMTQuODE1IDE0LjgxNVMwIDEwMC44IDAgOTIuNTkzczYuNjA3LTE0LjgxNSAxNC44MTUtMTQuODE1eiIvPjxwYXRoIGZpbGw9IiMzNmM1ZjEiIHN0cm9rZT0iIzM2YzVmMSIgZD0iTTcwLjM3MSAxNC44MTVWMjkuNjNINTUuNTU2Yy04LjIwNyAwLTE0LjgxNS02LjYwNy0xNC44MTUtMTQuODE1UzQ3LjM0OCAwIDU1LjU1NiAwczE0LjgxNSA2LjYwNyAxNC44MTUgMTQuODE1eiIvPjwvZz48L2c+PC9zeW1ib2w+PC9zdmc+"
+        },
+        "displayName": "Slack",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 47,
+        "icon": "file:webhook.svg",
+        "name": "n8n-nodes-base.webhook",
+        "codex": {
+          "data": {
+            "alias": [
+              "HTTP",
+              "API",
+              "Build",
+              "WH"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-automatically-cross-post-your-content-with-n8n/",
+                  "icon": "\u270d\ufe0f",
+                  "label": "Learn how to automatically cross-post your content with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/running-n8n-on-ships-an-interview-with-maranics/",
+                  "icon": "\ud83d\udef3",
+                  "label": "Running n8n on ships: An interview with Maranics"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-build-a-low-code-self-hosted-url-shortener/",
+                  "icon": "\ud83d\udd17",
+                  "label": "How to build a low-code, self-hosted URL shortener in 3 steps"
+                },
+                {
+                  "url": "https://n8n.io/blog/what-are-apis-how-to-use-them-with-no-code/",
+                  "icon": " \ud83e\udea2",
+                  "label": "What are APIs and how to use them with no code"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-tasks-you-can-automate-with-notion-api/",
+                  "icon": "\u26a1\ufe0f",
+                  "label": "5 tasks you can automate with the new Notion API "
+                },
+                {
+                  "url": "https://n8n.io/blog/how-a-digital-strategist-uses-n8n-for-online-marketing/",
+                  "icon": "\ud83d\udcbb",
+                  "label": "How a digital strategist uses n8n for online marketing"
+                },
+                {
+                  "url": "https://n8n.io/blog/the-ultimate-guide-to-automate-your-video-collaboration-with-whereby-mattermost-and-n8n/",
+                  "icon": "\ud83d\udcf9",
+                  "label": "The ultimate guide to automate your video collaboration with Whereby, Mattermost, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-automatically-give-kudos-to-contributors-with-github-slack-and-n8n/",
+                  "icon": "\ud83d\udc4f",
+                  "label": "How to automatically give kudos to contributors with GitHub, Slack, and n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/5-workflow-automations-for-mattermost-that-we-love-at-n8n/",
+                  "icon": "\ud83e\udd16",
+                  "label": "5 workflow automations for Mattermost that we love at n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/why-this-product-manager-loves-workflow-automation-with-n8n/",
+                  "icon": "\ud83e\udde0",
+                  "label": "Why this Product Manager loves workflow automation with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/creating-custom-incident-response-workflows-with-n8n/",
+                  "label": "How to automate every step of an incident response workflow"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-to-build-powerful-api-endpoints-using-webhooks/",
+                  "icon": "\ud83e\uddf0",
+                  "label": "Learn to Build Powerful API Endpoints Using Webhooks"
+                },
+                {
+                  "url": "https://n8n.io/blog/learn-how-to-use-webhooks-with-mattermost-slash-commands/",
+                  "icon": "\ud83e\udd84",
+                  "label": "Learn how to use webhooks with Mattermost slash commands"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-goomer-automated-their-operations-with-over-200-n8n-workflows/",
+                  "icon": "\ud83d\udef5",
+                  "label": "How Goomer automated their operations with over 200 n8n workflows"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/"
+                }
+              ]
+            },
+            "categories": [
+              "Development",
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Webhook"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTM1IDM3Yy0yLjIgMC00LTEuOC00LTRzMS44LTQgNC00IDQgMS44IDQgNC0xLjggNC00IDQiLz48cGF0aCBmaWxsPSIjMzc0NzRmIiBkPSJNMzUgNDNjLTMgMC01LjktMS40LTcuOC0zLjdsMy4xLTIuNWMxLjEgMS40IDIuOSAyLjMgNC43IDIuMyAzLjMgMCA2LTIuNyA2LTZzLTIuNy02LTYtNmMtMSAwLTIgLjMtMi45LjdsLTEuNyAxTDIzLjMgMTZsMy41LTEuOSA1LjMgOS40YzEtLjMgMi0uNSAzLS41IDUuNSAwIDEwIDQuNSAxMCAxMFM0MC41IDQzIDM1IDQzIi8+PHBhdGggZmlsbD0iIzM3NDc0ZiIgZD0iTTE0IDQzQzguNSA0MyA0IDM4LjUgNCAzM2MwLTQuNiAzLjEtOC41IDcuNS05LjdsMSAzLjlDOS45IDI3LjkgOCAzMC4zIDggMzNjMCAzLjMgMi43IDYgNiA2czYtMi43IDYtNnYtMmgxNXY0SDIzLjhjLS45IDQuNi01IDgtOS44IDgiLz48cGF0aCBmaWxsPSIjZTkxZTYzIiBkPSJNMTQgMzdjLTIuMiAwLTQtMS44LTQtNHMxLjgtNCA0LTQgNCAxLjggNCA0LTEuOCA0LTQgNCIvPjxwYXRoIGZpbGw9IiMzNzQ3NGYiIGQ9Ik0yNSAxOWMtMi4yIDAtNC0xLjgtNC00czEuOC00IDQtNCA0IDEuOCA0IDQtMS44IDQtNCA0Ii8+PHBhdGggZmlsbD0iI2U5MWU2MyIgZD0ibTE1LjcgMzQtMy40LTIgNS45LTkuN2MtMi0xLjktMy4yLTQuNS0zLjItNy4zIDAtNS41IDQuNS0xMCAxMC0xMHMxMCA0LjUgMTAgMTBjMCAuOS0uMSAxLjctLjMgMi41bC0zLjktMWMuMS0uNS4yLTEgLjItMS41IDAtMy4zLTIuNy02LTYtNnMtNiAyLjctNiA2YzAgMi4xIDEuMSA0IDIuOSA1LjFsMS43IDF6Ii8+PC9zdmc+"
+        },
+        "displayName": "Webhook",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 5,
+            "name": "Development"
+          },
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 112,
+        "icon": "fa:map-signs",
+        "name": "n8n-nodes-base.switch",
+        "codex": {
+          "data": {
+            "alias": [
+              "Router",
+              "If",
+              "Path",
+              "Filter",
+              "Condition",
+              "Logic",
+              "Branch",
+              "Case"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/2021-the-year-to-automate-the-new-you-with-n8n/",
+                  "icon": "\u2600\ufe0f",
+                  "label": "2021: The Year to Automate the New You with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/build-your-own-virtual-assistant-with-n8n-a-step-by-step-guide/",
+                  "icon": "\ud83d\udc66",
+                  "label": "Build your own virtual assistant with n8n: A step by step guide"
+                },
+                {
+                  "url": "https://n8n.io/blog/automation-for-maintainers-of-open-source-projects/",
+                  "icon": "\ud83c\udff7\ufe0f",
+                  "label": "How to automatically manage contributions to open-source projects"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.switch/"
+                }
+              ]
+            },
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Flow"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Switch",
+          "color": "#506000"
+        },
+        "iconData": {
+          "icon": "map-signs",
+          "type": "icon"
+        },
+        "displayName": "Switch",
+        "typeVersion": 3,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 356,
+        "icon": "file:gmail.svg",
+        "name": "n8n-nodes-base.gmail",
+        "codex": {
+          "data": {
+            "alias": [
+              "email",
+              "human",
+              "form",
+              "wait",
+              "hitl",
+              "approval"
+            ],
+            "resources": {
+              "generic": [
+                {
+                  "url": "https://n8n.io/blog/why-business-process-automation-with-n8n-can-change-your-daily-life/",
+                  "icon": "\ud83e\uddec",
+                  "label": "Why business process automation with n8n can change your daily life"
+                },
+                {
+                  "url": "https://n8n.io/blog/supercharging-your-conference-registration-process-with-n8n/",
+                  "icon": "\ud83c\udfab",
+                  "label": "Supercharging your conference registration process with n8n"
+                },
+                {
+                  "url": "https://n8n.io/blog/no-code-ecommerce-workflow-automations/",
+                  "icon": "store",
+                  "label": "6 e-commerce workflows to power up your Shopify s"
+                },
+                {
+                  "url": "https://n8n.io/blog/how-to-get-started-with-crm-automation-and-no-code-workflow-ideas/",
+                  "icon": "\ud83d\udc65",
+                  "label": "How to get started with CRM automation (with 3 no-code workflow ideas"
+                },
+                {
+                  "url": "https://n8n.io/blog/automate-google-apps-for-productivity/",
+                  "icon": "\ud83d\udca1",
+                  "label": "15 Google apps you can combine and automate to increase productivity"
+                },
+                {
+                  "url": "https://n8n.io/blog/your-business-doesnt-need-you-to-operate/",
+                  "icon": " \ud83d\udda5\ufe0f",
+                  "label": "Hey founders! Your business doesn't need you to operate"
+                },
+                {
+                  "url": "https://n8n.io/blog/using-automation-to-boost-productivity-in-the-workplace/",
+                  "icon": "\ud83d\udcaa",
+                  "label": "Using Automation to Boost Productivity in the Workplace"
+                }
+              ],
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.gmail/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/google/oauth-single-service/"
+                }
+              ]
+            },
+            "categories": [
+              "Communication",
+              "HITL"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "HITL": [
+                "Human in the Loop"
+              ]
+            }
+          }
+        },
+        "group": "[\"transform\"]",
+        "defaults": {
+          "name": "Gmail"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMTkzIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCI+PHBhdGggZmlsbD0iIzQyODVGNCIgZD0iTTU4LjE4MiAxOTIuMDVWOTMuMTRMMjcuNTA3IDY1LjA3NyAwIDQ5LjUwNHYxMjUuMDkxYzAgOS42NTggNy44MjUgMTcuNDU1IDE3LjQ1NSAxNy40NTV6Ii8+PHBhdGggZmlsbD0iIzM0QTg1MyIgZD0iTTE5Ny44MTggMTkyLjA1aDQwLjcyN2M5LjY1OSAwIDE3LjQ1NS03LjgyNiAxNy40NTUtMTcuNDU1VjQ5LjUwNWwtMzEuMTU2IDE3LjgzNy0yNy4wMjYgMjUuNzk4eiIvPjxwYXRoIGZpbGw9IiNFQTQzMzUiIGQ9Im01OC4xODIgOTMuMTQtNC4xNzQtMzguNjQ3IDQuMTc0LTM2Ljk4OUwxMjggNjkuODY4bDY5LjgxOC01Mi4zNjQgNC42NyAzNC45OTItNC42NyA0MC42NDRMMTI4IDE0NS41MDR6Ii8+PHBhdGggZmlsbD0iI0ZCQkMwNCIgZD0iTTE5Ny44MTggMTcuNTA0VjkzLjE0TDI1NiA0OS41MDRWMjYuMjMxYzAtMjEuNTg1LTI0LjY0LTMzLjg5LTQxLjg5LTIwLjk0NXoiLz48cGF0aCBmaWxsPSIjQzUyMjFGIiBkPSJtMCA0OS41MDQgMjYuNzU5IDIwLjA3TDU4LjE4MiA5My4xNFYxNy41MDRMNDEuODkgNS4yODZDMjQuNjEtNy42NiAwIDQuNjQ2IDAgMjYuMjN6Ii8+PC9zdmc+"
+        },
+        "displayName": "Gmail",
+        "typeVersion": 2,
+        "nodeCategories": [
+          {
+            "id": 6,
+            "name": "Communication"
+          },
+          {
+            "id": 28,
+            "name": "HITL"
+          }
+        ]
+      },
+      {
+        "id": 545,
+        "icon": "file:supabase.svg",
+        "name": "n8n-nodes-base.supabase",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.supabase/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/supabase/"
+                }
+              ]
+            },
+            "categories": [
+              "Data & Storage"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Supabase"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDkiIGhlaWdodD0iMTEzIiBmaWxsPSJub25lIj48cGF0aCBmaWxsPSJ1cmwoI2EpIiBkPSJNNjMuNzA4IDExMC4yODRjLTIuODYgMy42MDEtOC42NTggMS42MjgtOC43MjctMi45N2wtMS4wMDctNjcuMjUxaDQ1LjIyYzguMTkgMCAxMi43NTggOS40NiA3LjY2NSAxNS44NzR6Ii8+PHBhdGggZmlsbD0idXJsKCNiKSIgZmlsbC1vcGFjaXR5PSIuMiIgZD0iTTYzLjcwOCAxMTAuMjg0Yy0yLjg2IDMuNjAxLTguNjU4IDEuNjI4LTguNzI3LTIuOTdsLTEuMDA3LTY3LjI1MWg0NS4yMmM4LjE5IDAgMTIuNzU4IDkuNDYgNy42NjUgMTUuODc0eiIvPjxwYXRoIGZpbGw9IiMzRUNGOEUiIGQ9Ik00NS4zMTcgMi4wNzFjMi44Ni0zLjYwMSA4LjY1Ny0xLjYyOCA4LjcyNiAyLjk3bC40NDIgNjcuMjUxSDkuODNjLTguMTkgMC0xMi43NTktOS40Ni03LjY2NS0xNS44NzV6Ii8+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iNTMuOTc0IiB4Mj0iOTQuMTYzIiB5MT0iNTQuOTc0IiB5Mj0iNzEuODI5IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3Agc3RvcC1jb2xvcj0iIzI0OTM2MSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzNFQ0Y4RSIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJiIiB4MT0iMzYuMTU2IiB4Mj0iNTQuNDg0IiB5MT0iMzAuNTc4IiB5Mj0iNjUuMDgxIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3AvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1vcGFjaXR5PSIwIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PC9zdmc+"
+        },
+        "displayName": "Supabase",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 3,
+            "name": "Data & Storage"
+          }
+        ]
+      },
+      {
+        "id": 565,
+        "icon": "fa:sticky-note",
+        "name": "n8n-nodes-base.stickyNote",
+        "codex": {
+          "data": {
+            "alias": [
+              "Comments",
+              "Notes",
+              "Sticky"
+            ],
+            "categories": [
+              "Core Nodes"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0",
+            "subcategories": {
+              "Core Nodes": [
+                "Helpers"
+              ]
+            }
+          }
+        },
+        "group": "[\"input\"]",
+        "defaults": {
+          "name": "Sticky Note",
+          "color": "#FFD233"
+        },
+        "iconData": {
+          "icon": "sticky-note",
+          "type": "icon"
+        },
+        "displayName": "Sticky Note",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 9,
+            "name": "Core Nodes"
+          }
+        ]
+      },
+      {
+        "id": 1226,
+        "icon": "file:facebook.svg",
+        "name": "n8n-nodes-base.facebookLeadAdsTrigger",
+        "codex": {
+          "data": {
+            "resources": {
+              "primaryDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/trigger-nodes/n8n-nodes-base.facebookleadadstrigger/"
+                }
+              ],
+              "credentialDocumentation": [
+                {
+                  "url": "https://docs.n8n.io/integrations/builtin/credentials/facebookleadads/"
+                }
+              ]
+            },
+            "categories": [
+              "Marketing"
+            ],
+            "nodeVersion": "1.0",
+            "codexVersion": "1.0"
+          }
+        },
+        "group": "[\"trigger\"]",
+        "defaults": {
+          "name": "Facebook Lead Ads Trigger"
+        },
+        "iconData": {
+          "type": "file",
+          "fileBuffer": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MCA2MCI+PHBhdGggZmlsbD0iIzE4NzdmMiIgZD0iTTU5LjUgMzBDNTkuNSAxMy43MSA0Ni4yOS41IDMwIC41Uy41IDEzLjcxLjUgMzBjMCAxNC43MiAxMC43OSAyNi45MyAyNC44OSAyOS4xNFYzOC41M0gxNy45VjMwaDcuNDl2LTYuNWMwLTcuMzkgNC40LTExLjQ4IDExLjE0LTExLjQ4IDMuMjMgMCA2LjYuNTggNi42LjU4djcuMjZoLTMuNzJjLTMuNjYgMC00LjgxIDIuMjctNC44MSA0LjYxVjMwaDguMThsLTEuMzEgOC41M0gzNC42djIwLjYxQzQ4LjcxIDU2LjkzIDU5LjUgNDQuNzIgNTkuNSAzMCIvPjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik00MS40OCAzOC41MyA0Mi43OSAzMGgtOC4xOHYtNS41M2MwLTIuMzMgMS4xNC00LjYxIDQuODEtNC42MWgzLjcyVjEyLjZzLTMuMzgtLjU4LTYuNi0uNThjLTYuNzQgMC0xMS4xNCA0LjA4LTExLjE0IDExLjQ4VjMwaC03LjV2OC41M2g3LjQ5djIwLjYxYzEuNS4yNCAzLjA0LjM2IDQuNjEuMzZzMy4xMS0uMTIgNC42MS0uMzZWMzguNTN6Ii8+PC9zdmc+"
+        },
+        "displayName": "Facebook Lead Ads Trigger",
+        "typeVersion": 1,
+        "nodeCategories": [
+          {
+            "id": 27,
+            "name": "Marketing"
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": 38,
+        "name": "Lead Nurturing"
+      },
+      {
+        "id": 47,
+        "name": "AI Chatbot"
+      }
+    ],
+    "image": []
+  }
+}
